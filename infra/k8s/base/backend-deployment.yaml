@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fundandtrace-backend
+  namespace: fundandtrace
+  labels:
+    app: fundandtrace-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fundandtrace-backend
+  template:
+    metadata:
+      labels:
+        app: fundandtrace-backend
+    spec:
+      containers:
+        - name: backend
+          image: fundandtrace-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: fundandtrace-config
+            - secretRef:
+                name: fundandtrace-secrets
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fundandtrace-backend-svc
+  namespace: fundandtrace
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    app: fundandtrace-backend

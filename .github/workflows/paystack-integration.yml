@@ -1,0 +1,36 @@
+name: Paystack Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  paystack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: cd FundandTraceBackend && npm ci
+
+      - name: Check Paystack routes exist
+        run: |
+          echo "Checking for Paystack-related routes in backend..."
+          grep -r "paystack" FundandTraceBackend/ --include="*.js" --include="*.ts" --include="*.json" -l 2>/dev/null || echo "No Paystack references found"
+          grep -r "Paystack" FundandTraceBackend/ --include="*.js" --include="*.ts" --include="*.json" -l 2>/dev/null || echo "No Paystack references (case insensitive) found"
+
+      - name: Verify webhook route handling pattern
+        run: |
+          echo "Checking existing webhook route patterns..."
+          grep -r "/api/donations" FundandTraceBackend/ --include="*.js" -l 2>/dev/null | head -10
+          echo ""
+          echo "Checking controller structure..."
+          ls FundandTraceBackend/controllers/ 2>/dev/null

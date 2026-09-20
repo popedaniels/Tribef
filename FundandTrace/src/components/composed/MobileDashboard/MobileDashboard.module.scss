@@ -1,0 +1,97 @@
+.container {
+    display: none;
+
+    @media screen and (max-width: 1023px) {
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow-y: scroll;
+    }
+
+    .menu {
+        width: 85%;
+        height: 100%;
+        max-width: 400px;
+        overflow: auto;
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 10000000;
+
+        background-color: white;
+
+        .top {
+            height: 80px;
+            display: flex;
+            align-items: center;
+            background: #FaFaFa
+        }
+
+        .bottom {
+            padding-top: 50px;
+            padding-bottom: 50px;
+
+            .title {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                margin-bottom: 35px;
+
+                h2 {
+                    font-style: normal;
+                    font-weight: normal;
+                    font-size: 16px;
+                    line-height: 24px;
+                    /* identical to box height, or 150% */
+
+
+                    color: #514949
+                }
+            }
+
+            .navlinks {
+                margin-bottom: 75px;
+
+                a,
+                p {
+                    text-decoration: none;
+
+                    font-style: normal;
+                    font-weight: 400;
+                    font-size: 14px;
+                    line-height: 24px;
+                    /* identical to box height, or 171% */
+
+
+                    color: #514949;
+                }
+            }
+
+            .otherlinks {
+                a {
+                    text-decoration: none;
+
+                    font-style: normal;
+                    font-weight: normal;
+                    font-size: 16px;
+                    line-height: 24px;
+                    /* identical to box height, or 150% */
+
+
+                    color: #514949;
+
+                }
+            }
+        }
+    }
+
+    .outside {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.6);
+        z-index: 1000000;
+    }
+}

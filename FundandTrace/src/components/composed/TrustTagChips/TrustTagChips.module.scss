@@ -1,0 +1,42 @@
+.chipsContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(105, 121, 248, 0.06);
+  border: 1px solid rgba(105, 121, 248, 0.2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: help;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(105, 121, 248, 0.14);
+    border-color: rgba(105, 121, 248, 0.45);
+    transform: translateY(-1px);
+  }
+}
+
+.icon {
+  font-size: 11px;
+}
+
+.label {
+  letter-spacing: 0.01em;
+}
+
+:global([data-theme="dark"]) .chip,
+:global(.dark-theme) .chip {
+  background: rgba(129, 140, 248, 0.1) !important;
+  border-color: rgba(129, 140, 248, 0.25) !important;
+  color: #818CF8 !important;
+}

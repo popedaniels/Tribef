@@ -1,0 +1,19 @@
+.toast {
+    position: fixed;
+    top: -100%;
+    width: 300px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: auto;
+    color: white;
+    // background-color: rgb(219, 124, 124);
+    padding: 15px;
+    transition: all 0.5s ease;
+    border-radius: 4px;
+    z-index: 10000000000
+}
+
+.show {
+    top: 30px;
+    transition: all 0.5s ease;
+}

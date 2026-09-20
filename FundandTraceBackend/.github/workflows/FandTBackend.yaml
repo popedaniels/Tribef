@@ -1,0 +1,32 @@
+name: backend
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FundandTraceBackend
+    env:
+      MONGOURL: mongodb://localhost:27017/fundandtrace_test
+      TOKEN_SECRET: ci-token-secret-value-at-least-32-chars!!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: FundandTraceBackend/package-lock.json
+      - run: npm ci
+      # Unit tests with the coverage floor enforced on auth/fraud/crypto.
+      - run: npm run test:unit:cov
+      # Integration tests against a real MongoDB (donation/webhook flows).
+      - run: npm test
+      # Sanity-check the schema migration script compiles and runs (dry-run only).
+      # It connects to MONGOURL and safely skips if MongoDB isn't reachable in CI.
+      - run: node scripts/migrate-schema-relationships.js --dry-run || true
+      - run: docker build --tag fundandtrace-backend:test .

@@ -1,0 +1,41 @@
+# Keep secrets and local artifacts out of the image build context.
+# The frontend Dockerfile COPYs the whole context into the builder stage, and
+# NEXT_PUBLIC_* vars are inlined into the client bundle at build time.
+
+# Environment / secrets — never in the context
+.env
+.env.*
+!.env.example
+
+# Build outputs and caches
+.next
+out
+dist
+test-results
+playwright-report
+
+# Dependencies (installed inside the image)
+node_modules
+
+# Tests and CI artifacts
+e2e
+__mocks__
+coverage
+.github
+.eslintrc
+.eslintrc.json
+
+# Git and editor state
+.git
+.gitignore
+.vscode
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log
+
+# Misc
+*.md
+Dockerfile
+docker-compose.yml

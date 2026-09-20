@@ -1,0 +1,26 @@
+.container {
+    box-shadow: 0px 4px 4px rgba(50, 50, 71, 0.08), 0px 4px 8px rgba(50, 50, 71, 0.06);
+    border-radius: 4px;
+    transition: all ease-in-out 0.3s;
+}
+
+.card_img {
+    border-top-right-radius: 10px;
+    border-top-left-radius: 10px;
+    object-fit: cover;
+}
+
+.progress {
+    height: 5px !important;
+    background-color: #697af821 !important;
+}
+
+.progressbar {
+    background-color: var(--color-primary) !important;
+}
+
+
+.container:hover {
+    box-shadow: 0px 8px 22px -6px rgba(50, 50, 71, 0.12), 0px 14px 64px -4px rgba(50, 50, 71, 0.12);
+    border-radius: 4px;
+}

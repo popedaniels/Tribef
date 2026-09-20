@@ -1,0 +1,42 @@
+.ringContainer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.svgRing {
+  transform: rotate(-90deg);
+}
+
+.animatedCircle {
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.centerText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--color-text-heading);
+}
+
+.percentNumber {
+  font-size: 10.5px;
+  letter-spacing: -0.02em;
+}
+
+.checkIcon {
+  color: #10B981;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+:global([data-theme="dark"]) .centerText,
+:global(.dark-theme) .centerText {
+  color: #F8FAFC !important;
+}

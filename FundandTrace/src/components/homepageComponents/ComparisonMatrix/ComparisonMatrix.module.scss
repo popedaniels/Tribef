@@ -1,0 +1,194 @@
+.sectionWrapper {
+  padding: 90px 0;
+  background: #FCFDFE;
+}
+
+.header {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto 48px auto;
+
+  .heading {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--color-text-heading);
+    letter-spacing: -0.025em;
+    margin-top: 12px;
+    margin-bottom: 12px;
+
+    @media (max-width: 768px) {
+      font-size: 26px;
+    }
+  }
+
+  .subheading {
+    font-size: 15.5px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+}
+
+.matrixCard {
+  background: #FFFFFF;
+  border: 1px solid #EAEFF6;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(23, 28, 53, 0.04);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.tableResponsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+
+  thead {
+    background: #F8FAFD;
+    border-bottom: 1px solid #EAEFF6;
+
+    th {
+      padding: 20px 24px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--color-text-heading);
+      letter-spacing: 0.02em;
+    }
+
+    .featureCol {
+      width: 32%;
+    }
+
+    .brandCol {
+      width: 38%;
+      background: rgba(105, 121, 248, 0.06);
+      border-left: 1px solid rgba(105, 121, 248, 0.15);
+      border-right: 1px solid rgba(105, 121, 248, 0.15);
+    }
+
+    .legacyCol {
+      width: 30%;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #F1F5F9;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: #FDFEFE;
+      }
+
+      &.highlightRow {
+        background: #FAFCFF;
+      }
+    }
+
+    td {
+      padding: 20px 24px;
+      font-size: 14.5px;
+      vertical-align: middle;
+    }
+
+    .featureName {
+      font-weight: 600;
+      color: var(--color-text-heading);
+      display: flex;
+      align-items: center;
+
+      .featureIcon {
+        color: var(--color-primary);
+        margin-right: 10px;
+        font-size: 14px;
+      }
+    }
+
+    .brandCell {
+      background: rgba(105, 121, 248, 0.03);
+      border-left: 1px solid rgba(105, 121, 248, 0.12);
+      border-right: 1px solid rgba(105, 121, 248, 0.12);
+      font-weight: 600;
+      color: var(--color-text-heading);
+    }
+
+    .legacyCell {
+      color: var(--color-text-muted);
+      font-size: 14px;
+    }
+  }
+}
+
+.brandHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .brandTitle {
+    color: var(--color-primary);
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .badgeBest {
+    background: var(--color-primary);
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+  }
+}
+
+.cellContent {
+  display: flex;
+  align-items: center;
+
+  .checkIcon {
+    width: 20px;
+    height: 20px;
+    color: #10B981;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+
+  .crossIcon {
+    width: 18px;
+    height: 18px;
+    color: #94A3B8;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+}
+
+.ctaFooter {
+  padding: 30px 36px;
+  background: #F8FAFD;
+  border-top: 1px solid #EAEFF6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+
+  .ctaText {
+    h4 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--color-text-heading);
+    }
+
+    p {
+      font-size: 14px;
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+  }
+}

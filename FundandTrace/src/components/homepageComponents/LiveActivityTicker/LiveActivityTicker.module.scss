@@ -1,0 +1,149 @@
+.tickerWrapper {
+  width: 100%;
+  background: #FAFCFF;
+  border-top: 1px solid #EAEFF8;
+  border-bottom: 1px solid #EAEFF8;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  height: 52px;
+  position: relative;
+  z-index: 10;
+}
+
+.labelBadge {
+  background: #FFFFFF;
+  padding: 0 16px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--color-primary);
+  border-right: 1px solid #EAEFF8;
+  flex-shrink: 0;
+  z-index: 2;
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.02);
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.trackContainer {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%);
+}
+
+.marquee {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  animation: marqueeScroll 32s linear infinite;
+
+  &:hover {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes marqueeScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.eventCard {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: #FFFFFF;
+  border: 1px solid #E8EEF7;
+  border-radius: 4px;
+  font-size: 12.5px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+
+  &:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+  }
+}
+
+.typePill {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.amount {
+  font-weight: 800;
+  color: var(--color-text-heading);
+  font-size: 13px;
+}
+
+.desc {
+  color: var(--color-text-body);
+  font-weight: 500;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+
+.loc {
+  font-weight: 600;
+}
+
+.dot {
+  opacity: 0.5;
+}
+
+/* Dark Theme Overrides */
+:global([data-theme="dark"]) .tickerWrapper,
+:global(.dark-theme) .tickerWrapper {
+  background: #080B11 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+:global([data-theme="dark"]) .labelBadge,
+:global(.dark-theme) .labelBadge {
+  background: #0F172A !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  color: #818CF8 !important;
+}
+
+:global([data-theme="dark"]) .eventCard,
+:global(.dark-theme) .eventCard {
+  background: #111827 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+:global([data-theme="dark"]) .amount,
+:global(.dark-theme) .amount {
+  color: #F8FAFC !important;
+}
+
+:global([data-theme="dark"]) .desc,
+:global(.dark-theme) .desc {
+  color: #CBD5E1 !important;
+}

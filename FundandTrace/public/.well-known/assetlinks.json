@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.fundandtrace.app",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:44:C5:9F:9E:09:BF:FE:48:86:13:B6:3C:9B:EE:69:BE:85:6B:0C:4C:E6:BC:54:99:99:A2:3E:45:90"
+      ]
+    }
+  }
+]

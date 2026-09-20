@@ -1,0 +1,220 @@
+.section {
+  width: 100%;
+  padding: 90px 0;
+  background: #ffffff;
+  transition: background 0.3s ease;
+
+  :global([data-theme="dark"]) &,
+  :global(.dark-theme) & {
+    background: #0b0f19 !important;
+  }
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 100px;
+
+  @media screen and (max-width: 1200px) {
+    padding: 0 50px;
+  }
+
+  @media screen and (max-width: 767px) {
+    padding: 0 20px;
+  }
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 36px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #edf1fb;
+
+  :global([data-theme="dark"]) &,
+  :global(.dark-theme) & {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+
+  @media screen and (max-width: 767px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .titleCol {
+    .tag {
+      color: #4b5df5;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: inline-block;
+
+      :global([data-theme="dark"]) &,
+      :global(.dark-theme) & {
+        color: #93a2fd !important;
+      }
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--color-text-heading);
+      margin: 0;
+
+      @media screen and (max-width: 767px) {
+        font-size: 24px;
+      }
+    }
+  }
+
+  .viewAllLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #4b5df5;
+    text-decoration: none;
+    transition: all 0.2s ease;
+
+    :global([data-theme="dark"]) &,
+    :global(.dark-theme) & {
+      color: #93a2fd !important;
+    }
+
+    &:hover {
+      color: #3547db;
+      transform: translateX(4px);
+      text-decoration: none;
+    }
+  }
+}
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 36px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.filterBtn {
+  background: #f4f6fc;
+  color: #5d6580;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+
+  :global([data-theme="dark"]) &,
+  :global(.dark-theme) & {
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  &:hover {
+    background: #eef1fe;
+    color: #4b5df5;
+
+    :global([data-theme="dark"]) &,
+    :global(.dark-theme) & {
+      background: #334155 !important;
+      color: #ffffff !important;
+    }
+  }
+}
+
+.filterBtnActive {
+  background: var(--color-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(105, 121, 248, 0.3);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  margin-bottom: 40px;
+
+  @media screen and (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media screen and (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  background: #fbfcfe;
+  border: 1px dashed #d5daeb;
+  border-radius: 4px;
+  grid-column: 1 / -1;
+
+  :global([data-theme="dark"]) &,
+  :global(.dark-theme) & {
+    background: #111827 !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text-heading);
+    margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #788099;
+    margin: 0 0 20px 0;
+
+    :global([data-theme="dark"]) &,
+    :global(.dark-theme) & {
+      color: #9ca3af !important;
+    }
+  }
+}
+
+.bottomCtaMobile {
+  display: none;
+
+  @media screen and (max-width: 767px) {
+    display: block;
+    width: 100%;
+
+    button {
+      width: 100%;
+      background: #ffffff;
+      color: var(--color-primary);
+      border: 1.5px solid var(--color-primary);
+      padding: 12px;
+      font-weight: 700;
+      border-radius: 4px;
+
+      :global([data-theme="dark"]) &,
+      :global(.dark-theme) & {
+        background: #111827 !important;
+        border-color: var(--color-primary) !important;
+      }
+    }
+  }
+}

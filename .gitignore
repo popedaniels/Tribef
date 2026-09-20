@@ -1,0 +1,24 @@
+# Frontend generated artifacts
+FundandTrace/.next/
+FundandTrace/dist/
+FundandTrace/out/
+FundandTrace/test-results/
+FundandTrace/node_modules/
+
+# Backend generated artifacts
+FundandTraceBackend/.nyc_output/
+FundandTraceBackend/coverage/
+FundandTraceBackend/node_modules/
+FundandTraceBackend/debug.log
+FundandTraceBackend/yarn-error.log*
+
+# Local environment files
+.env
+.env.*
+!.env.example
+FundandTrace/.env
+FundandTrace/.env.*
+!FundandTrace/.env.example
+FundandTraceBackend/.env
+FundandTraceBackend/.env.*
+!FundandTraceBackend/.env.example

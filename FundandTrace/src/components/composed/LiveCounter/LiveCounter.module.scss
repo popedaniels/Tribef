@@ -1,0 +1,20 @@
+.counterWrap {
+  display: inline-flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
+.prefix {
+  color: var(--color-primary);
+  margin-right: 2px;
+}
+
+.number {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.suffix {
+  color: var(--color-primary);
+  margin-left: 2px;
+}

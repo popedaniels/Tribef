@@ -1,0 +1,19 @@
+type: comment, user : email
+type: initializeDonation, user: email
+type: donation, user: email
+type: fundingRequest, user: organizer_id
+type: resetPassword, user: email
+type: launchedCampaign, user: organizer (i.e organizerName)
+type: signUp, user: email
+type: login, user: email
+type: changePassword, user: email
+type: updateProfile, user: email
+type: waitlist, user: email
+type: campaignUpdate, user: name (user that added the update)
+
+280526741609
+1000112
+
+120526707969
+
+  // "test": "SET NODE_ENV=test && mocha ./tests/index.js --timeout 20000 --exit",

@@ -1,0 +1,90 @@
+{
+  "name": "Fund&Trace — Transparent Crowdfunding",
+  "short_name": "Fund&Trace",
+  "description": "Milestone-verified crowdfunding and public escrow tracking with radical transparency.",
+  "id": "com.fundandtrace.app",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#FFFFFF",
+  "theme_color": "#6979F8",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["finance", "social", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explore Causes",
+      "short_name": "Explore",
+      "description": "Discover verified and milestone-tracked campaigns",
+      "url": "/Categories",
+      "icons": [{ "src": "/favicon96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Launch Campaign",
+      "short_name": "Launch",
+      "description": "Start a 0% commission transparent fundraiser",
+      "url": "/StartACampaign",
+      "icons": [{ "src": "/favicon96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Dashboard",
+      "short_name": "Dashboard",
+      "description": "Manage your active campaigns and escrow payouts",
+      "url": "/dashboard",
+      "icons": [{ "src": "/favicon96x96.png", "sizes": "96x96" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

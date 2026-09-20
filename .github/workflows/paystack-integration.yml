@@ -36,4 +36,4 @@ jobs:
           grep -r "/api/donations" FundandTraceBackend/ --include="*.js" -l 2>/dev/null | head -10
           echo ""
           echo "Checking controller structure..."
-          ls FundandTraceBackend/controllers/ 2>/dev/null
+          ls FundandTraceBackend/controller/

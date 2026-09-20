@@ -2,13 +2,13 @@ version: "3.8"
 
 services:
   mongo:
-    image: mongo:8
+    image: mongo:7
     container_name: fundandtrace-dev-mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
-      - mongo-dev-data:/data/db
+      - mongo-dev-data-v7:/data/db
     networks:
       - fundandtrace-dev-net
     healthcheck:
@@ -94,5 +94,5 @@ networks:
     driver: bridge
 
 volumes:
-  mongo-dev-data:
+  mongo-dev-data-v7:
   redis-dev-data:

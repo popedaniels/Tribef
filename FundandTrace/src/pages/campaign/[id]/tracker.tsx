@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import Navbar from "../../../components/Navbar/Navbar";
 import PaymentHistoryCard from "../../../components/PaymentHistoryCard/PaymentHistoryCard";
+import TransparencyScore from "../../../components/trust/TransparencyScore";
+import PublicLedger from "../../../components/trust/PublicLedger";
 import Layout from "../../../components/Layout";
 import DisbursementCard from "../../../components/DisbursementCard/DisbursementCard";
 import Link from "next/link";
@@ -440,6 +442,9 @@ export default function CampaignTrackerPage({
             </article>
           </section>
         </section>
+        <section className="custom-container mt-4">
+          <TransparencyScore campaignId={campaign?._id} initiallyOpen />
+        </section>
         <section className="bottom mt-5 custom-container">
           <section className="mx-auto">
             <div
@@ -502,6 +507,7 @@ export default function CampaignTrackerPage({
                     approvedFundingRequests?.map((fundingRequest, i) => (
                       <DisbursementCard
                         disbursement={fundingRequest?.disbursement}
+                        fundingRequest={fundingRequest}
                         key={i}
                         last={i == approvedFundingRequests.length - 1 && "last"}
                       />
@@ -523,6 +529,9 @@ export default function CampaignTrackerPage({
               )}
             </article>
           </section>
+        </section>
+        <section className="custom-container">
+          <PublicLedger campaignId={campaign?._id} />
         </section>
       </Wrapper>
       <ReceiptInspectorModal

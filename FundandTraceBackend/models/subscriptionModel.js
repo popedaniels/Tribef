@@ -24,7 +24,7 @@ const SubscriptionSchema = new mongoose.Schema({
     ip: { type: String, default: "" },
   },
   totalDonated: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now() },
+  createdAt: { type: Date, default: Date.now },
   canceledAt: { type: Date, default: null },
 });
 

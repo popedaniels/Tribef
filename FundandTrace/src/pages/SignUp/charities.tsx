@@ -49,6 +49,9 @@ interface UploadedFileInfo {
 
 export default function StepOne() {
   const [email, setEmail] = useState("");
+  // Registry used to verify the charity: UK Charity Commission, US IRS (EIN),
+  // or manual review by our team for countries without a public registry API.
+  const [registryCountry, setRegistryCountry] = useState("GB");
   const [fName, setFName] = useState("");
   const [lName, setLName] = useState("");
   const [country, setCountry] = useState("");
@@ -167,15 +170,11 @@ export default function StepOne() {
         };
 
         if (confirmPassword == password) {
-          const config = {
-            headers: {
-              "Cache-Control": "no-cache",
-              "Ocp-Apim-Subscription-Key": process.env.CHARITIES_API,
-            },
-          };
           try {
             const charityCheck = await axios.get(
-              `${getApiBaseUrl()}/api/charities/charity/checkCharity/${charity.registrationNumber}`
+              `${getApiBaseUrl()}/api/charities/charity/checkCharity/${encodeURIComponent(
+                charity.registrationNumber.trim()
+              )}?country=${registryCountry}`
             );
 
             if (charityCheck.data) {
@@ -387,6 +386,22 @@ export default function StepOne() {
                   />
                 </div>
 
+                <label htmlFor="registryCountry" className="sr-only">
+                  Country of registration
+                </label>
+                <select
+                  id="registryCountry"
+                  className="form-select mb-3"
+                  value={registryCountry}
+                  onChange={(e) => setRegistryCountry(e.target.value)}
+                >
+                  <option value="GB">Registered in England &amp; Wales (charity number)</option>
+                  <option value="US">Registered in the United States (EIN)</option>
+                  <option value="NG">Registered in Nigeria (CAC number, reviewed by our team)</option>
+                  <option value="KE">Registered in Kenya (reviewed by our team)</option>
+                  <option value="GH">Registered in Ghana (reviewed by our team)</option>
+                  <option value="OTHER">Registered elsewhere (reviewed by our team)</option>
+                </select>
                 <input
                   type="text"
                   name="registrationNumber"

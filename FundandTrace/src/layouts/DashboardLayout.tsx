@@ -353,6 +353,9 @@ export default function DashboardLayout({
                       <Link href="/dashboard/my-contributions" passHref legacyBehavior>
                         <li>My Contributions</li>
                       </Link>
+                      <Link href="/dashboard/subscriptions" passHref legacyBehavior>
+                        <li>Monthly giving</li>
+                      </Link>
                       <Link href="/dashboard/settings" passHref legacyBehavior>
                         <li>Settings</li>
                       </Link>

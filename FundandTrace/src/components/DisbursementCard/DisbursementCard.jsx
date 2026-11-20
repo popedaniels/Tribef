@@ -1,84 +1,86 @@
 import { useState } from "react";
 import styles from "./DisbursementCard.module.scss";
 
-export default function DisbursementCard({ disbursement, last }) {
-  const [showDropdown, setShowDropdown] = useState(false);
+const PROOF_DUE_DAYS = 14;
+const DAY = 24 * 60 * 60 * 1000;
+
+const money = (amount, currency) => {
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: currency || "GBP" }).format(Number(amount || 0));
+  } catch {
+    return `${currency || ""} ${Number(amount || 0).toFixed(2)}`;
+  }
+};
+
+const isThirdParty = (type) => String(type || "").toLowerCase().replace(/[\s_-]+/g, "") === "thirdparty";
+const isPdf = (url) => /\.pdf($|\?)/i.test(String(url || ""));
+
+const statusOf = (d) => {
+  if (d?.providerStatus === "failed") return { label: "Returned to escrow", tone: "bad" };
+  if (d?.providerStatus === "pending") return { label: "Processing at the bank", tone: "pending" };
+  return { label: "Paid", tone: "ok" };
+};
+
+/**
+ * One public payout on the tracker. Shows what donors need to judge it:
+ * amount, date, status, who was paid, purpose and proof — never bank details.
+ */
+export default function DisbursementCard({ disbursement, fundingRequest, last }) {
+  const [open, setOpen] = useState(false);
+  const d = disbursement || fundingRequest?.disbursement || {};
+  const paidAt = d.dateDisbursed ? new Date(d.dateDisbursed) : null;
+  const dueAt = paidAt ? new Date(paidAt.getTime() + PROOF_DUE_DAYS * DAY) : null;
+  const overdue = !d.receipt && dueAt && Date.now() > dueAt.getTime();
+  const status = statusOf(d);
+  const panelId = `payout-${fundingRequest?._id || d.providerReference || paidAt?.getTime()}`;
 
   return (
-    <div
-      className="w-100 pb-5 pl-4 pl-md-5"
-      style={{
-        cursor: "pointer",
-        borderLeft: last ? "none" : "1px solid #D8DAFA",
-        position: "relative",
-      }}
-    >
-      <div className={styles.icon}>
-        <img
-          src={`/images/icons/approved.svg`}
-          width="20"
-          height="20"
-          alt="PaymentHistoryIcon"
-        />
+    <div className={`${styles.item} ${last ? styles.last : ""}`}>
+      <div className={styles.icon} aria-hidden="true">
+        <img src="/images/icons/approved.svg" width="20" height="20" alt="" />
       </div>
 
-      <div
-        className="pb-2 pl-2 pl-md-0"
-        role="button"
-        onClick={() => setShowDropdown(!showDropdown)}
-      >
-        <div className="d-flex flex-wrap align-items-start justify-content-between">
-          <div>
-            <div className="mb-3">
-              <h2 className={styles.bold}>
-                {disbursement?.amount} {disbursement?.currency}
-              </h2>
-              <p className="text-small mb-0">
-                {new Date(disbursement?.dateDisbursed).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-          <div className="align-items-center d-flex">
-            {showDropdown ? (
-              <img
-                src="/images/icons/blueup.svg"
-                alt=""
-                width={15}
-                height={16}
-              />
-            ) : (
-              <img
-                src="/images/icons/dropdown.svg"
-                alt=""
-                width={15}
-                height={16}
-              />
-            )}
-          </div>
-        </div>
-      </div>
+      <button type="button" className={styles.summary} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
+        <span>
+          <span className={styles.amount}>{money(d.amount, d.currency)}</span>
+          <span className={styles.meta}>
+            {paidAt ? paidAt.toLocaleDateString() : "—"} ·{" "}
+            {isThirdParty(fundingRequest?.fundingType) ? "Paid directly to supplier" : "Paid to organiser"}
+          </span>
+        </span>
+        <span className={styles.chips}>
+          <span className={`${styles.chip} ${styles[status.tone]}`}>{status.label}</span>
+          {d.receipt ? (
+            <span className={`${styles.chip} ${styles.ok}`}>Proof added</span>
+          ) : overdue ? (
+            <span className={`${styles.chip} ${styles.bad}`}>Proof overdue</span>
+          ) : (
+            <span className={`${styles.chip} ${styles.pending}`}>Proof due {dueAt ? dueAt.toLocaleDateString() : ""}</span>
+          )}
+          <img src={open ? "/images/icons/blueup.svg" : "/images/icons/dropdown.svg"} alt="" width={15} height={16} />
+        </span>
+      </button>
 
-      <div className={showDropdown ? styles.showdropdown : styles.hidedropdown}>
-        <div className="mb-4">
-          <h2 className="text-medium">Beneficiary information</h2>
-          <p className="text-small mb-3" style={{ whiteSpace: "pre-wrap" }}>
-            Bank Name: <b>{disbursement?.bankName}</b>
+      <div id={panelId} className={open ? styles.showdropdown : styles.hidedropdown}>
+        {fundingRequest?.purposeOfFunding ? (
+          <p className={styles.purpose}>{fundingRequest.purposeOfFunding}</p>
+        ) : null}
+        {d.receipt ? (
+          isPdf(d.receipt) ? (
+            <a href={d.receipt} target="_blank" rel="noopener noreferrer" className={styles.proofLink}>
+              Open receipt (PDF)
+            </a>
+          ) : (
+            <a href={d.receipt} target="_blank" rel="noopener noreferrer" className={styles.proofImage}>
+              <img src={d.receipt} alt="Receipt or invoice for this payout" loading="lazy" />
+            </a>
+          )
+        ) : (
+          <p className={styles.noProof}>
+            The organiser hasn&rsquo;t uploaded proof of spend for this payout yet.
+            {overdue ? " It is overdue, which lowers the campaign's Transparency Score." : ""}
           </p>
-          <p className="text-small mb-3" style={{ whiteSpace: "pre-wrap" }}>
-            Account Name: <b>{disbursement?.accountName}</b>
-          </p>
-          <p className="text-small mb-3" style={{ whiteSpace: "pre-wrap" }}>
-            Account Number: <b>{disbursement?.accountNumber}</b>
-          </p>
-          <img
-            src={disbursement?.receipt}
-            alt="receipt"
-            width="200px"
-            height="100%"
-          />
-        </div>
-
-        {/* */}
+        )}
       </div>
     </div>
   );

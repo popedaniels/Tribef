@@ -1,0 +1,347 @@
+/* Shared styles for trust & transparency components. */
+
+.frozen {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid #f5c26b;
+  background: #fff8eb;
+  color: #6b4500;
+  margin: 16px 0;
+  text-align: left;
+}
+.frozenCompact {
+  margin: 8px 0;
+  padding: 12px 14px;
+}
+.frozenIcon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: #b7791f;
+}
+.frozenTitle {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: #5a3a00;
+}
+.frozenText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.frozenReason {
+  display: block;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* ---- Transparency Score ---- */
+.scoreSkeleton {
+  height: 88px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f1f3f9 0%, #e7eaf4 50%, #f1f3f9 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+  margin: 12px 0;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.scoreCard {
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 14px;
+  background: var(--color-surface, #fff);
+  padding: 14px 16px;
+  margin: 12px 0;
+  text-align: left;
+}
+.scoreHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.ring {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+.ringTrack {
+  fill: none;
+  stroke: var(--color-border, #e2e8f0);
+  stroke-width: 6;
+}
+.ringValue {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ringText {
+  transform: rotate(90deg);
+  transform-origin: 32px 32px;
+  fill: var(--color-text-heading, #171c35);
+  font-weight: 800;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.excellent {
+  color: #0f9d6b;
+}
+.strong {
+  color: #3f6fd8;
+}
+.fair {
+  color: #c27c0e;
+}
+.low {
+  color: #c2410c;
+}
+.scoreMeta {
+  min-width: 0;
+}
+.scoreLabel {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.scoreGrade {
+  margin: 2px 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+.linkButton {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.factors {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.factorTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-heading, #171c35);
+}
+.factorPoints {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted, #64748b);
+}
+.factorBar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border-subtle, #f1f5f9);
+  margin: 6px 0 4px;
+  overflow: hidden;
+  span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-primary);
+  }
+}
+.factorDetail {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+}
+.factorNote {
+  font-size: 12px;
+  color: var(--color-text-subtle, #94a3b8);
+}
+
+/* ---- Ledger ---- */
+.ledger {
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 16px;
+  background: var(--color-surface, #fff);
+  padding: 20px;
+  margin: 24px 0;
+}
+.ledgerHeader {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.ledgerTitle {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+.ledgerIntro {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 14px;
+  color: var(--color-text-muted, #64748b);
+}
+.verdictOk,
+.verdictBad {
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.verdictOk {
+  background: #ecfdf5;
+  color: #065f46;
+}
+.verdictBad {
+  background: #fef2f2;
+  color: #991b1b;
+}
+.tableWrap {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  th,
+  td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+    text-align: left;
+    white-space: nowrap;
+  }
+  th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted, #64748b);
+  }
+}
+.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+.in {
+  color: #0f7a55;
+}
+.out {
+  color: #b42318;
+}
+.hash {
+  font-size: 12px;
+  background: var(--color-border-subtle, #f1f5f9);
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: var(--color-text-body, #475569);
+}
+.muted {
+  color: var(--color-text-muted, #64748b);
+  font-size: 14px;
+}
+
+/* ---- Receipts ---- */
+.receipt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.receiptButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px dashed var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 0;
+}
+input:focus-visible + .receiptButton,
+.receiptButton:focus-within {
+  outline: 3px solid var(--color-focus-ring);
+}
+.receiptDone {
+  margin: 0;
+  color: #0f7a55;
+  font-weight: 600;
+  font-size: 14px;
+}
+.badgeWarn {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fff4e5;
+  color: #9a5b00;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---- Bank fields ---- */
+.bankFields {
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 16px 0;
+  display: grid;
+  gap: 6px;
+}
+.bankLegend {
+  float: none;
+  width: auto;
+  padding: 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+.fieldLabel {
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 8px;
+}
+.fieldHint {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+}
+.fieldError {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #b42318;
+}
+
+/* ---- Refunds ---- */
+.refundRow {
+  margin: -32px 0 32px;
+  padding: 10px 4px 0;
+}
+.refundConfirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}

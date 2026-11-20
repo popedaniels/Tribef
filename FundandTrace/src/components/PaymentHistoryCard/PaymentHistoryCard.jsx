@@ -2,6 +2,7 @@ import { useState } from "react";
 import ApproveCampaignModal from "../composed/Modal/DefaultModal/ApproveCampaignModal";
 import DeclineCampaignModal from "../composed/Modal/DefaultModal/DeclineCampaignModal";
 import styles from "./PaymentHistoryCard.module.scss";
+import ReceiptUpload from "../trust/ReceiptUpload";
 
 export default function PaymentHistoryCard({
   fundingRequest,
@@ -180,6 +181,23 @@ export default function PaymentHistoryCard({
             <p className="text-small mb-0" style={{ whiteSpace: "pre-wrap" }}>
               {fundingRequest?.declineReason}
             </p>
+          </div>
+        )}
+        {!admin && fundingRequest?.status == "Approved" && fundingRequest?.disbursement?.dateDisbursed && (
+          <div className="mt-5">
+            <h2 className={styles.bold}>Proof of spend</h2>
+            <p className="text-small mb-2">
+              Upload the receipt or invoice for this payout. Donors see it on your public tracker, and it raises your
+              Transparency Score.
+            </p>
+            <ReceiptUpload
+              fundingRequestId={fundingRequest?._id}
+              existingReceipt={fundingRequest?.disbursement?.receipt}
+              overdue={
+                !fundingRequest?.disbursement?.receipt &&
+                Date.now() - new Date(fundingRequest?.disbursement?.dateDisbursed).getTime() > 14 * 24 * 60 * 60 * 1000
+              }
+            />
           </div>
         )}
         {admin && fundingRequest?.status == "Pending" && (

@@ -28,6 +28,8 @@ import {
   getDaysRemaining,
 } from "../../../components/helperFunctions/helperFunctions";
 import { GetServerSidePropsContext } from "next";
+import FrozenBanner from "../../../components/trust/FrozenBanner";
+import TransparencyScore from "../../../components/trust/TransparencyScore";
 
 type CampaignWithDonations = Campaign & { donations?: unknown[] };
 
@@ -49,6 +51,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 export default function CampaignPage({ campaign }: CampaignPageProps) {
   const [view, setView] = useState("story");
+  const isFrozen = Boolean(campaign?.disputeGovernance?.isLocked);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const router = useRouter();
@@ -181,16 +184,29 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
               </article>
 
               <article className="progressDiv">
-                <Link
-                  href={`/donate/${campaign?._id}`}
-                  passHref
-                  style={{ textDecoration: "none", width: "100%", display: "block" }}>
-
-                  <button className="btn-brand-primary w-100" style={{ height: "46px", fontSize: "16px", fontWeight: 700 }}>
-                    Donate Now
+                {isFrozen && <FrozenBanner lockReason={campaign?.disputeGovernance?.lockReason} compact />}
+                {isFrozen ? (
+                  <button
+                    type="button"
+                    className="btn-brand-primary w-100"
+                    style={{ height: "46px", fontSize: "16px", fontWeight: 700 }}
+                    disabled
+                    aria-disabled="true"
+                  >
+                    Donations paused
                   </button>
+                ) : (
+                  <Link
+                    href={`/donate/${campaign?._id}`}
+                    passHref
+                    style={{ textDecoration: "none", width: "100%", display: "block" }}>
 
-                </Link>
+                    <button className="btn-brand-primary w-100" style={{ height: "46px", fontSize: "16px", fontWeight: 700 }}>
+                      Donate Now
+                    </button>
+
+                  </Link>
+                )}
                 <div className="d-flex align-items-center w-100 justify-content-between my-3">
                   <Link
                     href={`/campaign/${campaign?._id}/tracker`}
@@ -229,6 +245,7 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                     <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: "15px" }}>Share</span>
                   </button>
                 </div>
+                <TransparencyScore campaignId={campaign?._id} />
                 <div className="d-flex align-items-center">
                   <img
                     src="/images/icons/profile.svg"

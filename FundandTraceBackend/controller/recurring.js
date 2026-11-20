@@ -155,9 +155,14 @@ exports.mySubscriptions = async (req, res) => {
     if (!requesterEmail) {
       return res.status(401).json({ status: 401, error: "Unauthorized" });
     }
+    // Only what the donor needs to manage their giving; never fraud signals
+    // (IP) or internal Stripe customer ids.
     const subs = await Subscription.find({
       subscriberEmail: requesterEmail,
-    }).select("-__v");
+    })
+      .select("campaignId amount tip currency interval status totalDonated createdAt canceledAt anonymous")
+      .populate("campaignId", "basicInformation.campaignTitle basicInformation.campaignImage")
+      .sort({ createdAt: -1 });
     return res.status(200).json({ data: subs });
   } catch (error) {
     logger.error({ err: error }, "mySubscriptions failed");

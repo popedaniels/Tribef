@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import CampaignDashboardLayout from "../../../layouts/CampaignDashboardLayout";
 import PaymentHistoryCard from "../../../components/PaymentHistoryCard/PaymentHistoryCard";
+import BankAccountFields from "../../../components/trust/BankAccountFields";
 import router from "next/router";
 import type { GetServerSidePropsContext } from "next";
 import { useFundingRequestForm } from "../../../hooks/useFundingRequestForm";
@@ -544,26 +545,42 @@ export default function FundingRequest({
                   ></textarea>
                   <div className="thirdparty w-100 mb-3">
                     <h6 className=" mb-5">Third party Account information</h6>
+                    <BankAccountFields
+                      currency={campaign?.funding?.currency || ""}
+                      idPrefix="third-party-bank"
+                      value={{
+                        bankCode: fundingRequest?.thirdPartyBankCode || "",
+                        bankName: fundingRequest?.thirdPartyBankName || "",
+                        accountNumber: String(fundingRequest?.thirdPartyAccountNumber ?? ""),
+                        accountName: fundingRequest?.thirdPartyAccountName || "",
+                      }}
+                      onChange={(next) =>
+                        setFundingRequest({
+                          ...fundingRequest,
+                          thirdPartyBankCode: next.bankCode,
+                          thirdPartyBankName: next.bankName,
+                          thirdPartyAccountNumber: next.accountNumber,
+                          thirdPartyAccountName: next.accountName,
+                        })
+                      }
+                      fallback={
+                        <>
                     <div className="d-flex justify-content-between align-items-center flex-column flex-md-row">
                       <div className="thirdinput">
                         <h6>Account number</h6>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
                           name="account"
                           id="account"
-                          min="1"
-                          value={
-                            fundingRequest?.thirdPartyAccountNumber == 0 ||
-                            fundingRequest?.thirdPartyAccountNumber
-                              ?.toString()
-                              .includes("-")
-                              ? ""
-                              : fundingRequest?.thirdPartyAccountNumber
-                          }
+                          value={String(fundingRequest?.thirdPartyAccountNumber ?? "")}
                           onChange={(e) =>
                             setFundingRequest({
                               ...fundingRequest,
-                              thirdPartyAccountNumber: Number(e.target.value),
+                              // Keep as a string: Number() dropped leading zeros
+                              // (e.g. NUBAN 0690000040), paying the wrong account.
+                              thirdPartyAccountNumber: e.target.value.replace(/[^0-9A-Za-z]/g, ""),
                             })
                           }
                         />
@@ -601,6 +618,9 @@ export default function FundingRequest({
                         />
                       </div>
                     </div>
+                        </>
+                      }
+                    />
                   </div>
 
                   <div className="thirdparty w-100">

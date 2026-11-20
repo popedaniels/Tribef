@@ -36,6 +36,8 @@ export interface CampaignFunding {
   accountNumber?: string;
   availableBalance?: number;
   refunded?: boolean;
+  /** Bank/branch code for African bank payouts (Flutterwave/Paystack). */
+  bankCode?: string;
 }
 
 export interface CampaignSettings {
@@ -83,4 +85,12 @@ export interface Campaign {
   comments?: CampaignComment[];
   updates?: CampaignUpdate[];
   targetReachedNotifiedAt?: string | Date | null;
+  /** Public view: reports are reduced to a count. */
+  disputeGovernance?: {
+    isLocked?: boolean;
+    lockedAt?: string | Date | null;
+    lockReason?: string;
+    disputeCount?: number;
+  };
+  stripeConnect?: { accountId?: string; payoutsEnabled?: boolean; detailsSubmitted?: boolean };
 }

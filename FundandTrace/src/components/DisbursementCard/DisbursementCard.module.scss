@@ -102,3 +102,85 @@
 
     }
 }
+/* ---- Accessible payout card (tracker) ---- */
+.item {
+  position: relative;
+  width: 100%;
+  padding: 0 0 32px 32px;
+  border-left: 1px solid #d8dafa;
+}
+.last {
+  border-left-color: transparent;
+}
+.summary {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0 0 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.amount {
+  display: block;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-heading, #171c35);
+  font-variant-numeric: tabular-nums;
+}
+.meta {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 2px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+.pending {
+  background: #eef2ff;
+  color: #3f4ac0;
+}
+.bad {
+  background: #fef2f2;
+  color: #b42318;
+}
+.purpose {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--color-text-body, #475569);
+}
+.proofImage img {
+  max-width: 220px;
+  max-height: 180px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--color-border, #e2e8f0);
+}
+.proofLink {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+.noProof {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-muted, #64748b);
+}

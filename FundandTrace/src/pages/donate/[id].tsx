@@ -28,6 +28,7 @@ import {
 import { Campaign } from "../../types/campaign";
 import type { GetServerSidePropsContext } from "next";
 import { getApiBaseUrl } from "../../utils/api";
+import FrozenBanner from "../../components/trust/FrozenBanner";
 
 interface Country {
   name: string;
@@ -356,6 +357,34 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
       (campaign?.funding?.amountExpected || 1)) *
     100
   ).toFixed(1);
+
+  // Dispute freeze: the API refuses new donations (423); explain instead of
+  // letting the donor fill in a form that can't be submitted.
+  if (campaign?.disputeGovernance?.isLocked) {
+    return (
+      <Layout title={`Donations paused | ${campaign?.basicInformation?.campaignTitle}`} description="Donations to this campaign are paused while it is reviewed.">
+        <div className={styles.container}>
+          <div className={styles.donatePage__blueBg}>
+            <div className="custom-container py-5" style={{ maxWidth: 720 }}>
+              <p className="mb-3 text-blue">DONATE</p>
+              <h1 className="text-heading mb-3" style={{ fontSize: 28 }}>
+                Donations to {campaign?.basicInformation?.campaignTitle} are paused
+              </h1>
+              <FrozenBanner lockReason={campaign?.disputeGovernance?.lockReason} />
+              <div className="d-flex flex-wrap" style={{ gap: 12 }}>
+                <Link href={`/campaign/${campaign?._id}/tracker`} className="btn-brand-primary">
+                  See where the money went
+                </Link>
+                <Link href="/Categories" className="btn-secondary-action">
+                  Explore other campaigns
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout

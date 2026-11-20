@@ -155,9 +155,9 @@ exports.getAllCampaignFundingRequests = async (req, res, next) => {
     const fundingRequest = await FundingRequests.find({
       campaignId: id,
     })
-      .select(
-        "-thirdPartyAccountNumber -thirdPartyAccountName -thirdPartyBankName -thirdPartyNameOfRef -thirdPartyContact -disbursement"
-      )
+      // Public projection keeps payout status/date/receipt (needed for proof
+      // uploads and the tracker) but never bank details.
+      .select(FUNDING_REQUEST_PUBLIC_PROJECTION)
       .sort({ _id: "desc" })
       .maxTimeMS(3000);
 

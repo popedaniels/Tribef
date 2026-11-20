@@ -17,7 +17,9 @@ export interface FundingRequestBody {
   amount: number;
   purposeOfFunding: string;
   proofOfFunding: string;
-  thirdPartyAccountNumber: number;
+  /** String: account numbers can start with 0. */
+  thirdPartyAccountNumber: string;
+  thirdPartyBankCode?: string;
   thirdPartyAccountName: string;
   thirdPartyBankName: string;
   thirdPartyNameOfRef: string;

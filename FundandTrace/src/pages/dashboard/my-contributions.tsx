@@ -20,8 +20,10 @@ import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
 import type { Campaign } from "../../types/campaign";
 import { getApiBaseUrl } from "../../utils/api";
+import RefundAction, { type RefundPolicy } from "../../components/trust/RefundAction";
 
 interface Contribution {
+  _id?: string;
   amount: number;
   createdAt: string | Date;
   refund?: {
@@ -253,6 +255,14 @@ export default function MyContributions() {
   const [campaigns, setCampaigns] = useState<Contribution[]>([]);
   const { profile } = useSelector(selectAuthStateState);
   const [loading, setLoading] = useState(false);
+  const [refundPolicy, setRefundPolicy] = useState<RefundPolicy | null>(null);
+
+  useEffect(() => {
+    axios
+      .get(getApiBaseUrl() + "/api/donations/refund-policy")
+      .then((r) => setRefundPolicy(r.data?.data || null))
+      .catch(() => setRefundPolicy(null));
+  }, []);
   const [NGN, setNGN] = useState(0);
   const [USD, setUSD] = useState(0);
   const [GBP, setGBP] = useState(0);
@@ -321,6 +331,9 @@ export default function MyContributions() {
       <div className="custom-container">
         <Section className="my-5 d-flex flex-column align-items-center justify-content-center mx-auto">
           <h2 className="mb-3">My Contributions</h2>
+          <Link href="/dashboard/subscriptions" className="mb-3" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+            Manage monthly giving →
+          </Link>
           {USD > 0 && (
             <h3 className="text-medium">TOTAL: USD {addCommaToNumber(USD)}</h3>
           )}
@@ -334,8 +347,20 @@ export default function MyContributions() {
             <Spinner type="Oval" width={50} height={50} color={" var(--color-primary)"} />
           ) : campaigns.length ? (
             <div className="mt-4 card-wrapper">
-              {campaigns.reverse().map((campaign, i) => (
-                <ContributionCard key={i} campaign={campaign} />
+              {/* Copy before reversing: reverse() mutated state on every render. */}
+              {[...campaigns].reverse().map((campaign, i) => (
+                <React.Fragment key={campaign?._id || i}>
+                  <ContributionCard campaign={campaign} />
+                  <RefundAction
+                    donationId={campaign?._id}
+                    amount={campaign?.amount}
+                    currency={campaign?.campaignId?.funding?.currency}
+                    createdAt={campaign?.createdAt}
+                    refundStatus={campaign?.refund?.status}
+                    policy={refundPolicy}
+                    onRefunded={getContributions}
+                  />
+                </React.Fragment>
               ))}
             </div>
           ) : (

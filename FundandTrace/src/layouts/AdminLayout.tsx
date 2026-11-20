@@ -35,6 +35,10 @@ const navLinks = [
     link: "/refunds",
     title: "Refunds",
   },
+  {
+    link: "/disputes",
+    title: "Disputes",
+  },
 ];
 
 interface AdminLayoutProps {

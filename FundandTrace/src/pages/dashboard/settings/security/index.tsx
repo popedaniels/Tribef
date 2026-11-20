@@ -1,10 +1,33 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
+import { useRouter } from "next/router";
+import { getApiBaseUrl } from "../../../../utils/api";
+import { useAppDispatch } from "../../../../../store/hooks";
+import { authStateActions } from "../../../../../store/slices/authSlice";
 import DashboardLayout from "../../../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import SettingsComp from "../../../../components/SettingsComp";
 
 export default function Preferance() {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
+
+  const signOutEverywhere = async () => {
+    setSigningOut(true);
+    setSignOutError("");
+    try {
+      await axios.post(`${getApiBaseUrl()}/api/auth/logout-all`, {}, { withCredentials: true });
+      dispatch(authStateActions.logoutSuccess(false));
+      router.replace("/SignUp/SignIn");
+    } catch {
+      setSignOutError("Couldn't sign out everywhere. Please try again.");
+      setSigningOut(false);
+    }
+  };
+
   return (
     <DashboardLayout hideMobileNav page="Settings">
       <div className="d-flex d-md-none custom-container align-items-center py-4">
@@ -63,16 +86,22 @@ export default function Preferance() {
                 />
               </article>
 
-              <article className="d-flex justify-content-between align-items-center py-3">
+              <article className="d-flex justify-content-between align-items-center py-3" style={{ gap: 16 }}>
                 <div>
-                  <p className="mb-2">Additional password</p>
+                  <p className="mb-2">Sign out of all devices</p>
+                  <p className="mb-0" style={{ color: "#6B7280", fontSize: 12 }}>
+                    Ends every session, including this one. Use it if you signed in on a shared device or think
+                    someone else has your password.
+                  </p>
+                  {signOutError && (
+                    <p className="mb-0 text-danger" role="alert" style={{ fontSize: 12 }}>
+                      {signOutError}
+                    </p>
+                  )}
                 </div>
-                <img
-                  src="/images/icons/slidefrontgray.svg"
-                  width={8}
-                  height={13}
-                  alt="slideIcons"
-                />
+                <button type="button" className="btn-secondary-action" onClick={signOutEverywhere} disabled={signingOut}>
+                  {signingOut ? "Signing out…" : "Sign out"}
+                </button>
               </article>
             </Main>
           </div>

@@ -11,7 +11,7 @@ const PushSubscriptionSchema = new mongoose.Schema({
   },
   userId: { type: ObjectId, ref: "User", index: true },
   userEmail: { type: String, default: "", index: true },
-  createdAt: { type: Date, default: Date.now() },
+  createdAt: { type: Date, default: Date.now },
 });
 
 // Indexes for relationship queries

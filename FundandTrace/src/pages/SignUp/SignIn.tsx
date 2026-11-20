@@ -5,6 +5,7 @@ import { useState } from "react";
 import Navbar from "../../components/Navbar/Navbar";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
+import { safeNextPath } from "../../hooks/useRequireAuth";
 import { login, selectAuthStateState } from "../../../store/slices/authSlice";
 import Spinner from "../../components/composed/spinner/Spinner";
 import Layout from "../../components/Layout";
@@ -20,7 +21,10 @@ export default function SignIn() {
     useSelector(selectAuthStateState);
 
   useEffect(() => {
-    authenticated && router.back();
+    if (!authenticated || !router.isReady) return;
+    // Return to the page that sent the user here (validated same-origin path);
+    // `router.back()` left the site when sign-in was the first page visited.
+    router.replace(safeNextPath(router.query.next));
   }, [authenticated, router]);
   return (
     <Layout
@@ -31,21 +35,21 @@ export default function SignIn() {
         <div className="w-100 bg-white">
           <header className="header d-md-flex justify-content-between align-items-center custom-container d-none">
             <Link href="/" passHref>
-              <a>
-                <img
-                  src="/images/logo.png"
-                  alt="fundandtraceLogo"
-                  width={78}
-                  height={55}
-                />
-              </a>
+
+              <img
+                src="/images/logo.png"
+                alt="fundandtraceLogo"
+                width={78}
+                height={55}
+              />
+
             </Link>
             <div className="d-flex align-items-center">
               <p className="mb-0 mr-3">Don't have an account?</p>
-              <Link href="/SignUp">
-                <a className="mb-0" style={{ color: "var(--color-primary)" }}>
+              <Link href="/SignUp" className="mb-0" style={{ color: "var(--color-primary)" }}>
+                
                   Sign Up
-                </a>
+                
               </Link>
             </div>
           </header>
@@ -145,10 +149,13 @@ export default function SignIn() {
             {logInFailed.status && (
               <p className="text-danger">{logInFailed.error}</p>
             )}
-            <Link href="/ForgotPassword" passHref>
-              <a href="" className="mb-4 text-right w-100 text-dark">
+            <Link
+              href="/ForgotPassword"
+              passHref
+              className="mb-4 text-right w-100 text-dark">
+              
                 Forgot Password?
-              </a>
+              
             </Link>
 
             <button
@@ -170,10 +177,14 @@ export default function SignIn() {
           </form>
           <div className="d-flex align-items-center justify-content-center mt-4 ">
             <p className="mb-0 mr-3">Don't have an account?</p>
-            <Link href="/SignUp" passHref>
-              <a className="mb-0" style={{ color: "var(--color-primary)" }}>
+            <Link
+              href="/SignUp"
+              passHref
+              className="mb-0"
+              style={{ color: "var(--color-primary)" }}>
+              
                 Sign Up
-              </a>
+              
             </Link>
           </div>
         </main>

@@ -6,44 +6,53 @@ export default function SettingsComp() {
   return (
     <>
       <Main className="bg-white p-3">
-        <Link href="/dashboard/settings/notifications" passHref>
-          <a style={{ textDecoration: "none" }}>
-            <article className="d-flex justify-content-between align-items-center py-3">
-              <p className="mb-0">Notifications</p>
-              <img
-                src="/images/icons/slidefrontgray.svg"
-                width={8}
-                height={13}
-                alt="slideIcon"
-              />
-            </article>
-          </a>
+        <Link
+          href="/dashboard/settings/notifications"
+          passHref
+          style={{ textDecoration: "none" }}>
+
+          <article className="d-flex justify-content-between align-items-center py-3">
+            <p className="mb-0">Notifications</p>
+            <img
+              src="/images/icons/slidefrontgray.svg"
+              width={8}
+              height={13}
+              alt="slideIcon"
+            />
+          </article>
+
         </Link>
-        <Link href="/dashboard/edit-profile" passHref>
-          <a style={{ textDecoration: "none" }}>
-            <article className="d-flex justify-content-between align-items-center py-3">
-              <p className="mb-0">Security and account access</p>
-              <img
-                src="/images/icons/slidefrontgray.svg"
-                width={8}
-                height={13}
-                alt="slideIcon"
-              />
-            </article>
-          </a>
+        <Link
+          href="/dashboard/edit-profile"
+          passHref
+          style={{ textDecoration: "none" }}>
+
+          <article className="d-flex justify-content-between align-items-center py-3">
+            <p className="mb-0">Security and account access</p>
+            <img
+              src="/images/icons/slidefrontgray.svg"
+              width={8}
+              height={13}
+              alt="slideIcon"
+            />
+          </article>
+
         </Link>
-        <Link href="/dashboard/settings/privacy" passHref>
-          <a style={{ textDecoration: "none" }}>
-            <article className="d-flex justify-content-between align-items-center py-3">
-              <p className="mb-0">Privacy and Safety</p>
-              <img
-                src="/images/icons/slidefrontgray.svg"
-                width={8}
-                height={13}
-                alt="slideIcon"
-              />
-            </article>
-          </a>
+        <Link
+          href="/dashboard/settings/privacy"
+          passHref
+          style={{ textDecoration: "none" }}>
+
+          <article className="d-flex justify-content-between align-items-center py-3">
+            <p className="mb-0">Privacy and Safety</p>
+            <img
+              src="/images/icons/slidefrontgray.svg"
+              width={8}
+              height={13}
+              alt="slideIcon"
+            />
+          </article>
+
         </Link>
         {/* <article className="d-flex justify-content-between align-items-center py-3">
           <p className="mb-0">Accessibility</p>

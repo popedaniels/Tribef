@@ -42,7 +42,7 @@ export default function AdminSettingsPageLayout({
         <Wrapper className="mx-auto d-flex">
           <aside className="layout-left">
             {navlinks.map((link, i) => (
-              <Link href={`/admin/settings/${link.link}`} passHref key={i}>
+              <Link href={`/admin/settings/${link.link}`} passHref key={i} legacyBehavior>
                 <Article
                   className="mb-5 py-3"
                   style={{

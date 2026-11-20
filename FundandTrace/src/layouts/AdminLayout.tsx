@@ -69,16 +69,17 @@ export default function AdminLayout({ active, children }: AdminLayoutProps) {
                 className="position-relative mx-2 h-100 d-flex align-items-center justify-content-center"
                 key={i}
               >
-                <Link href={`/admin${links.link}`} passHref>
-                  <a
-                    className="px-2"
-                    style={{
-                      color: active == links.title ? "var(--color-primary)" : "#A0A2AF",
-                      fontWeight: active == links.title ? 500 : 400,
-                    }}
-                  >
-                    {links.title}
-                  </a>
+                <Link
+                  href={`/admin${links.link}`}
+                  passHref
+                  className="px-2"
+                  style={{
+                    color: active == links.title ? "var(--color-primary)" : "#A0A2AF",
+                    fontWeight: active == links.title ? 500 : 400,
+                  }}>
+
+                  {links.title}
+
                 </Link>
                 {active == links.title && (
                   <div
@@ -95,12 +96,12 @@ export default function AdminLayout({ active, children }: AdminLayoutProps) {
             ))}
           </div>
           <div className="notification d-flex align-items-center">
-            <Link href="/admin/settings" passHref>
+            <Link href="/admin/settings" passHref legacyBehavior>
               <button className="">
                 <img src="/images/icons/settingsIcon.svg" alt="settings Icon" />
               </button>
             </Link>
-            <Link href="/admin/notifications" passHref>
+            <Link href="/admin/notifications" passHref legacyBehavior>
               <button className="ml-2">
                 <img src="/images/icons/notification.svg" alt="settings Icon" />
               </button>

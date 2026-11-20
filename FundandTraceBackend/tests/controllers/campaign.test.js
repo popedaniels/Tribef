@@ -119,6 +119,49 @@ describe("Campaigns Controller", () => {
     });
   });
 
+  describe("GET /api/campaigns/searchByName/:page", () => {
+    const enc = (payload) => encodeURIComponent(JSON.stringify(payload));
+
+    it("accepts the plain-string search contract the web app sends", async () => {
+      const res = await chai
+        .request(server)
+        .get(
+          `/api/campaigns/searchByName/1?addCount=true&queries=${enc({
+            query: { title: "water", category: "" },
+            sort: { "funding.amountRaised": -1 },
+          })}`
+        );
+      // 200 with a DB, 503 when it is unreachable — never a 400.
+      expect(res.status).to.be.oneOf([200, 503]);
+    });
+
+    it("rejects Mongo operators smuggled in the query", async () => {
+      const res = await chai
+        .request(server)
+        .get(`/api/campaigns/searchByName/1?queries=${enc({ query: { title: { $ne: "" } } })}`);
+      expect(res).to.have.status(400);
+    });
+
+    it("rejects sort keys outside the allow-list", async () => {
+      const res = await chai
+        .request(server)
+        .get(`/api/campaigns/searchByName/1?queries=${enc({ sort: { $where: 1 } })}`);
+      expect(res).to.have.status(400);
+    });
+
+    it("rejects malformed JSON", async () => {
+      const res = await chai.request(server).get("/api/campaigns/searchByName/1?queries=%7Bnope");
+      expect(res).to.have.status(400);
+    });
+  });
+
+  describe("GET /api/campaigns/campaign/ (missing id)", () => {
+    it("returns 400 instead of falling through to the organizer route", async () => {
+      const res = await chai.request(server).get("/api/campaigns/campaign/");
+      expect(res).to.have.status(400);
+    });
+  });
+
   describe("GET /api/campaigns/:organizerId", () => {
     it("should return campaigns for organizer (200 with DB, 500 without)", async () => {
       const res = await chai

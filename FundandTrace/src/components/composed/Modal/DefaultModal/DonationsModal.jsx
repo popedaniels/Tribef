@@ -92,9 +92,9 @@ export default function DonationsModal({
             className="bg-white py-3 w-100"
           >
             <Link href={`/donate/${campaignId}`} passHref>
-              <a>
-                <button className="btn deleteBtn w-100">Donate Now</button>
-              </a>
+
+              <button className="btn deleteBtn w-100">Donate Now</button>
+
             </Link>
           </div>
         </div>

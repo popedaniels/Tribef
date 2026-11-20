@@ -11,16 +11,19 @@ export default function SupportedCampaigns() {
   return (
     <DashboardLayout hideMobileNav page="Settings">
       <div className="d-flex d-md-none custom-container align-items-center py-4">
-        <Link href="/dashboard/settings/notifications" passHref>
-          <a style={{ textDecoration: "none" }}>
-            <img
-              src="/images/icons/back.svg"
-              width={16}
-              height={16}
-              alt="slideIcon"
-              className="mr-4"
-            />
-          </a>
+        <Link
+          href="/dashboard/settings/notifications"
+          passHref
+          style={{ textDecoration: "none" }}>
+
+          <img
+            src="/images/icons/back.svg"
+            width={16}
+            height={16}
+            alt="slideIcon"
+            className="mr-4"
+          />
+
         </Link>
         <h2 className="mb-0 text-medium-heading">Supported Campaigns</h2>
       </div>
@@ -40,16 +43,19 @@ export default function SupportedCampaigns() {
             ></div>
             <Main className="bg-white p-3">
               <div className="align-items-center py-3 d-none d-md-flex">
-                <Link href="/dashboard/settings/notifications" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <img
-                      src="/images/icons/back.svg"
-                      width={16}
-                      height={16}
-                      alt="slideIcon"
-                      className="mr-4"
-                    />
-                  </a>
+                <Link
+                  href="/dashboard/settings/notifications"
+                  passHref
+                  style={{ textDecoration: "none" }}>
+
+                  <img
+                    src="/images/icons/back.svg"
+                    width={16}
+                    height={16}
+                    alt="slideIcon"
+                    className="mr-4"
+                  />
+
                 </Link>
                 <h2 className="mb-0 text-medium-heading">
                   Supported campaigns

@@ -108,8 +108,8 @@ export default function ComparisonMatrix() {
               <h4>Ready to launch a campaign with 100% donor trust?</h4>
               <p>Setup takes less than 3 minutes. Zero upfront fees.</p>
             </div>
-            <Link href="/StartACampaign">
-              <a className="btn btn-brand-primary">Start a Verified Campaign</a>
+            <Link href="/StartACampaign" className="btn btn-brand-primary">
+              Start a Verified Campaign
             </Link>
           </div>
         </div>

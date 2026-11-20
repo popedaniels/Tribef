@@ -284,10 +284,10 @@ export default function FundraisersHelp() {
           <HelpDropdown title="Fees for Campaigners: How much does Fund&Trace cost?">
             <p className="mb-0">
               You can check the fees for campaigns in the Fees section{" "}
-              <Link href="/fees" passHref>
-                <a target="_blank" rel="noreferrer">
+              <Link href="/fees" passHref target="_blank" rel="noreferrer">
+                
                   here
-                </a>
+                
               </Link>
               .
             </p>

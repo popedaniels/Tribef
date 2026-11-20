@@ -63,15 +63,15 @@ export default function Dashboard() {
             href={authenticated ? `/StartACampaign` : `/SignUp/SignIn`}
             passHref
           >
-            <a>
-              <button
-                className={[
-                  "d-flex align-items-center justify-content-center px-4 py-3 text-white btn rounded mt-3 mt-md-0",
-                ].join(" ")}
-              >
-                <p className="mb-0">Create a campaign</p>
-              </button>
-            </a>
+
+            <button
+              className={[
+                "d-flex align-items-center justify-content-center px-4 py-3 text-white btn rounded mt-3 mt-md-0",
+              ].join(" ")}
+            >
+              <p className="mb-0">Create a campaign</p>
+            </button>
+
           </Link>
         </div>
 

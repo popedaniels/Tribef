@@ -16,42 +16,54 @@ export default function HowItWorksModal({ onModalClose, showModal }) {
         </h3>
         <div className="d-flex flex-column flex-md-row align-items-center justify-content-between">
           <HowItem>
-            <Link href="/workings" passHref>
-              <a onClick={onModalClose} style={{ textDecoration: "none" }}>
-                <img
-                  src="/images/stories/water_story.jpg"
-                  width="100%"
-                  alt="How it works"
-                  style={{ borderRadius: 4, height: 160, objectFit: "cover" }}
-                />
-                <h4 className="mt-3">The Milestone Lifecycle</h4>
-                <p>Learn how phased disbursements and automated statements protect every donation.</p>
-              </a>
+            <Link
+              href="/workings"
+              passHref
+              onClick={onModalClose}
+              style={{ textDecoration: "none" }}>
+
+              <img
+                src="/images/stories/water_story.jpg"
+                width="100%"
+                alt="How it works"
+                style={{ borderRadius: 4, height: 160, objectFit: "cover" }}
+              />
+              <h4 className="mt-3">The Milestone Lifecycle</h4>
+              <p>Learn how phased disbursements and automated statements protect every donation.</p>
+
             </Link>
           </HowItem>
 
           <HowItem>
-            <Link href="/fees" passHref>
-              <a onClick={onModalClose} style={{ textDecoration: "none" }}>
-                <img
-                  src="/images/stories/medical_hope.jpg"
-                  width="100%"
-                  alt="Pricing and Fees"
-                  style={{ borderRadius: 4, height: 160, objectFit: "cover" }}
-                />
-                <h4 className="mt-3">0% Platform Fees</h4>
-                <p>See why Fund&amp;Trace is 100% free for organizers and how gateways process payouts.</p>
-              </a>
+            <Link
+              href="/fees"
+              passHref
+              onClick={onModalClose}
+              style={{ textDecoration: "none" }}>
+
+              <img
+                src="/images/stories/medical_hope.jpg"
+                width="100%"
+                alt="Pricing and Fees"
+                style={{ borderRadius: 4, height: 160, objectFit: "cover" }}
+              />
+              <h4 className="mt-3">0% Platform Fees</h4>
+              <p>See why Fund&amp;Trace is 100% free for organizers and how gateways process payouts.</p>
+
             </Link>
           </HowItem>
 
           <HowItem>
-            <Link href="/fundraisingIdeas" passHref>
-              <a onClick={onModalClose} style={{ textDecoration: "none" }}>
-                <img src="/images/how2.png" width="100%" alt="Fundraising Ideas" />
-                <h4 className="mt-3">Fundraising Strategy</h4>
-                <p>Tips, guides, and templates to organize a viral, transparent crowdfunding campaign.</p>
-              </a>
+            <Link
+              href="/fundraisingIdeas"
+              passHref
+              onClick={onModalClose}
+              style={{ textDecoration: "none" }}>
+
+              <img src="/images/how2.png" width="100%" alt="Fundraising Ideas" />
+              <h4 className="mt-3">Fundraising Strategy</h4>
+              <p>Tips, guides, and templates to organize a viral, transparent crowdfunding campaign.</p>
+
             </Link>
           </HowItem>
         </div>

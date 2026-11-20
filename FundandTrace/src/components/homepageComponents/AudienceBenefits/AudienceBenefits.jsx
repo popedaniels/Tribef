@@ -74,11 +74,11 @@ export default function AudienceBenefits() {
               </ul>
             </div>
 
-            <Link href="/Categories" passHref>
-              <a className={styles.actionLink}>
-                <span>Browse Verified Campaigns</span>
-                <span>→</span>
-              </a>
+            <Link href="/Categories" passHref className={styles.actionLink}>
+
+              <span>Browse Verified Campaigns</span>
+              <span>→</span>
+
             </Link>
           </motion.div>
 
@@ -133,11 +133,14 @@ export default function AudienceBenefits() {
               </ul>
             </div>
 
-            <Link href={authenticated ? "/StartACampaign" : "/SignUp"} passHref>
-              <a className={styles.actionLink}>
-                <span>Start Your Fundraiser Now</span>
-                <span>→</span>
-              </a>
+            <Link
+              href={authenticated ? "/StartACampaign" : "/SignUp"}
+              passHref
+              className={styles.actionLink}>
+
+              <span>Start Your Fundraiser Now</span>
+              <span>→</span>
+
             </Link>
           </motion.div>
         </div>

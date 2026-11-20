@@ -84,15 +84,19 @@ export default function Categories() {
 
         <div className="card-holder custom-container">
           {cardData.map((card, i) => (
-            <Link href={`/category/${card.link}`} passHref key={i}>
-              <a style={{ textDecoration: "none" }}>
-                <div className="card">
-                  <img src={card.image} alt="categoriesCardImage" />
-                  <div className="card-bottom d-flex pl-3 align-items-center text-medium font-weight-bold">
-                    {card.category}
-                  </div>
+            <Link
+              href={`/category/${card.link}`}
+              passHref
+              key={i}
+              style={{ textDecoration: "none" }}>
+
+              <div className="card">
+                <img src={card.image} alt="categoriesCardImage" />
+                <div className="card-bottom d-flex pl-3 align-items-center text-medium font-weight-bold">
+                  {card.category}
                 </div>
-              </a>
+              </div>
+
             </Link>
           ))}
         </div>

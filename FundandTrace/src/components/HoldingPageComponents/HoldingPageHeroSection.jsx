@@ -79,7 +79,7 @@ export default function HoldingPageHeroSection({ showMainNav = false }) {
             <Link
               href={`${authenticated ? "/StartACampaign" : "/SignUp"}`}
               passHref
-            >
+              legacyBehavior>
               <button>Start a campaign</button>
             </Link>
           ) : (

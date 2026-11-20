@@ -76,20 +76,23 @@ export default function FloatingCampaignBar({ campaign }) {
 
         {/* Right: Actions */}
         <div className={styles.actionButtons}>
-          <Link href={`/campaign/${campaign?._id}/tracker`} passHref>
-            <a className={styles.trackBtn}>
-              <img
-                src="/images/icons/trackIcon.svg"
-                width={16}
-                height={16}
-                alt=""
-                style={{ filter: "brightness(0) invert(1)" }}
-              />
-              <span>Track</span>
-            </a>
+          <Link
+            href={`/campaign/${campaign?._id}/tracker`}
+            passHref
+            className={styles.trackBtn}>
+
+            <img
+              src="/images/icons/trackIcon.svg"
+              width={16}
+              height={16}
+              alt=""
+              style={{ filter: "brightness(0) invert(1)" }}
+            />
+            <span>Track</span>
+
           </Link>
-          <Link href={`/donate/${campaign?._id}`} passHref>
-            <a className={styles.donateBtn}>Donate Now</a>
+          <Link href={`/donate/${campaign?._id}`} passHref className={styles.donateBtn}>
+            Donate Now
           </Link>
         </div>
       </div>

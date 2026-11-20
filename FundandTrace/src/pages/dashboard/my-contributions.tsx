@@ -38,7 +38,10 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
   ).toString();
 
   return (
-    <Link href={`contribution/${campaign?.campaignId?._id}`} passHref>
+    <Link
+      href={`contribution/${campaign?.campaignId?._id}`}
+      passHref
+      legacyBehavior>
       <Card
         className="w-100  d-flex bg-white flex-column flex-md-row align-items-center justify-content-between mb-5"
         style={{ cursor: "pointer" }}

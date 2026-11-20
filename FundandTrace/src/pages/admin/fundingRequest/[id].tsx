@@ -140,7 +140,7 @@ export default function FundingRequestDetailPage() {
                             <Link
                               href={`/campaign/${fundingRequest?.campaign?._id}/tracker`}
                               passHref
-                            >
+                              legacyBehavior>
                               <button className="btn acceptButton">
                                 Track Campaign
                               </button>

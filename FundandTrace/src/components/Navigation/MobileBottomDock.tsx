@@ -126,7 +126,7 @@ export default function MobileBottomDock() {
               : currentPath.includes("tracker");
 
           return (
-            <Link href={item.path} key={item.label} passHref>
+            <Link href={item.path} key={item.label} passHref legacyBehavior>
               <a
                 className="d-flex flex-column align-items-center justify-content-center mobile-touchable text-decoration-none"
                 style={{

@@ -6,7 +6,7 @@ export default function NewsCard({ news }) {
   if (!news) return null;
 
   return (
-    <Link href={`/news/${news.slug || news.id}`} passHref>
+    <Link href={`/news/${news.slug || news.id}`} passHref legacyBehavior>
       <CardLink>
         <Wrapper className="w-100 h-100 d-flex flex-column">
           <div className="img-container position-relative">

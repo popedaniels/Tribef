@@ -46,58 +46,21 @@ export default function Search() {
 
   const getCampaigns = useCallback(async () => {
     try {
-      const getCampaignQueries = () => {
-        const query =
-          category == "All"
-            ? {
-                launched: true,
-                "basicInformation.campaignTitle": {
-                  $regex: `${searchInput}`,
-                  $options: "i",
-                },
-              }
-            : {
-                category: category == "All" ? "" : category.toLowerCase(),
-                launched: true,
-                "basicInformation.campaignTitle": {
-                  $regex: `${searchInput}`,
-                  $options: "i",
-                },
-              };
-        const returnedQuery =
-          sort == "Highest"
-            ? { query, sort: { "funding.amountRaised": "desc" } }
-            : sort == "Trending"
-            ? { query, sort: { "funding.amountRaised": "desc" } }
-            : { query, sort: { _id: "desc" } };
-        return JSON.stringify(returnedQuery);
-      };
-
-      const getCampaignlocationQueries = () => {
-        const query =
-          category == "All"
-            ? {
-                launched: true,
-                "basicInformation.locationCountry": {
-                  $regex: `${searchInput}`,
-                  $options: "i",
-                },
-              }
-            : {
-                category: category == "All" ? "" : category.toLowerCase(),
-                launched: true,
-                "basicInformation.locationCountry": {
-                  $regex: `${searchInput}`,
-                  $options: "i",
-                },
-              };
-        const returnedQuery =
-          sort == "Highest"
-            ? { query, sort: { "funding.amountRaised": "desc" } }
-            : sort == "Trending"
-            ? { query, sort: { "funding.amountRaised": "desc" } }
-            : { query, sort: { _id: "desc" } };
-        return JSON.stringify(returnedQuery);
+      // Plain-string contract understood by GET /api/campaigns/searchByName.
+      // The server builds the (escaped) regex itself; sending raw Mongo
+      // operators was rejected by the API's NoSQL guard.
+      const buildQueries = () => {
+        const term = searchInput.trim();
+        const query: { title?: string; location?: string; category?: string } = {
+          category: category === "All" ? "" : category.toLowerCase(),
+        };
+        if (searchFor === "Location") query.location = term;
+        else query.title = term;
+        const sortSpec =
+          sort === "Highest" || sort === "Trending"
+            ? { "funding.amountRaised": -1 }
+            : { _id: -1 };
+        return encodeURIComponent(JSON.stringify({ query, sort: sortSpec }));
       };
 
       // const getUsersQueries = () => {
@@ -112,11 +75,7 @@ export default function Search() {
       const apiUrl = getApiBaseUrl();
       if (category !== "") {
         const campaigns = await axios.get(
-          `${apiUrl}/api/campaigns/searchByName/${page}?addCount=true&queries=${
-            searchFor == "Campaigns"
-              ? getCampaignQueries()
-              : getCampaignlocationQueries()
-          }`,
+          `${apiUrl}/api/campaigns/searchByName/${page}?addCount=true&queries=${buildQueries()}`,
           { timeout: 3000 }
         );
 

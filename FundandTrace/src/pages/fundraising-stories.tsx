@@ -87,67 +87,70 @@ export default function FundraisingStories() {
                 <span className="verified-badge-label">🏆 Top Verified Campaign</span>
               </div>
 
-              <Link href={`/stories/${featuredStory.slug}`} passHref>
-                <a className="featured-card-link">
-                  <div className="featured-card">
-                    <div className="featured-img-wrap">
-                      <img
-                        src={featuredStory.image}
-                        alt={featuredStory.title}
-                        className="featured-img"
-                      />
-                      <span className="featured-badge">{featuredStory.badge}</span>
+              <Link
+                href={`/stories/${featuredStory.slug}`}
+                passHref
+                className="featured-card-link">
+
+                <div className="featured-card">
+                  <div className="featured-img-wrap">
+                    <img
+                      src={featuredStory.image}
+                      alt={featuredStory.title}
+                      className="featured-img"
+                    />
+                    <span className="featured-badge">{featuredStory.badge}</span>
+                  </div>
+
+                  <div className="featured-content">
+                    <div className="d-flex align-items-center text-muted mb-2 metadata">
+                      <span className="category-pill">{featuredStory.category}</span>
+                      <span className="mx-2">•</span>
+                      <span>{featuredStory.publishedAt}</span>
+                      <span className="mx-2">•</span>
+                      <span>{featuredStory.readTime}</span>
                     </div>
 
-                    <div className="featured-content">
-                      <div className="d-flex align-items-center text-muted mb-2 metadata">
-                        <span className="category-pill">{featuredStory.category}</span>
-                        <span className="mx-2">•</span>
-                        <span>{featuredStory.publishedAt}</span>
-                        <span className="mx-2">•</span>
-                        <span>{featuredStory.readTime}</span>
+                    <h3 className="featured-title">{featuredStory.title}</h3>
+                    <p className="featured-subtitle">{featuredStory.subtitle}</p>
+
+                    {featuredStory.stats && (
+                      <div className="featured-stats-grid">
+                        <div className="stat-card">
+                          <span className="label">Beneficiaries</span>
+                          <span className="val">{featuredStory.stats.beneficiaries}</span>
+                        </div>
+                        <div className="stat-card">
+                          <span className="label">Funds Raised</span>
+                          <span className="val">{featuredStory.stats.amountRaised}</span>
+                        </div>
+                        <div className="stat-card">
+                          <span className="label">Milestone Audit</span>
+                          <span className="val text-success font-weight-bold">{featuredStory.stats.milestonesCompleted}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="d-flex align-items-center justify-content-between pt-4 border-top">
+                      <div className="d-flex align-items-center">
+                        <img
+                          src={featuredStory.author.avatar}
+                          alt={featuredStory.author.name}
+                          className="author-avatar mr-2"
+                        />
+                        <div>
+                          <p className="author-name mb-0">{featuredStory.author.name}</p>
+                          <p className="author-role mb-0">{featuredStory.author.role}</p>
+                        </div>
                       </div>
 
-                      <h3 className="featured-title">{featuredStory.title}</h3>
-                      <p className="featured-subtitle">{featuredStory.subtitle}</p>
-
-                      {featuredStory.stats && (
-                        <div className="featured-stats-grid">
-                          <div className="stat-card">
-                            <span className="label">Beneficiaries</span>
-                            <span className="val">{featuredStory.stats.beneficiaries}</span>
-                          </div>
-                          <div className="stat-card">
-                            <span className="label">Funds Raised</span>
-                            <span className="val">{featuredStory.stats.amountRaised}</span>
-                          </div>
-                          <div className="stat-card">
-                            <span className="label">Milestone Audit</span>
-                            <span className="val text-success font-weight-bold">{featuredStory.stats.milestonesCompleted}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="d-flex align-items-center justify-content-between pt-4 border-top">
-                        <div className="d-flex align-items-center">
-                          <img
-                            src={featuredStory.author.avatar}
-                            alt={featuredStory.author.name}
-                            className="author-avatar mr-2"
-                          />
-                          <div>
-                            <p className="author-name mb-0">{featuredStory.author.name}</p>
-                            <p className="author-role mb-0">{featuredStory.author.role}</p>
-                          </div>
-                        </div>
-
-                        <span className="featured-cta">
-                          Read Full Chronicle →
-                        </span>
-                      </div>
+                      <span className="featured-cta">
+                        Read Full Chronicle →
+                      </span>
                     </div>
                   </div>
-                </a>
+                </div>
+
               </Link>
             </div>
           )}

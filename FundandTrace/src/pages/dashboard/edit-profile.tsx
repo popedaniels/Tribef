@@ -215,21 +215,21 @@ export default function EditProfile() {
           style={{ maxWidth: 1140 }}
         >
           <Link href="account" passHref>
-            <a>
-              <div
-                className="d-flex align-items-center mb-3"
-                style={{ width: "max-content" }}
-              >
-                <img
-                  src="/images/icons/back.svg"
-                  width={16}
-                  height={16}
-                  alt="backIcon"
-                  className="mr-4"
-                />
-                <h2 className="text-medium mb-0">Edit Profile</h2>
-              </div>
-            </a>
+
+            <div
+              className="d-flex align-items-center mb-3"
+              style={{ width: "max-content" }}
+            >
+              <img
+                src="/images/icons/back.svg"
+                width={16}
+                height={16}
+                alt="backIcon"
+                className="mr-4"
+              />
+              <h2 className="text-medium mb-0">Edit Profile</h2>
+            </div>
+
           </Link>
           <Div className="mx-auto d-flex flex-column justify-content-center align-items-center">
             <div

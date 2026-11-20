@@ -39,8 +39,8 @@ export default function EventPage() {
         {/* Event Header */}
         <header className="article-header custom-container">
           <div className="breadcrumb-nav mb-3">
-            <Link href="/fundraising-stories?view=Events">
-              <a className="breadcrumb-link">← All Community Events</a>
+            <Link href="/fundraising-stories?view=Events" className="breadcrumb-link">
+              ← All Community Events
             </Link>
             <span className="mx-2 text-muted">/</span>
             <span className="category-chip">{currentEvent.category}</span>
@@ -164,8 +164,8 @@ export default function EventPage() {
                   <p className="cta-desc mb-3">
                     Partner with Fund&Trace to host a community fundraiser workshop or charity run.
                   </p>
-                  <Link href="/aboutUs" passHref>
-                    <a className="btn start-btn w-100">Partner With Us</a>
+                  <Link href="/aboutUs" passHref className="btn start-btn w-100">
+                    Partner With Us
                   </Link>
                 </div>
               </div>

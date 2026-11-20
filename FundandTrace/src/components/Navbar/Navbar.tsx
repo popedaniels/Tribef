@@ -89,19 +89,19 @@ const Navbar = ({ white = false }) => {
         <div className="d-flex justify-content-between align-items-center w-100 custom-container">
           <div className="d-none d-lg-block">
             <Link href="/" passHref>
-              <a>
-                {white ? (
-                  <Image src="/images/draftImage.png" width={78} height={55} alt="Fund&Trace" priority />
-                ) : (
-                  <Image
-                    src="/images/logo.png"
-                    alt="logo"
-                    width={78}
-                    height={55}
-                    priority
-                  />
-                )}
-              </a>
+
+              {white ? (
+                <Image src="/images/draftImage.png" width={78} height={55} alt="Fund&Trace" priority />
+              ) : (
+                <Image
+                  src="/images/logo.png"
+                  alt="logo"
+                  width={78}
+                  height={55}
+                  priority
+                />
+              )}
+
             </Link>
           </div>
           <Menu
@@ -114,27 +114,28 @@ const Navbar = ({ white = false }) => {
             <div className="bars bar2"></div>
             <div className="bars bar3"></div>
           </Menu>
-          <Link href="/" passHref>
-            <a
-              onClick={showModal ? () => setShowModal(false) : undefined}
-              className="d-block d-lg-none"
-              role="button"
-            >
-              <Image
-                src={white ? "/images/draftImage.png" : "/images/logo.png"}
-                alt="logo"
-                width={63}
-                height={48}
-                priority
-              />
-            </a>
+          <Link
+            href="/"
+            passHref
+            onClick={showModal ? () => setShowModal(false) : undefined}
+            className="d-block d-lg-none"
+            role="button">
+
+            <Image
+              src={white ? "/images/draftImage.png" : "/images/logo.png"}
+              alt="logo"
+              width={63}
+              height={48}
+              priority
+            />
+
           </Link>
           <div className="d-lg-none d-flex align-items-center">
             <div className="mr-3">
               <ThemeToggle white={white} />
             </div>
             {!white ? (
-              <Link href="/search" passHref>
+              <Link href="/search" passHref legacyBehavior>
                 <img
                   src="/images/icons/search.svg"
                   width={20}
@@ -142,7 +143,7 @@ const Navbar = ({ white = false }) => {
                  alt="Search" />
               </Link>
             ) : (
-              <Link href="/search" passHref>
+              <Link href="/search" passHref legacyBehavior>
                 <img
                   src="/images/whiteSearch.svg"
                   width={20}
@@ -182,67 +183,67 @@ const Navbar = ({ white = false }) => {
                 priority
               />
               <ul>
-                <Link href="/" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Home
-                    </li>
-                  </a>
+                <Link href="/" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    Home
+                  </li>
+
                 </Link>
-                <Link href="/search" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Search
-                    </li>
-                  </a>
+                <Link href="/search" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    Search
+                  </li>
+
                 </Link>
-                <Link href="/workings" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      How It Works
-                    </li>
-                  </a>
+                <Link href="/workings" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    How It Works
+                  </li>
+
                 </Link>
-                <Link href="/Categories" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Explore
-                    </li>
-                  </a>
+                <Link href="/Categories" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    Explore
+                  </li>
+
                 </Link>
-                <Link href="/contact" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Contact
-                    </li>
-                  </a>
+                <Link href="/contact" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    Contact
+                  </li>
+
                 </Link>
                 {!authenticated ? (
                   <>
-                    <Link href="/SignUp/SignIn" passHref>
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signInBtn}
-                          role="button"
-                        >
-                          Sign In
-                        </li>
-                      </a>
+                    <Link href="/SignUp/SignIn" passHref style={{ textDecoration: "none" }}>
+
+                      <li
+                        onClick={() => setShowmenu(false)}
+                        className={styles.signInBtn}
+                        role="button"
+                      >
+                        Sign In
+                      </li>
+
                     </Link>
                     <Link
                       href={authenticated ? "/StartACampaign" : "/SignUp"}
                       passHref
-                    >
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signUpBtn}
-                          role="button"
-                        >
-                          Start a campaign
-                        </li>
-                      </a>
+                      style={{ textDecoration: "none" }}>
+
+                      <li
+                        onClick={() => setShowmenu(false)}
+                        className={styles.signUpBtn}
+                        role="button"
+                      >
+                        Start a campaign
+                      </li>
+
                     </Link>
                   </>
                 ) : (
@@ -260,29 +261,29 @@ const Navbar = ({ white = false }) => {
                     <Link
                       href={authenticated ? "/StartACampaign" : "/SignUp"}
                       passHref
-                    >
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signUpBtn}
-                        >
-                          Start a campaign
-                        </li>
-                      </a>
+                      style={{ textDecoration: "none" }}>
+
+                      <li
+                        onClick={() => setShowmenu(false)}
+                        className={styles.signUpBtn}
+                      >
+                        Start a campaign
+                      </li>
+
                     </Link>
                     <Link
                       href={authenticated ? "/dashboard" : "/SignUp/SignIn"}
                       passHref
-                    >
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signUpBtn}
-                          role="button"
-                        >
-                          Go to dashboard
-                        </li>
-                      </a>
+                      style={{ textDecoration: "none" }}>
+
+                      <li
+                        onClick={() => setShowmenu(false)}
+                        className={styles.signUpBtn}
+                        role="button"
+                      >
+                        Go to dashboard
+                      </li>
+
                     </Link>
                   </>
                 )}
@@ -294,7 +295,7 @@ const Navbar = ({ white = false }) => {
           </div>
 
           <div className="d-lg-flex align-items-center justify-content-end w-100 d-none">
-            <Link href="/search" passHref>
+            <Link href="/search" passHref legacyBehavior>
               <div
                 className="d-flex align-items-center justify-content-center mr-4 mr-xl-4"
                 style={{ cursor: "pointer" }}
@@ -347,13 +348,13 @@ const Navbar = ({ white = false }) => {
               />
               <div className={[styles.howDropdown].join(" ")}>
                 <ul className="shadow">
-                  <Link href="/workings" passHref>
+                  <Link href="/workings" passHref legacyBehavior>
                     <li>How Fund&Trace Works</li>
                   </Link>
-                  <Link href="/fundraisingIdeas" passHref>
+                  <Link href="/fundraisingIdeas" passHref legacyBehavior>
                     <li>Fundraising ideas</li>
                   </Link>
-                  <Link href="/fundraising-stories" passHref>
+                  <Link href="/fundraising-stories" passHref legacyBehavior>
                     <li>Fundraising Stories</li>
                   </Link>
                 </ul>
@@ -388,29 +389,29 @@ const Navbar = ({ white = false }) => {
                   <p className="text-blue">Categories</p>
 
                   <Link href="/category/medical" passHref>
-                    <a>
-                      <li>Medical</li>
-                    </a>
+
+                    <li>Medical</li>
+
                   </Link>
 
                   <Link href="/category/emergency" passHref>
-                    <a>
-                      <li>Emergency</li>
-                    </a>
+
+                    <li>Emergency</li>
+
                   </Link>
 
                   <Link href="/category/nonprofit" passHref>
-                    <a>
-                      <li>Non-profit</li>
-                    </a>
+
+                    <li>Non-profit</li>
+
                   </Link>
                   <Link href="/category/environment" passHref>
-                    <a>
-                      <li>Environment</li>
-                    </a>
+
+                    <li>Environment</li>
+
                   </Link>
 
-                  <Link href="/Categories" passHref>
+                  <Link href="/Categories" passHref legacyBehavior>
                     <li className="text-blue text-center w-full mb-0 border-top pt-3">
                       See all
                     </li>
@@ -420,13 +421,13 @@ const Navbar = ({ white = false }) => {
             </div>
 
             <div className="mr-4 mr-xl-4">
-              <Link href="/contact">
-                <a
-                  className={`${white && "text-white"}`}
-                  style={{ fontSize: 14, fontWeight: 400 }}
-                >
+              <Link
+                href="/contact"
+                className={`${white && "text-white"}`}
+                style={{ fontSize: 14, fontWeight: 400 }}>
+                
                   Contact
-                </a>
+                
               </Link>
             </div>
             {!authenticated ? (
@@ -434,7 +435,7 @@ const Navbar = ({ white = false }) => {
                 className="mr-4 mr-xl-4 bg-transparent"
                 color={white ? "white" : undefined}
               >
-                <Link href="/SignUp/SignIn">
+                <Link href="/SignUp/SignIn" legacyBehavior>
                   <button
                     className={styles.signInBtn}
                     style={{
@@ -534,19 +535,19 @@ const Navbar = ({ white = false }) => {
                     <Link
                       href={authenticated ? "/dashboard" : "/SignUpSignIn"}
                       passHref
-                    >
+                      legacyBehavior>
                       <li>Go to Dashboard</li>
                     </Link>
-                    <Link href="/dashboard" passHref>
+                    <Link href="/dashboard" passHref legacyBehavior>
                       <li>My Campaigns</li>
                     </Link>
-                    <Link href="/dashboard/account" passHref>
+                    <Link href="/dashboard/account" passHref legacyBehavior>
                       <li>My Account</li>
                     </Link>
-                    <Link href="/dashboard/my-contributions" passHref>
+                    <Link href="/dashboard/my-contributions" passHref legacyBehavior>
                       <li>My Contributions</li>
                     </Link>
-                    <Link href="/dashboard/settings" passHref>
+                    <Link href="/dashboard/settings" passHref legacyBehavior>
                       <li>Settings</li>
                     </Link>
 
@@ -587,21 +588,22 @@ const Navbar = ({ white = false }) => {
       >
         <div className="custom-container d-flex justify-content-between align-items-center">
           <div className="d-none d-lg-block">
-            <Link href="/" passHref>
-              <a
-                role="button"
-                onClick={showModal ? () => setShowModal(false) : undefined}
-              >
-                {
-                  <Image
-                    src="/images/logo.png"
-                    alt="logo"
-                    width={78}
-                    height={55}
-                    priority
-                  />
-                }
-              </a>
+            <Link
+              href="/"
+              passHref
+              role="button"
+              onClick={showModal ? () => setShowModal(false) : undefined}>
+
+              {
+                <Image
+                  src="/images/logo.png"
+                  alt="logo"
+                  width={78}
+                  height={55}
+                  priority
+                />
+              }
+
             </Link>
           </div>
           <Menu
@@ -613,27 +615,28 @@ const Navbar = ({ white = false }) => {
             <div className="bars bar2"></div>
             <div className="bars bar3"></div>
           </Menu>
-          <Link href="/" passHref>
-            <a
-              onClick={showModal ? () => setShowModal(false) : undefined}
-              className="d-block d-lg-none"
-              role="button"
-            >
-              <Image src="/images/logo.png" alt="logo" width={63} height={48} priority />
-            </a>
+          <Link
+            href="/"
+            passHref
+            onClick={showModal ? () => setShowModal(false) : undefined}
+            className="d-block d-lg-none"
+            role="button">
+
+            <Image src="/images/logo.png" alt="logo" width={63} height={48} priority />
+
           </Link>
           <div className="d-lg-none d-flex align-items-center">
             <div className="mr-3">
               <ThemeToggle />
             </div>
-            <Link href="/search" passHref>
-              <a style={{ textDecoration: "none" }}>
-                <img
-                  src="/images/icons/search.svg"
-                  width={20}
-                  height={20}
-                 alt="Search" />
-              </a>
+            <Link href="/search" passHref style={{ textDecoration: "none" }}>
+
+              <img
+                src="/images/icons/search.svg"
+                width={20}
+                height={20}
+               alt="Search" />
+
             </Link>
           </div>
           <div
@@ -663,64 +666,64 @@ const Navbar = ({ white = false }) => {
                 priority
               />
               <ul>
-                <Link href="/" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Home
-                    </li>
-                  </a>
+                <Link href="/" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    Home
+                  </li>
+
                 </Link>
-                <Link href="/search" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Search
-                    </li>
-                  </a>
+                <Link href="/search" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    Search
+                  </li>
+
                 </Link>
-                <Link href="/workings" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      How It Works
-                    </li>
-                  </a>
+                <Link href="/workings" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    How It Works
+                  </li>
+
                 </Link>
-                <Link href="/Categories" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Explore
-                    </li>
-                  </a>
+                <Link href="/Categories" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    Explore
+                  </li>
+
                 </Link>
-                <Link href="/contact" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Contact
-                    </li>
-                  </a>
+                <Link href="/contact" passHref style={{ textDecoration: "none" }}>
+
+                  <li onClick={() => setShowmenu(false)} role="button">
+                    Contact
+                  </li>
+
                 </Link>
                 {!authenticated ? (
                   <>
-                    <Link href="/SignUp/SignIn" passHref>
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signInBtn}
-                          role="button"
-                        >
-                          Sign In
-                        </li>
-                      </a>
+                    <Link href="/SignUp/SignIn" passHref style={{ textDecoration: "none" }}>
+
+                      <li
+                        onClick={() => setShowmenu(false)}
+                        className={styles.signInBtn}
+                        role="button"
+                      >
+                        Sign In
+                      </li>
+
                     </Link>
-                    <Link href="/SignUp" passHref>
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signUpBtn}
-                          role="button"
-                        >
-                          Sign Up
-                        </li>
-                      </a>
+                    <Link href="/SignUp" passHref style={{ textDecoration: "none" }}>
+
+                      <li
+                        onClick={() => setShowmenu(false)}
+                        className={styles.signUpBtn}
+                        role="button"
+                      >
+                        Sign Up
+                      </li>
+
                     </Link>{" "}
                   </>
                 ) : (
@@ -740,7 +743,7 @@ const Navbar = ({ white = false }) => {
           </div>
 
           <div className="d-lg-flex align-items-center justify-content-end w-100 d-none">
-            <Link href="/search" passHref>
+            <Link href="/search" passHref legacyBehavior>
               <div
                 className="d-flex align-items-center justify-content-center mr-4 mr-xl-4"
                 style={{ cursor: "pointer" }}
@@ -781,13 +784,13 @@ const Navbar = ({ white = false }) => {
               />
               <div className={[styles.howDropdown].join(" ")}>
                 <ul className="shadow">
-                  <Link href="/workings" passHref>
+                  <Link href="/workings" passHref legacyBehavior>
                     <li>How Fund&Trace Works</li>
                   </Link>
-                  <Link href="/fundraisingIdeas" passHref>
+                  <Link href="/fundraisingIdeas" passHref legacyBehavior>
                     <li>Fundraising ideas</li>
                   </Link>
-                  <Link href="/fundraising-stories" passHref>
+                  <Link href="/fundraising-stories" passHref legacyBehavior>
                     <li>Fundraising Stories</li>
                   </Link>
                 </ul>
@@ -818,29 +821,29 @@ const Navbar = ({ white = false }) => {
                   <p className="text-blue">Categories</p>
 
                   <Link href="/category/medical" passHref>
-                    <a>
-                      <li>Medical</li>
-                    </a>
+
+                    <li>Medical</li>
+
                   </Link>
 
                   <Link href="/category/emergency" passHref>
-                    <a>
-                      <li>Emergency</li>
-                    </a>
+
+                    <li>Emergency</li>
+
                   </Link>
 
                   <Link href="/category/nonprofit" passHref>
-                    <a>
-                      <li>Non-profit</li>
-                    </a>
+
+                    <li>Non-profit</li>
+
                   </Link>
                   <Link href="/category/environment" passHref>
-                    <a>
-                      <li>Environment</li>
-                    </a>
+
+                    <li>Environment</li>
+
                   </Link>
 
-                  <Link href="/Categories" passHref>
+                  <Link href="/Categories" passHref legacyBehavior>
                     <li className="text-blue text-center w-full mb-0 pt-3 border-top">
                       See all
                     </li>
@@ -856,7 +859,7 @@ const Navbar = ({ white = false }) => {
             </div>
             {!authenticated ? (
               <div className="mr-4 mr-xl-4">
-                <Link href="/SignUp/SignIn">
+                <Link href="/SignUp/SignIn" legacyBehavior>
                   <button
                     className={styles.signInBtn}
                     style={{ color: "var(--color-primary)", fontSize: 14, fontWeight: 400 }}
@@ -936,19 +939,19 @@ const Navbar = ({ white = false }) => {
                     <Link
                       href={authenticated ? "/dashboard" : "/SignUpSignIn"}
                       passHref
-                    >
+                      legacyBehavior>
                       <li>Go to Dashboard</li>
                     </Link>
-                    <Link href="/dashboard" passHref>
+                    <Link href="/dashboard" passHref legacyBehavior>
                       <li>My Campaigns</li>
                     </Link>
-                    <Link href="/dashboard/account" passHref>
+                    <Link href="/dashboard/account" passHref legacyBehavior>
                       <li>My Account</li>
                     </Link>
-                    <Link href="/dashboard/my-contributions" passHref>
+                    <Link href="/dashboard/my-contributions" passHref legacyBehavior>
                       <li>My Contributions</li>
                     </Link>
-                    <Link href="/dashboard/settings" passHref>
+                    <Link href="/dashboard/settings" passHref legacyBehavior>
                       <li>Settings</li>
                     </Link>
 

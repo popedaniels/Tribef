@@ -47,11 +47,11 @@ export default function HeroSection() {
                   <Link
                     href={authenticated ? "/StartACampaign/type" : "/SignUp"}
                     passHref
-                  >
-                    <a className={styles.primaryBtn}>
-                      <span>Start a Campaign</span>
-                      <span className={styles.arrow}>→</span>
-                    </a>
+                    className={styles.primaryBtn}>
+
+                    <span>Start a Campaign</span>
+                    <span className={styles.arrow}>→</span>
+
                   </Link>
 
                   <a

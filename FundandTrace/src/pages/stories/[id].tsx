@@ -30,8 +30,8 @@ export default function StoryPage() {
         {/* Article Header */}
         <header className="article-header custom-container">
           <div className="breadcrumb-nav mb-3">
-            <Link href="/fundraising-stories">
-              <a className="breadcrumb-link">← All Stories</a>
+            <Link href="/fundraising-stories" className="breadcrumb-link">
+              ← All Stories
             </Link>
             <span className="mx-2 text-muted">/</span>
             <span className="category-chip">{currentStory.category}</span>
@@ -170,8 +170,8 @@ export default function StoryPage() {
                   <p className="cta-desc mb-3">
                     Start a verified fundraiser and provide your donors with 100% milestone accountability.
                   </p>
-                  <Link href="/StartACampaign/type" passHref>
-                    <a className="btn start-btn w-100">Start a Campaign</a>
+                  <Link href="/StartACampaign/type" passHref className="btn start-btn w-100">
+                    Start a Campaign
                   </Link>
                 </div>
               </div>

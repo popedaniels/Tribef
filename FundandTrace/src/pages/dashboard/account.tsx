@@ -134,10 +134,10 @@ export default function Account() {
               </p>
             </div>
           </div>
-          <Link href="edit-profile" passHref>
-            <a style={{ textDecoration: "none" }}>
-              <button className="btn text-white">Edit Profile</button>
-            </a>
+          <Link href="edit-profile" passHref style={{ textDecoration: "none" }}>
+
+            <button className="btn text-white">Edit Profile</button>
+
           </Link>
         </Accounts>
         <div className="d-flex align-items-baseline justify-content-center">

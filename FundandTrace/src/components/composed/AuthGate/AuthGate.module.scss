@@ -1,0 +1,36 @@
+.gate {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid var(--ft-border, rgba(105, 121, 248, 0.18));
+  border-top-color: var(--color-primary, #6979f8);
+  animation: spin 0.8s linear infinite;
+}
+
+.label {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ft-text-muted, #5b6380);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}

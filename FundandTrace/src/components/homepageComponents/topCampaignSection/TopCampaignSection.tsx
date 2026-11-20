@@ -42,11 +42,11 @@ export default function TopCampaignSection({ data, heading, title, tag, loading 
             <span className={styles.tag}>{tag}</span>
             <h2>{heading || title}</h2>
           </div>
-          <Link href="/Categories" passHref>
-            <a className={styles.viewAllLink}>
-              <span>Explore All Causes</span>
-              <span>→</span>
-            </a>
+          <Link href="/Categories" passHref className={styles.viewAllLink}>
+
+            <span>Explore All Causes</span>
+            <span>→</span>
+
           </Link>
         </div>
 
@@ -78,19 +78,23 @@ export default function TopCampaignSection({ data, heading, title, tag, loading 
           <div className={styles.emptyState}>
             <h3>No Campaigns Found</h3>
             <p>There are currently no active campaigns in this category.</p>
-            <Link href="/Categories" passHref>
-              <a className="btn btn-primary" style={{ background: "var(--color-primary)", border: "none" }}>
+            <Link
+              href="/Categories"
+              passHref
+              className="btn btn-primary"
+              style={{ background: "var(--color-primary)", border: "none" }}>
+              
                 Browse All Categories
-              </a>
+              
             </Link>
           </div>
         )}
 
         <div className={styles.bottomCtaMobile}>
-          <Link href="/Categories" passHref>
-            <a className={styles.viewAllLink}>
-              <span>Explore All Causes →</span>
-            </a>
+          <Link href="/Categories" passHref className={styles.viewAllLink}>
+
+            <span>Explore All Causes →</span>
+
           </Link>
         </div>
       </div>

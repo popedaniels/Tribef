@@ -8,6 +8,8 @@ import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { selectAuthStateState } from "../../store/slices/authSlice";
 import Layout from "../components/Layout";
+import { useRequireAuth } from "../hooks/useRequireAuth";
+import AuthGate from "../components/composed/AuthGate/AuthGate";
 
 interface CampaignDashboardLayoutProps {
   children: React.ReactNode;
@@ -33,9 +35,8 @@ export default function CampaignDashboardLayout({
   const { profile, authenticated } = useSelector(selectAuthStateState);
   const [showMenu, setShowMenu] = useState(false);
 
-  useEffect(() => {
-    !authenticated && router.push("/SignUp/SignIn");
-  }, [authenticated, router]);
+  // Waits for the persisted session before deciding; see useRequireAuth.
+  const { ready } = useRequireAuth();
 
   useEffect(() => {
     window.onscroll = function () {
@@ -56,6 +57,8 @@ export default function CampaignDashboardLayout({
     boxShadow: "0px 3px 2px 0px rgba(0,0,0,0.06)",
   };
 
+  if (!ready) return <AuthGate />;
+
   return (
     <Layout
       title={`${title} | ${page}`}
@@ -69,130 +72,134 @@ export default function CampaignDashboardLayout({
             </div>
           </div>
           <div className="d-flex flex-column mb-5">
-            <Link href={`/dashboard/${campaignId}`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 1 ? "active" : ""
-                }`}
-              >
-                {active == 1 ? (
-                  <img
-                    src="/images/icons/dashboard.svg"
-                    width="20px"
-                    height="20px"
-                    alt="dashboardIcons"
-                  />
-                ) : (
-                  <img
-                    src="/images/icons/dashboardInactive.svg"
-                    width="20px"
-                    height="20px"
-                    alt="dashboardIcons"
-                  />
-                )}
-                <h3 className="mb-0 ml-4">Dashboard</h3>
-              </a>
+            <Link
+              href={`/dashboard/${campaignId}`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 1 ? "active" : ""
+              }`}>
+
+              {active == 1 ? (
+                <img
+                  src="/images/icons/dashboard.svg"
+                  width="20px"
+                  height="20px"
+                  alt="dashboardIcons"
+                />
+              ) : (
+                <img
+                  src="/images/icons/dashboardInactive.svg"
+                  width="20px"
+                  height="20px"
+                  alt="dashboardIcons"
+                />
+              )}
+              <h3 className="mb-0 ml-4">Dashboard</h3>
+
             </Link>
-            <Link href={`/dashboard/${campaignId}/sendEmail`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 2 ? "active" : ""
-                }`}
-              >
-                {active == 2 ? (
-                  <img
-                    src="/images/icons/sendMailActive.svg"
-                    width="20px"
-                    height="20px"
-                    alt="dashboardIcons"
-                  />
-                ) : (
-                  <img
-                    src="/images/icons/mail.svg"
-                    width="20px"
-                    height="20px"
-                    alt="dashboardIcons"
-                  />
-                )}
-                <h3 className="mb-0 ml-4">Send Email</h3>
-              </a>
+            <Link
+              href={`/dashboard/${campaignId}/sendEmail`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 2 ? "active" : ""
+              }`}>
+
+              {active == 2 ? (
+                <img
+                  src="/images/icons/sendMailActive.svg"
+                  width="20px"
+                  height="20px"
+                  alt="dashboardIcons"
+                />
+              ) : (
+                <img
+                  src="/images/icons/mail.svg"
+                  width="20px"
+                  height="20px"
+                  alt="dashboardIcons"
+                />
+              )}
+              <h3 className="mb-0 ml-4">Send Email</h3>
+
             </Link>
-            <Link href={`/dashboard/${campaignId}/socials`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 3 ? "active" : ""
-                }`}
-              >
-                {active == 3 ? (
-                  <img
-                    src="/images/icons/socialActive.svg"
-                    width="20px"
-                    height="20px"
-                    alt="dashboardIcons"
-                  />
-                ) : (
-                  <img
-                    src="/images/icons/dshare.svg"
-                    width="20px"
-                    height="20px"
-                    alt="dashboardIcons"
-                  />
-                )}
-                <h3 className="mb-0 ml-4">Socials</h3>
-              </a>
+            <Link
+              href={`/dashboard/${campaignId}/socials`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 3 ? "active" : ""
+              }`}>
+
+              {active == 3 ? (
+                <img
+                  src="/images/icons/socialActive.svg"
+                  width="20px"
+                  height="20px"
+                  alt="dashboardIcons"
+                />
+              ) : (
+                <img
+                  src="/images/icons/dshare.svg"
+                  width="20px"
+                  height="20px"
+                  alt="dashboardIcons"
+                />
+              )}
+              <h3 className="mb-0 ml-4">Socials</h3>
+
             </Link>
-            <Link href={`/dashboard/${campaignId}/fundingRequest`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 4 ? "active" : ""
-                }`}
-              >
-                {active == 4 ? (
-                  <img
-                    src="/images/icons/fundingRequestActive.svg"
-                    width="20px"
-                    height="20px"
-                    alt="dashboardIcons"
-                  />
-                ) : (
-                  <img
-                    src="/images/icons/fundingRequest.svg"
-                    width="20px"
-                    height="20px"
-                    alt="dashboardIcons"
-                  />
-                )}
-                <h3 className="mb-0 ml-4">Funding Request</h3>
-              </a>
+            <Link
+              href={`/dashboard/${campaignId}/fundingRequest`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 4 ? "active" : ""
+              }`}>
+
+              {active == 4 ? (
+                <img
+                  src="/images/icons/fundingRequestActive.svg"
+                  width="20px"
+                  height="20px"
+                  alt="dashboardIcons"
+                />
+              ) : (
+                <img
+                  src="/images/icons/fundingRequest.svg"
+                  width="20px"
+                  height="20px"
+                  alt="dashboardIcons"
+                />
+              )}
+              <h3 className="mb-0 ml-4">Funding Request</h3>
+
             </Link>
           </div>
           <Link href="/StartACampaign" passHref>
-            <a>
-              <div className="d-flex align-items-center mb-5 px-3">
-                <img
-                  src="/images/icons/add.svg"
-                  width="20px"
-                  height="20px"
-                  alt="dashboardIcons"
-                  style={{ opacity: 0.3 }}
-                />
-                <p className="mb-0 ml-3">Add another campaign</p>
-              </div>
-            </a>
+
+            <div className="d-flex align-items-center mb-5 px-3">
+              <img
+                src="/images/icons/add.svg"
+                width="20px"
+                height="20px"
+                alt="dashboardIcons"
+                style={{ opacity: 0.3 }}
+              />
+              <p className="mb-0 ml-3">Add another campaign</p>
+            </div>
+
           </Link>
           <Link href="/help" passHref>
-            <a>
-              <div className="d-flex align-items-center mb-5 px-3">
-                <img
-                  src="/images/icons/questionmark.svg"
-                  width="20px"
-                  height="20px"
-                  alt="dashboardIcons"
-                  style={{ opacity: 0.3 }}
-                />
-                <p className="mb-0 ml-3">Need some help?</p>
-              </div>
-            </a>
+
+            <div className="d-flex align-items-center mb-5 px-3">
+              <img
+                src="/images/icons/questionmark.svg"
+                width="20px"
+                height="20px"
+                alt="dashboardIcons"
+                style={{ opacity: 0.3 }}
+              />
+              <p className="mb-0 ml-3">Need some help?</p>
+            </div>
+
           </Link>
         </aside>
         <main>
@@ -211,15 +218,16 @@ export default function CampaignDashboardLayout({
                 alt="dashboardIcons"
               />
             </div>
-            <Link href="/" passHref>
-              <a
-                onClick={showModal ? () => setShowModal(false) : undefined}
-                role="button"
-              >
-                <img src="/images/logo.png" width={63} height={48}  alt="Fund&Trace" />
-              </a>
+            <Link
+              href="/"
+              passHref
+              onClick={showModal ? () => setShowModal(false) : undefined}
+              role="button">
+
+              <img src="/images/logo.png" width={63} height={48}  alt="Fund&Trace" />
+
             </Link>
-            <Link href="/search" passHref>
+            <Link href="/search" passHref legacyBehavior>
               <img
                 src="/images/icons/search.svg"
                 width={20}
@@ -236,20 +244,21 @@ export default function CampaignDashboardLayout({
               style={{ maxWidth: 1140 }}
             >
               <div className="d-flex align-items-center">
-                <Link href="/search" passHref>
-                  <a
-                    style={{ textDecoration: "none", color: "#212529" }}
-                    className="mr-5"
-                  >
-                    <div className="d-flex align-items-center justify-content-center">
-                      <img
-                        src="/images/icons/search.svg"
-                        width={20}
-                        height={20}
-                       alt="Search" />
-                      <p className="ml-2 mb-0">Search</p>
-                    </div>
-                  </a>
+                <Link
+                  href="/search"
+                  passHref
+                  style={{ textDecoration: "none", color: "#212529" }}
+                  className="mr-5">
+
+                  <div className="d-flex align-items-center justify-content-center">
+                    <img
+                      src="/images/icons/search.svg"
+                      width={20}
+                      height={20}
+                     alt="Search" />
+                    <p className="ml-2 mb-0">Search</p>
+                  </div>
+
                 </Link>
                 <div className="d-flex align-items-center">
                   <div
@@ -267,20 +276,20 @@ export default function CampaignDashboardLayout({
                         <li>
                           <p className="text-blue">Categories</p>
                         </li>
-                        <Link href="/category/medical" passHref>
+                        <Link href="/category/medical" passHref legacyBehavior>
                           <li>Medical</li>
                         </Link>
-                        <Link href="/category/emergency" passHref>
+                        <Link href="/category/emergency" passHref legacyBehavior>
                           <li>Emergency</li>
                         </Link>
-                        <Link href="/category/nonprofit" passHref>
+                        <Link href="/category/nonprofit" passHref legacyBehavior>
                           <li>Non-Profit</li>
                         </Link>
-                        <Link href="/category/monthlybills" passHref>
+                        <Link href="/category/monthlybills" passHref legacyBehavior>
                           <li>Monthly Bills</li>
                         </Link>
                       </ul>
-                      <Link href="/Categories" passHref>
+                      <Link href="/Categories" passHref legacyBehavior>
                         <p
                           className="text-blue text-center w-full mb-0"
                           style={{ padding: "19px 0 19px 0" }}
@@ -293,15 +302,15 @@ export default function CampaignDashboardLayout({
                 </div>
               </div>
               <Link href="/" passHref>
-                <a>
-                  <img
-                    src="/images/logo.png"
-                    alt="fundandtraceLogo"
-                    width={82}
-                    height={62}
-                    className="my-5"
-                  />
-                </a>
+
+                <img
+                  src="/images/logo.png"
+                  alt="fundandtraceLogo"
+                  width={82}
+                  height={62}
+                  className="my-5"
+                />
+
               </Link>
               <div className="d-flex align-items-center">
                 <div
@@ -344,16 +353,16 @@ export default function CampaignDashboardLayout({
                    alt="" />
                   <div className="accountDropdown">
                     <ul>
-                      <Link href="/dashboard" passHref>
+                      <Link href="/dashboard" passHref legacyBehavior>
                         <li>My Campaigns</li>
                       </Link>
-                      <Link href="/dashboard/account" passHref>
+                      <Link href="/dashboard/account" passHref legacyBehavior>
                         <li>My Account</li>
                       </Link>
-                      <Link href="/dashboard/my-contributions" passHref>
+                      <Link href="/dashboard/my-contributions" passHref legacyBehavior>
                         <li>My Contributions</li>
                       </Link>
-                      <Link href="/dashboard/settings" passHref>
+                      <Link href="/dashboard/settings" passHref legacyBehavior>
                         <li>Settings</li>
                       </Link>
                       <li onClick={() => setShowModal(true)} role="button">

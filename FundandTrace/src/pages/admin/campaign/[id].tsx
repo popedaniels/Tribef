@@ -250,10 +250,7 @@ export default function CampaignDetailsPage() {
                       >
                         Send Email
                       </button>
-                      <Link
-                        href={`/campaign/${campaign?._id}/tracker`}
-                        passHref
-                      >
+                      <Link href={`/campaign/${campaign?._id}/tracker`} passHref legacyBehavior>
                         <button className="btn sendBtn">Track Campaign</button>
                       </Link>
                     </div>

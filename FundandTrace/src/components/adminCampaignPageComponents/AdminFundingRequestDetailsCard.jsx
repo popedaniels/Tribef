@@ -8,7 +8,10 @@ export default function AdminFundingRequestDetailsCard({
   index,
 }) {
   return (
-    <Link href={`/admin/fundingRequest/${fundingRequest?._id}`} passHref>
+    <Link
+      href={`/admin/fundingRequest/${fundingRequest?._id}`}
+      passHref
+      legacyBehavior>
       <Wrapper
         className="d-flex"
         style={{

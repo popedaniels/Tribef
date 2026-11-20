@@ -5,7 +5,7 @@ import { addCommaToNumber } from "../helperFunctions/helperFunctions";
 
 export default function CampaignDetailsCard({ campaign, index }) {
   return (
-    <Link href={`/admin/campaign/${campaign?._id}`} passHref>
+    <Link href={`/admin/campaign/${campaign?._id}`} passHref legacyBehavior>
       <Wrapper
         className="d-flex"
         style={{

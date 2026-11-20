@@ -203,16 +203,16 @@ export default function CampaignTrackerPage({
           <article className="campaign-details d-flex align-items-start mt-5 mt-lg-0 order-12 order-lg-1">
             <div className="mr-md-4 mb-4 mb-lg-0">
               <Link href={`/campaign/${campaign?._id}`} passHref>
-                <a>
-                  <img
-                    src={campaign?.basicInformation?.campaignImage}
-                    alt="campaignImages"
-                    width="209px"
-                    height="221px"
-                    className="campaign-image"
-                    style={{ objectFit: "cover" }}
-                  />
-                </a>
+
+                <img
+                  src={campaign?.basicInformation?.campaignImage}
+                  alt="campaignImages"
+                  width="209px"
+                  height="221px"
+                  className="campaign-image"
+                  style={{ objectFit: "cover" }}
+                />
+
               </Link>
             </div>
             <div className="details">

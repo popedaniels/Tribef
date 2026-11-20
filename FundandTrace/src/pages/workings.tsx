@@ -102,11 +102,14 @@ export default function Workings() {
               </p>
 
               <div className="ctaRow">
-                <Link href={authenticated ? "/StartACampaign" : "/SignUp"} passHref>
-                  <a className="btnPrimary">
-                    <span>Start a 0% Fee Campaign</span>
-                    <span>→</span>
-                  </a>
+                <Link
+                  href={authenticated ? "/StartACampaign" : "/SignUp"}
+                  passHref
+                  className="btnPrimary">
+
+                  <span>Start a 0% Fee Campaign</span>
+                  <span>→</span>
+
                 </Link>
                 <a href="#comparison" className="btnSecondary">
                   <span>See Platform Comparison</span>

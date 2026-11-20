@@ -10,10 +10,10 @@ export default function Footer() {
         <div className={styles.topGrid}>
           {/* Brand Col */}
           <div className={styles.brandCol}>
-            <Link href="/" passHref>
-              <a className={styles.logoLink}>
-                <img src="/images/logo.png" alt="Fund&Trace" width={88} height={60} />
-              </a>
+            <Link href="/" passHref className={styles.logoLink}>
+
+              <img src="/images/logo.png" alt="Fund&Trace" width={88} height={60} />
+
             </Link>
             <p className={styles.brandMission}>
               The milestone-verified crowdfunding platform that eliminates platform fees and brings radical transparency to global social giving.
@@ -31,33 +31,33 @@ export default function Footer() {
           <div className={styles.navCol}>
             <h4 className={styles.colTitle}>EXPLORE</h4>
             <ul className={styles.navList}>
-              <li><Link href="/Categories"><a>All Categories</a></Link></li>
-              <li><Link href="/workings"><a>How It Works</a></Link></li>
-              <li><Link href="/fundraisingIdeas"><a>Strategy Playbooks</a></Link></li>
-              <li><Link href="/fundraising-stories"><a>Verified Stories</a></Link></li>
-              <li><Link href="/fees"><a>0% Pricing &amp; Fees</a></Link></li>
+              <li><Link href="/Categories">All Categories</Link></li>
+              <li><Link href="/workings">How It Works</Link></li>
+              <li><Link href="/fundraisingIdeas">Strategy Playbooks</Link></li>
+              <li><Link href="/fundraising-stories">Verified Stories</Link></li>
+              <li><Link href="/fees">0% Pricing &amp; Fees</Link></li>
             </ul>
           </div>
 
           <div className={styles.navCol}>
             <h4 className={styles.colTitle}>CAUSES</h4>
             <ul className={styles.navList}>
-              <li><Link href="/category/medical"><a>Medical &amp; Surgery</a></Link></li>
-              <li><Link href="/category/emergency"><a>Disaster Relief</a></Link></li>
-              <li><Link href="/category/education"><a>STEM &amp; Education</a></Link></li>
-              <li><Link href="/category/nonprofit"><a>NGO &amp; Charities</a></Link></li>
-              <li><Link href="/category/memorial"><a>Memorial Funds</a></Link></li>
+              <li><Link href="/category/medical">Medical &amp; Surgery</Link></li>
+              <li><Link href="/category/emergency">Disaster Relief</Link></li>
+              <li><Link href="/category/education">STEM &amp; Education</Link></li>
+              <li><Link href="/category/nonprofit">NGO &amp; Charities</Link></li>
+              <li><Link href="/category/memorial">Memorial Funds</Link></li>
             </ul>
           </div>
 
           <div className={styles.navCol}>
             <h4 className={styles.colTitle}>COMPANY</h4>
             <ul className={styles.navList}>
-              <li><Link href="/aboutUs"><a>About Fund&amp;Trace</a></Link></li>
-              <li><Link href="/fundraising-stories"><a>Impact Chronicles</a></Link></li>
-              <li><Link href="/help"><a>Help &amp; Support</a></Link></li>
-              <li><Link href="/search"><a>Search Campaigns</a></Link></li>
-              <li><Link href="/StartACampaign/type"><a>Start a Campaign</a></Link></li>
+              <li><Link href="/aboutUs">About Fund&amp;Trace</Link></li>
+              <li><Link href="/fundraising-stories">Impact Chronicles</Link></li>
+              <li><Link href="/help">Help &amp; Support</Link></li>
+              <li><Link href="/search">Search Campaigns</Link></li>
+              <li><Link href="/StartACampaign/type">Start a Campaign</Link></li>
             </ul>
           </div>
         </div>
@@ -68,11 +68,11 @@ export default function Footer() {
             © {new Date().getFullYear()} Fund&amp;Trace Technologies Inc. Built with radical transparency.
           </div>
           <div className={styles.bottomLinks}>
-            <Link href="/terms"><a>Terms of Service</a></Link>
+            <Link href="/terms">Terms of Service</Link>
             <span className={styles.dot}>•</span>
-            <Link href="/privacy"><a>Privacy Policy</a></Link>
+            <Link href="/privacy">Privacy Policy</Link>
             <span className={styles.dot}>•</span>
-            <Link href="/fees"><a>Fee Schedule</a></Link>
+            <Link href="/fees">Fee Schedule</Link>
           </div>
         </div>
       </div>

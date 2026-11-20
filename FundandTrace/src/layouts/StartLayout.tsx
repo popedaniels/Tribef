@@ -109,88 +109,94 @@ export default function StartLayout({
             </div>
           </div>
           <div className="d-flex flex-column mb-5">
-            <Link href={`/StartACampaign/BasicInformation`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 1 ? "active" : ""
-                } ${errorBasic ? "bg-danger" : ""}`}
-              >
-                <h3 className="mb-0">1. Basic Information</h3>
-              </a>
+            <Link
+              href={`/StartACampaign/BasicInformation`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 1 ? "active" : ""
+              } ${errorBasic ? "bg-danger" : ""}`}>
+
+              <h3 className="mb-0">1. Basic Information</h3>
+
             </Link>
-            <Link href={`/StartACampaign/Content`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 2 ? "active" : ""
-                } ${errorContent ? "bg-danger" : ""}`}
-              >
-                <h3 className="mb-0">2. Content</h3>
-              </a>
+            <Link
+              href={`/StartACampaign/Content`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 2 ? "active" : ""
+              } ${errorContent ? "bg-danger" : ""}`}>
+
+              <h3 className="mb-0">2. Content</h3>
+
             </Link>
-            <Link href={`/StartACampaign/Team`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 3 ? "active" : ""
-                } ${errorTeam ? "bg-danger" : ""}`}
-              >
-                <h3 className="mb-0">3. Contact</h3>
-              </a>
+            <Link
+              href={`/StartACampaign/Team`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 3 ? "active" : ""
+              } ${errorTeam ? "bg-danger" : ""}`}>
+
+              <h3 className="mb-0">3. Contact</h3>
+
             </Link>
-            <Link href={`/StartACampaign/Funding`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 4 ? "active" : ""
-                } ${errorFunding ? "bg-danger" : ""}`}
-              >
-                <h3 className="mb-0">4. Funding</h3>
-              </a>
+            <Link
+              href={`/StartACampaign/Funding`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 4 ? "active" : ""
+              } ${errorFunding ? "bg-danger" : ""}`}>
+
+              <h3 className="mb-0">4. Funding</h3>
+
             </Link>
-            <Link href={`/StartACampaign/Settings`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 5 ? "active" : ""
-                }`}
-              >
-                <h3 className="mb-0">5. Settings</h3>
-              </a>
+            <Link
+              href={`/StartACampaign/Settings`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 5 ? "active" : ""
+              }`}>
+
+              <h3 className="mb-0">5. Settings</h3>
+
             </Link>
-            <Link href={`/StartACampaign/Prelaunch`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 6 ? "active" : ""
-                }`}
-              >
-                <h3 className="mb-0">6. Pre-Launch page</h3>
-              </a>
+            <Link
+              href={`/StartACampaign/Prelaunch`}
+              passHref
+              className={`navlink d-flex align-items-center pl-4 ${
+                active == 6 ? "active" : ""
+              }`}>
+
+              <h3 className="mb-0">6. Pre-Launch page</h3>
+
             </Link>
           </div>
           <Link href="/StartACampaign" passHref>
-            <a>
-              <div className="d-flex align-items-center mb-4 px-3">
-                <img
-                  src="/images/icons/add.svg"
-                  width="20px"
-                  height="20px"
-                  alt="addicon"
-                  style={{ opacity: 0.3 }}
-                />
-                <p className="mb-0 ml-3">Add another campaign</p>
-              </div>
-            </a>
+
+            <div className="d-flex align-items-center mb-4 px-3">
+              <img
+                src="/images/icons/add.svg"
+                width="20px"
+                height="20px"
+                alt="addicon"
+                style={{ opacity: 0.3 }}
+              />
+              <p className="mb-0 ml-3">Add another campaign</p>
+            </div>
+
           </Link>
           <Link href="/help" passHref>
-            <a>
-              <div className="d-flex align-items-center px-3">
-                <img
-                  src="/images/icons/questionmark.svg"
-                  width="20px"
-                  height="20px"
-                  alt="questionicon"
-                  style={{ opacity: 0.3 }}
-                />
-                <p className="mb-0 ml-3">Need some help?</p>
-              </div>
-            </a>
+
+            <div className="d-flex align-items-center px-3">
+              <img
+                src="/images/icons/questionmark.svg"
+                width="20px"
+                height="20px"
+                alt="questionicon"
+                style={{ opacity: 0.3 }}
+              />
+              <p className="mb-0 ml-3">Need some help?</p>
+            </div>
+
           </Link>
         </aside>
         <main>
@@ -203,20 +209,21 @@ export default function StartLayout({
               style={{ maxWidth: 1140 }}
             >
               <div className="d-flex align-items-center">
-                <Link href="/search" passHref>
-                  <a
-                    style={{ textDecoration: "none", color: "#212529" }}
-                    className="mr-5"
-                  >
-                    <div className="d-flex align-items-center justify-content-center">
-                      <img
-                        src="/images/icons/search.svg"
-                        width={20}
-                        height={20}
-                       alt="Search" />
-                      <p className="ml-2 mb-0">Search</p>
-                    </div>
-                  </a>
+                <Link
+                  href="/search"
+                  passHref
+                  style={{ textDecoration: "none", color: "#212529" }}
+                  className="mr-5">
+
+                  <div className="d-flex align-items-center justify-content-center">
+                    <img
+                      src="/images/icons/search.svg"
+                      width={20}
+                      height={20}
+                     alt="Search" />
+                    <p className="ml-2 mb-0">Search</p>
+                  </div>
+
                 </Link>
                 <div className="d-flex align-items-center">
                   <div
@@ -234,20 +241,20 @@ export default function StartLayout({
                         <li>
                           <p className="text-blue">Categories</p>
                         </li>
-                        <Link href="/category/medical" passHref>
+                        <Link href="/category/medical" passHref legacyBehavior>
                           <li>Medical</li>
                         </Link>
-                        <Link href="/category/emergency" passHref>
+                        <Link href="/category/emergency" passHref legacyBehavior>
                           <li>Emergency</li>
                         </Link>
-                        <Link href="/category/nonprofit" passHref>
+                        <Link href="/category/nonprofit" passHref legacyBehavior>
                           <li>Non-Profit</li>
                         </Link>
-                        <Link href="/category/monthlybills" passHref>
+                        <Link href="/category/monthlybills" passHref legacyBehavior>
                           <li>Monthly Bills</li>
                         </Link>
                       </ul>
-                      <Link href="/Categories" passHref>
+                      <Link href="/Categories" passHref legacyBehavior>
                         <p
                           className="text-blue text-center w-full mb-0"
                           style={{ padding: "19px 0 19px 0" }}
@@ -260,15 +267,15 @@ export default function StartLayout({
                 </div>
               </div>
               <Link href="/" passHref>
-                <a>
-                  <img
-                    src="/images/logo.png"
-                    alt="fundandtraceLogo"
-                    width={76}
-                    height={58}
-                    className="my-5"
-                  />
-                </a>
+
+                <img
+                  src="/images/logo.png"
+                  alt="fundandtraceLogo"
+                  width={76}
+                  height={58}
+                  className="my-5"
+                />
+
               </Link>
               <div className="d-flex align-items-center">
                 <div
@@ -311,16 +318,16 @@ export default function StartLayout({
                    alt="" />
                   <div className="accountDropdown">
                     <ul>
-                      <Link href="/dashboard" passHref>
+                      <Link href="/dashboard" passHref legacyBehavior>
                         <li>My Campaigns</li>
                       </Link>
-                      <Link href="/dashboard/account" passHref>
+                      <Link href="/dashboard/account" passHref legacyBehavior>
                         <li>My Account</li>
                       </Link>
-                      <Link href="/dashboard/my-contributions" passHref>
+                      <Link href="/dashboard/my-contributions" passHref legacyBehavior>
                         <li>My Contributions</li>
                       </Link>
-                      <Link href="/dashboard/settings" passHref>
+                      <Link href="/dashboard/settings" passHref legacyBehavior>
                         <li>Settings</li>
                       </Link>
                       <li onClick={() => setShowModal(true)} role="button">
@@ -396,134 +403,134 @@ export default function StartLayout({
               style={{ marginTop: "-23px" }}
             >
               <Link href="BasicInformation" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 1 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p
-                      className=""
-                      style={{ color: active >= 1 ? "var(--color-primary)" : "#979797" }}
-                    >
-                      1.
-                    </p>
-                    <p
-                      className=""
-                      style={{
-                        color: errorBasic
-                          ? "red"
-                          : active >= 1
-                          ? "var(--color-primary)"
-                          : "#979797",
-                      }}
-                    >
-                      Basic
-                    </p>
-                  </div>
-                </a>
+
+                <div className="mobileProgress">
+                  <div
+                    className="smallCircle"
+                    style={{
+                      background: active >= 1 ? "var(--color-primary)" : "#D7D7D9",
+                    }}
+                  ></div>
+                  <p
+                    className=""
+                    style={{ color: active >= 1 ? "var(--color-primary)" : "#979797" }}
+                  >
+                    1.
+                  </p>
+                  <p
+                    className=""
+                    style={{
+                      color: errorBasic
+                        ? "red"
+                        : active >= 1
+                        ? "var(--color-primary)"
+                        : "#979797",
+                    }}
+                  >
+                    Basic
+                  </p>
+                </div>
+
               </Link>
               <Link href="Content" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 2 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p
-                      className=""
-                      style={{ color: active >= 2 ? "var(--color-primary)" : "#979797" }}
-                    >
-                      2.
-                    </p>
-                    <p
-                      className=""
-                      style={{
-                        color: errorContent
-                          ? "red"
-                          : active >= 2
-                          ? "var(--color-primary)"
-                          : "#979797",
-                      }}
-                    >
-                      Content
-                    </p>
-                  </div>
-                </a>
+
+                <div className="mobileProgress">
+                  <div
+                    className="smallCircle"
+                    style={{
+                      background: active >= 2 ? "var(--color-primary)" : "#D7D7D9",
+                    }}
+                  ></div>
+                  <p
+                    className=""
+                    style={{ color: active >= 2 ? "var(--color-primary)" : "#979797" }}
+                  >
+                    2.
+                  </p>
+                  <p
+                    className=""
+                    style={{
+                      color: errorContent
+                        ? "red"
+                        : active >= 2
+                        ? "var(--color-primary)"
+                        : "#979797",
+                    }}
+                  >
+                    Content
+                  </p>
+                </div>
+
               </Link>
               <Link href="Team" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 3 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p style={{ color: active >= 3 ? "var(--color-primary)" : "#979797" }}>
-                      3.
-                    </p>
-                    <p
-                      style={{
-                        color: errorTeam
-                          ? "red"
-                          : active >= 3
-                          ? "var(--color-primary)"
-                          : "#979797",
-                      }}
-                    >
-                      Team
-                    </p>
-                  </div>
-                </a>
+
+                <div className="mobileProgress">
+                  <div
+                    className="smallCircle"
+                    style={{
+                      background: active >= 3 ? "var(--color-primary)" : "#D7D7D9",
+                    }}
+                  ></div>
+                  <p style={{ color: active >= 3 ? "var(--color-primary)" : "#979797" }}>
+                    3.
+                  </p>
+                  <p
+                    style={{
+                      color: errorTeam
+                        ? "red"
+                        : active >= 3
+                        ? "var(--color-primary)"
+                        : "#979797",
+                    }}
+                  >
+                    Team
+                  </p>
+                </div>
+
               </Link>
               <Link href="Funding" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 4 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p style={{ color: active >= 4 ? "var(--color-primary)" : "#979797" }}>
-                      4.
-                    </p>
-                    <p
-                      style={{
-                        color: errorFunding
-                          ? "red"
-                          : active >= 4
-                          ? "var(--color-primary)"
-                          : "#979797",
-                      }}
-                    >
-                      Funding
-                    </p>
-                  </div>
-                </a>
+
+                <div className="mobileProgress">
+                  <div
+                    className="smallCircle"
+                    style={{
+                      background: active >= 4 ? "var(--color-primary)" : "#D7D7D9",
+                    }}
+                  ></div>
+                  <p style={{ color: active >= 4 ? "var(--color-primary)" : "#979797" }}>
+                    4.
+                  </p>
+                  <p
+                    style={{
+                      color: errorFunding
+                        ? "red"
+                        : active >= 4
+                        ? "var(--color-primary)"
+                        : "#979797",
+                    }}
+                  >
+                    Funding
+                  </p>
+                </div>
+
               </Link>
               <Link href="Settings" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 5 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p style={{ color: active >= 5 ? "var(--color-primary)" : "#979797" }}>
-                      5.
-                    </p>
-                    <p style={{ color: active >= 5 ? "var(--color-primary)" : "#979797" }}>
-                      Settings
-                    </p>
-                  </div>
-                </a>
+
+                <div className="mobileProgress">
+                  <div
+                    className="smallCircle"
+                    style={{
+                      background: active >= 5 ? "var(--color-primary)" : "#D7D7D9",
+                    }}
+                  ></div>
+                  <p style={{ color: active >= 5 ? "var(--color-primary)" : "#979797" }}>
+                    5.
+                  </p>
+                  <p style={{ color: active >= 5 ? "var(--color-primary)" : "#979797" }}>
+                    Settings
+                  </p>
+                </div>
+
               </Link>
             </div>
           </div>

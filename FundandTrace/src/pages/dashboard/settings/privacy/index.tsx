@@ -8,16 +8,16 @@ export default function Privacy() {
   return (
     <DashboardLayout hideMobileNav page="Settings">
       <div className="d-flex d-md-none custom-container align-items-center py-4">
-        <Link href="/dashboard/settings" passHref>
-          <a style={{ textDecoration: "none" }}>
-            <img
-              src="/images/icons/back.svg"
-              width={16}
-              height={16}
-              alt="slideIcons"
-              className="mr-4"
-            />
-          </a>
+        <Link href="/dashboard/settings" passHref style={{ textDecoration: "none" }}>
+
+          <img
+            src="/images/icons/back.svg"
+            width={16}
+            height={16}
+            alt="slideIcons"
+            className="mr-4"
+          />
+
         </Link>
         <h2 className="mb-0 text-medium-heading">Privacy and safety</h2>
       </div>

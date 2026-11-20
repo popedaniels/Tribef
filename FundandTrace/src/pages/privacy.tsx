@@ -495,7 +495,7 @@ export default function PrivacyPage() {
                 >
                   <p>
                     You can opt out{" "}
-                    <Link href="/dashboard/settings/notifications"><a> here</a></Link>
+                    <Link href="/dashboard/settings/notifications"> here</Link>
                   </p>
                 </div>
               </article>

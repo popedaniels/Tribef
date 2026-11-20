@@ -225,7 +225,7 @@ export default function DonatedPage({
                 Get more interesting features on our platform and get live
                 updates of campaigns near you!
               </p> */}
-              <Link href="/SignUp" passHref>
+              <Link href="/SignUp" passHref legacyBehavior>
                 <button className="btn text-white mt-2">
                   Join Fund&Trace!
                 </button>

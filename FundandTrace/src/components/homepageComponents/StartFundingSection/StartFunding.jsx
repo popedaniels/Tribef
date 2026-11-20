@@ -37,17 +37,20 @@ export default function StartFunding() {
         </p>
 
         <div className={styles.ctaRow}>
-          <Link href={authenticated ? "/StartACampaign" : "/SignUp"} passHref>
-            <a className={styles.primaryBtn}>
-              <span>Start a Campaign (0% Fee)</span>
-              <span>→</span>
-            </a>
+          <Link
+            href={authenticated ? "/StartACampaign" : "/SignUp"}
+            passHref
+            className={styles.primaryBtn}>
+
+            <span>Start a Campaign (0% Fee)</span>
+            <span>→</span>
+
           </Link>
 
-          <Link href="/Categories" passHref>
-            <a className={styles.secondaryBtn}>
-              <span>Discover Verified Causes</span>
-            </a>
+          <Link href="/Categories" passHref className={styles.secondaryBtn}>
+
+            <span>Discover Verified Causes</span>
+
           </Link>
         </div>
         </div>

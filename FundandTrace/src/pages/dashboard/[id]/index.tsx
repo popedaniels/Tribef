@@ -401,7 +401,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                 </div>
 
                 <div className="progress-div">
-                  <Link href={`/donate/${campaignId}`} passHref>
+                  <Link href={`/donate/${campaignId}`} passHref legacyBehavior>
                     <button className="btn text-white w-100">Donate</button>
                   </Link>
                   <button

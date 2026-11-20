@@ -8,16 +8,16 @@ export default function Notifications() {
   return (
     <DashboardLayout hideMobileNav page="Settings">
       <div className="d-flex d-md-none custom-container align-items-center py-4">
-        <Link href="/dashboard/settings" passHref>
-          <a style={{ textDecoration: "none" }}>
-            <img
-              src="/images/icons/back.svg"
-              width={16}
-              height={16}
-              alt="back Icon"
-              className="mr-4"
-            />
-          </a>
+        <Link href="/dashboard/settings" passHref style={{ textDecoration: "none" }}>
+
+          <img
+            src="/images/icons/back.svg"
+            width={16}
+            height={16}
+            alt="back Icon"
+            className="mr-4"
+          />
+
         </Link>
         <h2 className="mb-0 text-medium-heading">Notifications</h2>
       </div>
@@ -42,34 +42,34 @@ export default function Notifications() {
               <Link
                 href="/dashboard/settings/notifications/personal-campaigns"
                 passHref
-              >
-                <a style={{ textDecoration: "none" }}>
-                  <article className="d-flex justify-content-between align-items-center py-3">
-                    <p className="mb-0">Personal Campaigns</p>
-                    <img
-                      src="/images/icons/slidefrontgray.svg"
-                      width={8}
-                      height={13}
-                      alt="frontIcon"
-                    />
-                  </article>
-                </a>
+                style={{ textDecoration: "none" }}>
+
+                <article className="d-flex justify-content-between align-items-center py-3">
+                  <p className="mb-0">Personal Campaigns</p>
+                  <img
+                    src="/images/icons/slidefrontgray.svg"
+                    width={8}
+                    height={13}
+                    alt="frontIcon"
+                  />
+                </article>
+
               </Link>
               <Link
                 href="/dashboard/settings/notifications/supported-campaigns"
                 passHref
-              >
-                <a style={{ textDecoration: "none" }}>
-                  <article className="d-flex justify-content-between align-items-center py-3">
-                    <p className="mb-0">Supported Campaigns</p>
-                    <img
-                      src="/images/icons/slidefrontgray.svg"
-                      width={8}
-                      height={13}
-                      alt="frontIcon"
-                    />
-                  </article>
-                </a>
+                style={{ textDecoration: "none" }}>
+
+                <article className="d-flex justify-content-between align-items-center py-3">
+                  <p className="mb-0">Supported Campaigns</p>
+                  <img
+                    src="/images/icons/slidefrontgray.svg"
+                    width={8}
+                    height={13}
+                    alt="frontIcon"
+                  />
+                </article>
+
               </Link>
             </Main>
           </div>

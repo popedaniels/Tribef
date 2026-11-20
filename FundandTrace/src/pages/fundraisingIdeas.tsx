@@ -187,8 +187,11 @@ export default function FundRaisingIdeas() {
                 </p>
 
                 <div className="hero-cta-group d-flex flex-wrap align-items-center">
-                  <Link href={authenticated ? "/StartACampaign/type" : "/SignUp"} passHref>
-                    <a className="btn primary-cta mr-3 mb-2">Start a Verified Campaign</a>
+                  <Link
+                    href={authenticated ? "/StartACampaign/type" : "/SignUp"}
+                    passHref
+                    className="btn primary-cta mr-3 mb-2">
+                    Start a Verified Campaign
                   </Link>
                   <a href="#calculator" className="btn secondary-cta mb-2">
                     Try Milestone Calculator ↓

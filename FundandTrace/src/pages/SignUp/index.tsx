@@ -24,21 +24,25 @@ export default function StepOne() {
         <div className="w-100 bg-white">
           <header className="header d-md-flex justify-content-between align-items-center custom-container d-none">
             <Link href="/" passHref>
-              <a>
-                <img
-                  src="/images/logo.png"
-                  alt="fundandtraceLogo"
-                  width={78}
-                  height={55}
-                />
-              </a>
+
+              <img
+                src="/images/logo.png"
+                alt="fundandtraceLogo"
+                width={78}
+                height={55}
+              />
+
             </Link>
             <div className="d-flex align-items-center">
               <p className="mb-0 mr-3">Already have an account?</p>
-              <Link href="/SignUp/SignIn" passHref>
-                <a className="mb-0" style={{ color: "var(--color-primary)" }}>
+              <Link
+                href="/SignUp/SignIn"
+                passHref
+                className="mb-0"
+                style={{ color: "var(--color-primary)" }}>
+                
                   Sign in
-                </a>
+                
               </Link>
             </div>
           </header>

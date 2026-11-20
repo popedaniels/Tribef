@@ -67,26 +67,31 @@ export default function ExploreModal({ onModalClose, showModal }) {
             <h3 className="text-blue mb-0 font-weight-bold" style={{ fontSize: 16 }}>
               EXPLORE CATEGORIES
             </h3>
-            <Link href="/Categories" passHref>
-              <a
-                onClick={onModalClose}
-                className="d-flex align-items-center text-blue"
-                style={{ fontSize: 14, fontWeight: 600, textDecoration: "none" }}
-              >
-                <span className="mr-1">See All</span>
-                <img src="/images/icons/blueRight.svg" width="12px" height="12px" alt="arrow" />
-              </a>
+            <Link
+              href="/Categories"
+              passHref
+              onClick={onModalClose}
+              className="d-flex align-items-center text-blue"
+              style={{ fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+
+              <span className="mr-1">See All</span>
+              <img src="/images/icons/blueRight.svg" width="12px" height="12px" alt="arrow" />
+
             </Link>
           </div>
 
           <div className="d-flex justify-content-between flex-wrap">
             {categories.map((category, i) => (
               <ExploreItem key={i}>
-                <Link href={`/category/${category.slug}`} passHref>
-                  <a onClick={onModalClose} style={{ textDecoration: "none" }}>
-                    <img src={category.image} width="100%" alt={category.title} />
-                    <h3 className="mt-2 text-truncate">{category.title}</h3>
-                  </a>
+                <Link
+                  href={`/category/${category.slug}`}
+                  passHref
+                  onClick={onModalClose}
+                  style={{ textDecoration: "none" }}>
+
+                  <img src={category.image} width="100%" alt={category.title} />
+                  <h3 className="mt-2 text-truncate">{category.title}</h3>
+
                 </Link>
               </ExploreItem>
             ))}

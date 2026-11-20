@@ -86,14 +86,14 @@ export default function UsersDetailsPage() {
                   <article className="top py-4 px-4 d-flex align-items-start justify-content-between">
                     <div className="d-flex">
                       <Link href={`/admin/users`} passHref>
-                        <a>
-                          <img
-                            src="/images/icons/back.svg"
-                            alt="back button"
-                            width="16px"
-                            height="16px"
-                          />
-                        </a>
+
+                        <img
+                          src="/images/icons/back.svg"
+                          alt="back button"
+                          width="16px"
+                          height="16px"
+                        />
+
                       </Link>
                       <div className="mx-4">
                         {user?.profile ? (

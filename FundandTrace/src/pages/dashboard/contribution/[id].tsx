@@ -105,7 +105,7 @@ export default function Contribution() {
               </div>
 
               <div style={{ width: "45%" }} className="info">
-                <Link href={`/donate/${campaign?._id}`} passHref>
+                <Link href={`/donate/${campaign?._id}`} passHref legacyBehavior>
                   <button className="btn text-white w-100">Donate</button>
                 </Link>
                 <button

@@ -85,8 +85,8 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
           <p className="mb-4">
             We couldn't load this campaign right now. Please check back shortly.
           </p>
-          <Link href="/" passHref>
-            <a className="btn-brand-primary">Back to Home</a>
+          <Link href="/" passHref className="btn-brand-primary">
+            Back to Home
           </Link>
         </div>
       </Layout>
@@ -181,31 +181,37 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
               </article>
 
               <article className="progressDiv">
-                <Link href={`/donate/${campaign?._id}`} passHref>
-                  <a style={{ textDecoration: "none", width: "100%", display: "block" }}>
-                    <button className="btn-brand-primary w-100" style={{ height: "46px", fontSize: "16px", fontWeight: 700 }}>
-                      Donate Now
-                    </button>
-                  </a>
+                <Link
+                  href={`/donate/${campaign?._id}`}
+                  passHref
+                  style={{ textDecoration: "none", width: "100%", display: "block" }}>
+
+                  <button className="btn-brand-primary w-100" style={{ height: "46px", fontSize: "16px", fontWeight: 700 }}>
+                    Donate Now
+                  </button>
+
                 </Link>
                 <div className="d-flex align-items-center w-100 justify-content-between my-3">
-                  <Link href={`/campaign/${campaign?._id}/tracker`} passHref>
-                    <a style={{ width: "48%", textDecoration: "none" }}>
-                      <button
-                        className="btn-secondary-action w-100"
-                        style={{ height: "44px", color: "#FFFFFF" }}
-                      >
-                        <img
-                          src="/images/icons/trackIcon.svg"
-                          width="18px"
-                          height="18px"
-                          alt="trackingIcon"
-                          className="mr-2"
-                          style={{ filter: "brightness(0) invert(1)" }}
-                        />
-                        <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: "15px" }}>Track</span>
-                      </button>
-                    </a>
+                  <Link
+                    href={`/campaign/${campaign?._id}/tracker`}
+                    passHref
+                    style={{ width: "48%", textDecoration: "none" }}>
+
+                    <button
+                      className="btn-secondary-action w-100"
+                      style={{ height: "44px", color: "#FFFFFF" }}
+                    >
+                      <img
+                        src="/images/icons/trackIcon.svg"
+                        width="18px"
+                        height="18px"
+                        alt="trackingIcon"
+                        className="mr-2"
+                        style={{ filter: "brightness(0) invert(1)" }}
+                      />
+                      <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: "15px" }}>Track</span>
+                    </button>
+
                   </Link>
                   <button
                     className="btn-secondary-action"
@@ -233,18 +239,16 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                   <Link
                     href={`/campaign-organizers/${campaign?.organizerId}`}
                     passHref
-                  >
-                    <a
-                      className="ml-3 mb-0"
-                      style={{
-                        fontWeight: 400,
-                        textDecoration: "underline",
-                        textDecorationColor: "black",
-                        color: "black",
-                      }}
-                    >
-                      {campaign?.organizer}
-                    </a>
+                    className="ml-3 mb-0"
+                    style={{
+                      fontWeight: 400,
+                      textDecoration: "underline",
+                      textDecorationColor: "black",
+                      color: "black",
+                    }}>
+
+                    {campaign?.organizer}
+
                   </Link>
                 </div>
                 <p
@@ -420,14 +424,14 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
 
                 <div className="mt-5 d-none d-md-block">
                   <Link href={`/donate/${campaign?._id}`} passHref>
-                    <a>
-                      <button
-                        className="btn text-white w-100 bg-bg"
-                        style={{ background: "var(--color-primary)", height: 50 }}
-                      >
-                        Donate Now
-                      </button>
-                    </a>
+
+                    <button
+                      className="btn text-white w-100 bg-bg"
+                      style={{ background: "var(--color-primary)", height: 50 }}
+                    >
+                      Donate Now
+                    </button>
+
                   </Link>
                 </div>
               </div>
@@ -444,7 +448,7 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                 width: "100%",
               }}
             >
-              <Link href={`/donate/${campaign?._id}`} passHref>
+              <Link href={`/donate/${campaign?._id}`} passHref legacyBehavior>
                 <button
                   className="btn text-white"
                   style={{
@@ -484,7 +488,7 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
               className="custom-container mt-4"
               style={{ textDecoration: "underline" }}
             >
-              <Link href="#bottom" passHref>
+              <Link href="#bottom" passHref legacyBehavior>
                 <button
                   style={{
                     outline: "none",

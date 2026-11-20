@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { Campaign } = require("../models/campaignModel");
+const { Users } = require("../models/users");
 const { addActivity } = require("../services/activityLog");
 const { encrypt } = require("../utility/encryption");
 const logger = require("../utility/logger");
@@ -222,14 +223,46 @@ exports.launch = async (req, res, next) => {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ status: 400, error: "Invalid Campaign ID" });
     }
+    if (typeof launch !== "boolean") {
+      return res.status(400).json({ status: 400, error: "launch must be true or false" });
+    }
     const camp = await Campaign.findById(id).maxTimeMS(3000);
     if (!camp) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
+    if (launch) {
+      if (camp.suspended) {
+        return res.status(403).json({ status: 403, error: "Suspended campaigns cannot be launched" });
+      }
+      // A launched campaign must be presentable and fundable.
+      const missing = [];
+      if (!camp.basicInformation?.campaignTitle?.trim()) missing.push("campaign title");
+      if (!(Number(camp.funding?.amountExpected) > 0)) missing.push("funding goal");
+      if (missing.length) {
+        return res.status(422).json({
+          status: 422,
+          error: `Complete the following before launching: ${missing.join(", ")}`,
+        });
+      }
+      // Optional KYC gate (see docs/anti-fraud). Off by default so existing
+      // deployments without Stripe Identity keep working; set
+      // REQUIRE_KYC_TO_LAUNCH=true in production once Identity is live.
+      if (process.env.REQUIRE_KYC_TO_LAUNCH === "true") {
+        const organizer = await Users.findById(camp.organizerId).select("identityVerification").maxTimeMS(3000);
+        if (organizer?.identityVerification?.status !== "verified") {
+          return res.status(403).json({
+            status: 403,
+            error: "Verify your identity before launching a campaign.",
+          });
+        }
+      }
+    }
+    const wasLaunched = Boolean(camp.launched);
     camp.launched = launch;
-    camp.createdAt = Date.now();
+    // Only stamp the launch date on the first launch, not on every toggle.
+    if (launch && !wasLaunched) camp.createdAt = Date.now();
     const campaign = await camp.save();
-    addActivity("launchedCampaign", camp.organizer);
+    addActivity("launchedCampaign", camp.organizerId || camp.organizer);
     return res.status(201).json({
       success: true,
       message: "Saved successfully",

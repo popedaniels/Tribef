@@ -259,12 +259,13 @@ export default function MyContributions() {
   const dispatch = useAppDispatch();
 
   const getContributions = useCallback(async () => {
+    if (!profile?.email) return; // session not restored yet
     try {
       setLoading(true);
       const campaigns = await axios.get<{ contributions: Contribution[] }>(
         getApiBaseUrl() +
           "/api/auth/contributions/" +
-          profile.email,
+          encodeURIComponent(profile.email),
         { withCredentials: true }
       );
       campaigns && setCampaigns(campaigns.data.contributions);

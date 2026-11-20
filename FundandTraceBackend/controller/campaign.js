@@ -29,14 +29,20 @@ const searchQueriesSchema = Joi.object({
   }),
 });
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const { decrypt } = require("../utility/encryption");
+const { revealSensitive } = require("../utility/encryption");
+const { verifyToken, getAuthUserId } = require("../utility/auth");
+const {
+  CAMPAIGN_PUBLIC_PROJECTION,
+  toPublicCampaign,
+  DONATION_PUBLIC_FIELDS,
+  toPublicDonation,
+} = require("../utility/publicViews");
 const { safeProfile } = require("../utility/safeProfile");
 const logger = require("../utility/logger");
 
 const {
   fetchPublicCampaigns,
   fetchCampaignsByOrganizer,
-  fetchSingleCampaignById,
 } = require("../services/campaignService");
 
 exports.getAllCampaigns = async (req, res, next) => {
@@ -121,23 +127,40 @@ exports.getSingleCampaign = async (req, res, next) => {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
 
-    const funding = camp._doc ? { ...camp._doc.funding } : { ...camp.funding };
-
-    if (funding && funding.accountName) {
-      funding.accountNumber = decrypt(funding.accountNumber);
-      funding.accountName = decrypt(funding.accountName);
-      funding.bankName = decrypt(funding.bankName);
-      funding.sortCode = decrypt(funding.sortCode);
+    // Full detail (decrypted payout account, team contacts) only for the
+    // signed-in owner, e.g. the campaign wizard prefilling its forms.
+    // Everyone else gets the public view; this endpoint previously decrypted
+    // and returned the organizer's bank details to any visitor.
+    let isOwner = false;
+    try {
+      const authUserId = getAuthUserId(verifyToken(req));
+      isOwner = Boolean(authUserId) && String(camp.organizerId) === String(authUserId);
+    } catch {
+      isOwner = false;
     }
-    camp._doc.funding = funding;
+
+    let campaignView;
+    if (isOwner) {
+      campaignView = { ...camp._doc };
+      const funding = { ...(camp._doc.funding || {}) };
+      if (funding.accountName) {
+        funding.accountNumber = revealSensitive(funding.accountNumber);
+        funding.accountName = revealSensitive(funding.accountName);
+        funding.bankName = revealSensitive(funding.bankName);
+        funding.sortCode = revealSensitive(funding.sortCode);
+      }
+      campaignView.funding = funding;
+    } else {
+      campaignView = toPublicCampaign(camp);
+    }
 
     const donations = await Donations.find({
       campaignId: id,
       "refund.status": { $ne: "succeeded" },
     })
-      .select("-donorEmail")
+      .select(DONATION_PUBLIC_FIELDS)
       .maxTimeMS(3000);
-    const campaign = { ...camp._doc, donations: donations };
+    const campaign = { ...campaignView, donations: donations.map(toPublicDonation) };
 
     return res.status(200).json({
       data: campaign,
@@ -248,7 +271,12 @@ exports.searchByCategory = async (req, res, next) => {
     const filter = { category: normalized, launched: true, suspended: false };
     const [count, campaigns] = await Promise.all([
       Campaign.countDocuments(filter).maxTimeMS(3000),
-      Campaign.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).maxTimeMS(3000),
+      Campaign.find(filter)
+        .select(CAMPAIGN_PUBLIC_PROJECTION)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .maxTimeMS(3000),
     ]);
 
     return res.status(200).json({
@@ -319,6 +347,7 @@ exports.searchByName = async (req, res, next) => {
 
     const count = await Campaign.countDocuments({ ...query, suspended: false }).maxTimeMS(3000);
     const campaigns = await Campaign.find({ ...query, suspended: false })
+      .select(CAMPAIGN_PUBLIC_PROJECTION)
       .sort(sort)
       .skip((page - 1) * limit)
       .limit(limit)

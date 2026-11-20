@@ -8,11 +8,15 @@ const { Campaign } = require("../models/campaignModel");
 const { Donations } = require("../models/donationsModel");
 const logger = require("../utility/logger");
 
+// Inclusion projection. Only the public funding figures — `funding: 1`
+// used to pull in the (encrypted) payout bank fields as well.
 const PUBLIC_PROJECTION = {
   basicInformation: 1,
   category: 1,
   campaignType: 1,
-  funding: 1,
+  "funding.currency": 1,
+  "funding.amountExpected": 1,
+  "funding.amountRaised": 1,
   createdAt: 1,
 };
 

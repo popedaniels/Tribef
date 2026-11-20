@@ -39,7 +39,8 @@ export const createStripeConnectAccount = async (campaignId: string | string[] |
 
 export const fetchCampaignById = async (campaignId: string | string[] | undefined) => {
   const campaigndata = await axios.get(
-    getApiBaseUrl() + "/api/campaigns/campaign/" + campaignId
+    getApiBaseUrl() + "/api/campaigns/campaign/" + campaignId,
+    { withCredentials: true }
   );
   return campaigndata?.data?.data;
 };

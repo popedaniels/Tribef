@@ -6,6 +6,14 @@ const { Users } = require("../models/users");
 const { addActivity } = require("../services/activityLog");
 const { encrypt } = require("../utility/encryption");
 const { normalizeFundingType, isThirdParty } = require("../utility/fundingType");
+const {
+  CAMPAIGN_PUBLIC_PROJECTION,
+  toPublicCampaign,
+  DONATION_PUBLIC_FIELDS,
+  toPublicDonation,
+  FUNDING_REQUEST_PUBLIC_PROJECTION,
+  toPublicUser,
+} = require("../utility/publicViews");
 const logger = require("../utility/logger");
 
 // Fields only the server (admin review / payout pipeline) may set. Accepting
@@ -240,21 +248,29 @@ exports.trackingFunction = async (req, res, next) => {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ status: 400, error: "Invalid Campaign ID" });
     }
+    // Public tracker: projections strip payout bank details, team PII,
+    // dispute reporters and donor emails/IPs (see utility/publicViews.js).
     const [allFundingRequests, approvedFundingRequests, campaign, donations] =
       await Promise.all([
-        FundingRequests.find({ campaignId: id }).sort({
-          _id: "desc",
-        }).maxTimeMS(3000),
+        FundingRequests.find({ campaignId: id })
+          .select(FUNDING_REQUEST_PUBLIC_PROJECTION)
+          .sort({ _id: "desc" })
+          .maxTimeMS(3000),
         FundingRequests.find({
           campaignId: id,
           status: "Approved",
           disbursement: { $ne: null },
-        }).sort({ _id: "desc" }).maxTimeMS(3000),
-        Campaign.findById(id).maxTimeMS(3000),
+        })
+          .select(FUNDING_REQUEST_PUBLIC_PROJECTION)
+          .sort({ _id: "desc" })
+          .maxTimeMS(3000),
+        Campaign.findById(id).select(CAMPAIGN_PUBLIC_PROJECTION).maxTimeMS(3000),
         Donations.find({
           campaignId: id,
           "refund.status": { $ne: "succeeded" },
-        }).maxTimeMS(3000),
+        })
+          .select(DONATION_PUBLIC_FIELDS)
+          .maxTimeMS(3000),
       ]);
 
     if (!campaign) {
@@ -274,8 +290,8 @@ exports.trackingFunction = async (req, res, next) => {
       data: {
         allFundingRequests,
         approvedFundingRequests,
-        campaign: { ...campaign._doc, donations: donations },
-        user,
+        campaign: { ...toPublicCampaign(campaign), donations: donations.map(toPublicDonation) },
+        user: toPublicUser(user),
       },
     });
   } catch (error) {

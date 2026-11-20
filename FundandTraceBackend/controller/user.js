@@ -37,6 +37,7 @@ const { convertToPounds } = require("../currencyConverter");
 const { Charity } = require("../models/charity");
 const { validate } = require("../utility/validate");
 const { startTwoFactorChallenge } = require("./twoFactor");
+const { CAMPAIGN_PUBLIC_PROJECTION, toPublicUser } = require("../utility/publicViews");
 // Real bcrypt hash of a random throwaway secret (generated once at boot, same
 // cost factor as user hashes); compared against when the email is unknown so
 // failed logins take the same time either way.
@@ -523,16 +524,10 @@ exports.getCampaignOrganizerStats = async (req, res, next) => {
       }
       return res.status(404).json({ status: 404, error: "User not found" });
     }
-    const fields = {
-      "funding.accountName": 0,
-      "funding.accountNumber": 0,
-      "funding.sortCode": 0,
-      "funding.bankName": 0,
-    };
     const campaigns = await Campaign.find({
       organizerId: id,
       launched: true,
-    }).select(fields);
+    }).select(CAMPAIGN_PUBLIC_PROJECTION);
     const donations = await Donations.find({
       donorEmail: user.email,
       "refund.status": { $ne: "succeeded" },
@@ -600,7 +595,8 @@ exports.getCampaignOrganizerStats = async (req, res, next) => {
       data: {
         campaigns,
         donations: donations.length,
-        user: safeProfile(user),
+        // Public profile page: no email/phone/role.
+        user: toPublicUser(user),
         amountRaised,
         amountDisbursed,
         chartDetails: categories,

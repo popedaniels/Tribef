@@ -461,6 +461,7 @@ Emails are sent asynchronously and failures never fail the user's action.
 ### L-1 Security ✅ (M)
 - HTTPS-only (HSTS), strict CSP, CORS allow-list (foreign origins get **403**), origin-checked cookie mutations (CSRF), NoSQL payload sanitisation, tiered rate limits (auth 50 / API 300 / admin 100 per 15 min, Redis-backed when configured).
 - Malformed MongoDB ids are rejected with **400** before any handler runs.
+- **Public responses never contain private data.** Every unauthenticated campaign, tracker, search, discovery and organiser endpoint goes through `utility/publicViews.js`: no payout bank details, team contact email/phone/date of birth/address/ID images, Stripe account ids, dispute reporters, commenter emails, donor emails/IPs, or anonymous donors' names. The campaign owner gets full detail from `GET /api/campaigns/campaign/:id` only when signed in. (Previously this endpoint decrypted and returned the organiser's bank account to any visitor.)
 - Secrets are validated at boot; production refuses to start with missing or placeholder secrets.
 
 ### L-2 Accessibility 🟡 (M)

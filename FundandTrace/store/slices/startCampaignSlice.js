@@ -73,9 +73,11 @@ export const loadStartCampaign = (id) => async (dispatch) => {
   // A fresh wizard has no draft yet; calling /campaign/<empty> just 500s.
   if (!id || id === "undefined" || id === "null") return;
   try {
-    const res = await axios.get(
-      getApiUrl() + "/api/campaigns/campaign/" + id
-    );
+    // withCredentials: the API returns the owner's full draft (payout
+    // details, team contacts) only to the signed-in owner.
+    const res = await axios.get(getApiUrl() + "/api/campaigns/campaign/" + id, {
+      withCredentials: true,
+    });
 
     res && dispatch(startCampaignActions.setStartCampaign(res.data.data));
   } catch (error) {

@@ -184,6 +184,7 @@ const requireInternalWebhook = (req, res, next) => {
 };
 
 module.exports = {
+  getAuthUserId,
   getToken,
   verifyToken,
   requireAuth,

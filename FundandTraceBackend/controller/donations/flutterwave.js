@@ -1,5 +1,6 @@
 // Flutterwave donation flow: initialization, redirect callback, webhook.
 const { default: axios } = require("axios");
+const { FROZEN_MESSAGE } = require("../../utility/campaignState");
 const crypto = require("crypto");
 
 const {
@@ -43,6 +44,10 @@ exports.initializePayment = async (req, res, next) => {
     });
     if (!campaign || !Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ status: 400, error: "Invalid payment request" });
+    }
+    // Dispute freeze: don't take new money into a campaign under review.
+    if (campaign.disputeGovernance?.isLocked) {
+      return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
     }
 
     // Fraud snapshot rides through gateway metadata to the recorder.
@@ -161,7 +166,10 @@ exports.paymentFlutterwave = async (req, res, next) => {
     }
     addActivity("donation", resp.data.data.customer.email);
 
-    await creditCampaign(resp.data.data.meta.campaignId, donatedAmount);
+    await creditCampaign(resp.data.data.meta.campaignId, donatedAmount, {
+      refId: `flw:${transaction_id || tx_ref}`,
+      currency: resp.data.data.currency,
+    });
     notifyTargetReachedIfNeeded(resp.data.data.meta.campaignId);
 
     const campaign = await Campaign.findById(req.params.id);
@@ -212,6 +220,14 @@ exports.flutterwaveWebhook = async (req, res) => {
     }
 
     const event = req.body;
+
+    // Bank payout outcome (services/payoutRails.js). Same signed endpoint.
+    if (event.event === "transfer.completed" && event.data?.reference) {
+      const { applyTransferOutcome } = require("./payout");
+      await applyTransferOutcome({ reference: event.data.reference, status: String(event.data.status || "") });
+      return res.status(200).json({ received: true });
+    }
+
     // Only completed/successful charges are actionable; ack the rest.
     if (
       !["charge.completed", "charge.success"].includes(event.event) ||
@@ -296,7 +312,10 @@ exports.flutterwaveWebhook = async (req, res) => {
       throw createError;
     }
 
-    await creditCampaign(campaign._id, donatedAmount);
+    await creditCampaign(campaign._id, donatedAmount, {
+      refId: `flw:${transactionId || flwRef || txRef}`,
+      currency: tx.currency,
+    });
     notifyTargetReachedIfNeeded(campaign._id);
 
     addActivity("donation", tx.customer?.email || metadata.customer || "");

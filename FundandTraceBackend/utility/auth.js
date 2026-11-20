@@ -29,16 +29,40 @@ const verifyToken = (req) => {
   return jwt.verify(token, getJwtSecret());
 };
 
-const requireAuth = (req, res, next) => {
+const sessionVersionOf = (decoded) => Number(decoded?.sv || 0);
+
+/**
+ * Verify the token AND that the session is still current: the user exists,
+ * isn't suspended, and the token's session version matches (so password
+ * resets / "sign out everywhere" revoke old sessions). Returns the decoded
+ * payload or null.
+ */
+const authenticate = async (req) => {
+  let decoded;
   try {
-    req.auth = verifyToken(req);
-    next();
+    decoded = verifyToken(req);
+  } catch {
+    return null;
+  }
+  const userId = getAuthUserId(decoded);
+  if (!userId) return null;
+  const user = await Users.findById(userId).select("sessionVersion suspended").lean();
+  if (!user || user.suspended) return null;
+  if (sessionVersionOf(decoded) !== Number(user.sessionVersion || 0)) return null;
+  return decoded;
+};
+
+const requireAuth = async (req, res, next) => {
+  try {
+    const decoded = await authenticate(req);
+    if (!decoded) {
+      return res.status(401).json({ success: false, status: 401, error: "Unauthorized" });
+    }
+    req.auth = decoded;
+    return next();
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      status: 401,
-      error: "Unauthorized",
-    });
+    // Database unavailable: we can't confirm the session is still valid.
+    return res.status(503).json({ success: false, status: 503, error: "Service temporarily unavailable. Please try again." });
   }
 };
 
@@ -55,8 +79,8 @@ const requireAdmin = async (req, res, next) => {
       });
     }
 
-    const user = await Users.findById(userId).select("role suspended");
-    if (!user || user.role !== "admin" || user.suspended) {
+    const user = await Users.findById(userId).select("role suspended sessionVersion firstName lastName email");
+    if (!user || user.role !== "admin" || user.suspended || sessionVersionOf(decoded) !== Number(user.sessionVersion || 0)) {
       return res.status(403).json({
         success: false,
         status: 403,
@@ -184,6 +208,8 @@ const requireInternalWebhook = (req, res, next) => {
 };
 
 module.exports = {
+  authenticate,
+  sessionVersionOf,
   getAuthUserId,
   getToken,
   verifyToken,

@@ -9,6 +9,7 @@ const {
   sendDonationMailSafely,
 } = require("./shared");
 const { Subscription } = require("../../models/subscriptionModel");
+const { FROZEN_MESSAGE } = require("../../utility/campaignState");
 const { getClientIp, assessDonation } = require("../../utility/fraud");
 const { notifyTargetReachedIfNeeded } = require("../../services/targetReached");
 
@@ -24,6 +25,10 @@ exports.createStripeSession = async (req, res) => {
     });
     if (!campaign) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
+    }
+    // Dispute freeze: don't take new money into a campaign under review.
+    if (campaign.disputeGovernance?.isLocked) {
+      return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
     }
 
     const amount = Number(req.body.amount);
@@ -198,7 +203,11 @@ exports.stripeCheckoutWebhook = async (req, res) => {
         },
       });
 
-      await creditCampaign(subDoc.campaignId, subDoc.amount);
+      await creditCampaign(subDoc.campaignId, subDoc.amount, {
+        refId: `stripe:${invoice.id}`,
+        currency: invoice.currency,
+        memo: "Recurring donation",
+      });
       notifyTargetReachedIfNeeded(subDoc.campaignId);
       subDoc.totalDonated = (subDoc.totalDonated || 0) + subDoc.amount;
       subDoc.status = subDoc.status === "canceling" ? "canceling" : "active";
@@ -339,7 +348,10 @@ exports.stripeCheckoutWebhook = async (req, res) => {
       },
     });
 
-    await creditCampaign(campaign._id, donationAmount);
+    await creditCampaign(campaign._id, donationAmount, {
+      refId: `stripe:${session.id}`,
+      currency: session.currency,
+    });
     notifyTargetReachedIfNeeded(campaign._id);
 
     await sendDonationMailSafely(

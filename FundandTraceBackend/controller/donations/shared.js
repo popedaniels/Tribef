@@ -11,13 +11,30 @@ const stripe = process.env.STRIPESECRET
   ? require("stripe")(process.env.STRIPESECRET)
   : null;
 
+const { appendEntry } = require("../../services/ledger");
+
 // Atomic campaign credit — never read-modify-write, so concurrent webhooks
-// and callbacks cannot lose updates.
-const creditCampaign = (campaignId, amount) =>
-  Campaign.updateOne(
+// and callbacks cannot lose updates. `ref` is the gateway reference; it keys
+// the public ledger entry so a replayed webhook can't double-record.
+const creditCampaign = async (campaignId, amount, ref = {}) => {
+  const result = await Campaign.updateOne(
     { _id: campaignId },
     { $inc: { "funding.amountRaised": amount, "funding.availableBalance": amount } }
   );
+  if (ref.refId) {
+    await appendEntry({
+      campaignId,
+      type: "credit",
+      amount,
+      currency: ref.currency,
+      refId: ref.refId,
+      memo: ref.memo || "Donation",
+    });
+  } else {
+    logger.warn({ campaignId }, "creditCampaign called without a ledger refId");
+  }
+  return result;
+};
 
 // Best-effort donor email; a mail outage must never fail a recorded donation.
 const sendDonationMailSafely = async (donor, campaign, amount) => {

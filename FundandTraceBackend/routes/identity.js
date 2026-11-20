@@ -11,6 +11,11 @@ router.param("userId", objectIdParam("User ID"));
 router.post("/create-session", requireAuth, identityController.createVerificationSession);
 router.get("/status/:userId", requireAuth, identityController.getVerificationStatus);
 router.post("/webhook", identityController.identityWebhook);
-router.post("/admin-verify/:userId", requireAdmin, identityController.adminVerifyUser);
+router.post(
+  "/admin-verify/:userId",
+  requireAdmin,
+  require("../utility/adminAudit").auditAdminMutations,
+  identityController.adminVerifyUser
+);
 
 module.exports = router;

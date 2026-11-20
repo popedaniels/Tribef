@@ -29,6 +29,7 @@ const SERVER_OWNED_FIELDS = [
   "adminName",
   "disbursement",
   "payoutLockedAt",
+  "payoutAttempts",
   "createdAt",
 ];
 

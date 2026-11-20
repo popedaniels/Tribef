@@ -32,8 +32,11 @@ const DonationsSchema = new mongoose.Schema({
   // Link to the funding request this donation contributed to (if disbursed)
   fundingRequestId: { type: ObjectId, ref: "fundingRequest" },
   refund: {
+    // "" | processing | pending | succeeded | failed
     status: { type: String, default: "", index: true },
-    amount: Number,
+    amount: Number, // returned to the donor (may include the tip)
+    escrowAmount: Number, // taken back out of the campaign escrow
+    requestedBy: { type: String, default: "" }, // admin | donor | dispute
     reason: String,
     adminId: String,
     adminName: String,

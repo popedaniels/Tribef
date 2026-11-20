@@ -45,6 +45,21 @@ jest.mock("../../controller/donations/shared", () => ({
   // payout.js destructures `stripe` at require-time, so export it directly.
   stripe: mockStripe,
 }));
+const mockLedger = [];
+const mockRails = { rail: null, sent: [], result: { provider: "flutterwave", reference: "ft-payout-x-1", providerId: "99", status: "pending" } };
+jest.mock("../../services/payoutRails", () => ({
+  railFor: () => mockRails.rail,
+  sendBankTransfer: jest.fn(async (args) => {
+    mockRails.sent.push(args);
+    return mockRails.result;
+  }),
+}));
+jest.mock("../../services/ledger", () => ({
+  appendEntry: jest.fn(async (entry) => {
+    mockLedger.push(entry);
+    return entry;
+  }),
+}));
 jest.mock("../../models/campaignEmailWhitelist", () => ({
   CampaignEmailWhitelist: { distinct: jest.fn(async () => state.whitelist || []) },
 }));
@@ -86,6 +101,10 @@ const call = async (body = {}) => {
 
 beforeEach(() => {
   calls.length = 0;
+  mockLedger.length = 0;
+  mockRails.rail = null;
+  mockRails.sent.length = 0;
+  mockRails.result = { provider: "flutterwave", reference: "ft-payout-x-1", providerId: "99", status: "pending" };
   jest.clearAllMocks();
   Object.assign(state, {
     claimed: makeRequestDoc(),
@@ -191,5 +210,67 @@ describe("revealSensitive", () => {
   it("returns legacy plaintext as-is instead of throwing", () => {
     expect(revealSensitive("12345678")).toBe("12345678");
     expect(revealSensitive("Barclays")).toBe("Barclays");
+  });
+});
+
+
+describe("bank payout rails", () => {
+  it("pays an NGN organiser by bank transfer when there is no Stripe Connect account", async () => {
+    mockRails.rail = "flutterwave";
+    state.campaign.stripeConnect = {};
+    state.campaign.funding.currency = "NGN";
+    const res = await call({ bankCode: "044", accountNumber: "0690000040", accountName: "Kofi" });
+    expect(res.statusCode).toBe(200);
+    expect(mockStripe.transfers.create).not.toHaveBeenCalled();
+    expect(mockRails.sent[0]).toMatchObject({ amount: 250, currency: "NGN", bankCode: "044", accountNumber: "0690000040" });
+    expect(state.claimed.disbursement).toMatchObject({ provider: "flutterwave", providerStatus: "pending", providerReference: "ft-payout-x-1" });
+    expect(mockLedger[0]).toMatchObject({ type: "payout", amount: 250, currency: "NGN" });
+  });
+
+  it("releases the escrow if the provider rejects the transfer outright", async () => {
+    mockRails.rail = "paystack";
+    mockRails.result = { ...mockRails.result, provider: "paystack", status: "failed" };
+    state.campaign.stripeConnect = {};
+    const res = await call({ bankCode: "058", accountNumber: "0001234567" });
+    expect(res.statusCode).toBe(502);
+    const incs = calls.filter(([n]) => n === "campaign.updateOne").map(([, u]) => u.$inc["funding.availableBalance"]);
+    expect(incs).toEqual([-250, 250]);
+    expect(mockLedger).toHaveLength(0);
+  });
+
+  it("refuses organiser payouts with neither Connect nor bank details", async () => {
+    state.campaign.stripeConnect = {};
+    const res = await call({});
+    expect(res.statusCode).toBe(422);
+  });
+});
+
+describe("applyTransferOutcome (provider webhook)", () => {
+  const { applyTransferOutcome } = require("../../controller/donations/payout");
+
+  it("returns a failed bank transfer to escrow, records a reversal and re-opens the request", async () => {
+    mockFundingRequests.findOneAndUpdate.mockResolvedValueOnce({
+      _id: REQ_ID,
+      campaignId: CAMPAIGN_ID,
+      disbursement: { amount: 250, currency: "NGN" },
+    });
+    const result = await applyTransferOutcome({ reference: "ft-payout-x-1", status: "FAILED" });
+    expect(result).toMatchObject({ applied: true, outcome: "failed" });
+    expect(calls.find(([n]) => n === "campaign.updateOne")[1]).toEqual({ $inc: { "funding.availableBalance": 250 } });
+    expect(mockLedger[0]).toMatchObject({ type: "payout_reversal", amount: 250, refId: "reversal:ft-payout-x-1" });
+    const reopen = mockFundingRequests.updateOne.mock.calls.find(([, u]) => u.$set?.status === "Pending");
+    expect(reopen).toBeTruthy();
+  });
+
+  it("is a no-op for a repeated failure webhook", async () => {
+    mockFundingRequests.findOneAndUpdate.mockResolvedValueOnce(null);
+    const result = await applyTransferOutcome({ reference: "ft-payout-x-1", status: "failed" });
+    expect(result.applied).toBe(false);
+    expect(mockLedger).toHaveLength(0);
+  });
+
+  it("marks a successful transfer settled", async () => {
+    const result = await applyTransferOutcome({ reference: "ft-payout-x-1", status: "SUCCESSFUL" });
+    expect(result.outcome).toBe("successful");
   });
 });

@@ -21,5 +21,7 @@ router.get("/campaignTracker/:id", fundingRequestController.trackingFunction);
 router.get("/:id", fundingRequestController.getAllUserFundingRequests);
 
 router.post("/addFundingRequest", requireAuth, requireCampaignOwner, fundingRequestController.addFundingRequest);
+// Organiser uploads proof of spend for a completed payout.
+router.post("/:id/receipt", requireAuth, require("../controller/trust").uploadReceipt);
 
 module.exports = router;

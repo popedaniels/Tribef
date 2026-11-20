@@ -13,6 +13,8 @@ router.param("id", objectIdParam("ID"));
 
 router.post("/login", adminController.adminLogin);
 router.use(requireAdmin);
+// Audit trail for every successful admin mutation (who, what, which record).
+router.use(require("../utility/adminAudit").auditAdminMutations);
 
 router.get("/overview", adminController.getOverviewDetails);
 router.get("/charts", adminController.getChartDetails);
@@ -59,5 +61,27 @@ router.get(
   "/refunds/campaign/:query",
   adminRefundsController.getSingleCampaign
 );
+
+// Dispute resolution (unlock or pro-rata refund of the remaining escrow).
+const adminDisputes = require("../controller/adminDisputes");
+router.get("/disputes/frozen", adminDisputes.listFrozenCampaigns);
+router.post("/disputes/:id/resolve", adminDisputes.resolveDispute);
+
+// Admin audit trail.
+router.get("/audit", async (req, res) => {
+  try {
+    const { ActivityLog } = require("../models/activityLogModel");
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const filter = { type: /^admin:/ };
+    if (req.query.targetId) filter.targetId = String(req.query.targetId);
+    const [entries, count] = await Promise.all([
+      ActivityLog.find(filter).sort({ createdAt: -1 }).skip((page - 1) * 50).limit(50).maxTimeMS(3000),
+      ActivityLog.countDocuments(filter).maxTimeMS(3000),
+    ]);
+    return res.status(200).json({ data: { entries, count, page } });
+  } catch (error) {
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+});
 
 module.exports = router;

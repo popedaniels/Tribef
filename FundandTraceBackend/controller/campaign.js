@@ -30,7 +30,7 @@ const searchQueriesSchema = Joi.object({
 });
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const { revealSensitive } = require("../utility/encryption");
-const { verifyToken, getAuthUserId } = require("../utility/auth");
+const { authenticate, getAuthUserId } = require("../utility/auth");
 const {
   CAMPAIGN_PUBLIC_PROJECTION,
   toPublicCampaign,
@@ -133,7 +133,8 @@ exports.getSingleCampaign = async (req, res, next) => {
     // and returned the organizer's bank details to any visitor.
     let isOwner = false;
     try {
-      const authUserId = getAuthUserId(verifyToken(req));
+      // authenticate() also rejects revoked sessions and suspended users.
+      const authUserId = getAuthUserId(await authenticate(req));
       isOwner = Boolean(authUserId) && String(camp.organizerId) === String(authUserId);
     } catch {
       isOwner = false;

@@ -48,30 +48,17 @@ exports.getCharity = async (req, res, next) => {
   }
 };
 
+// GET /api/charities/charity/checkCharity/:regNo?country=GB|US|NG|KE...
 exports.checkCharity = async (req, res, next) => {
   try {
-    const config = {
-      headers: {
-        "Cache-Control": "no-cache",
-        "Ocp-Apim-Subscription-Key": process.env.CHARITIES_API,
-        "no-cors": true,
-      },
-    };
-    const { regNo } = req.params;
-    const charity = await axios.get(
-      `https://api.charitycommission.gov.uk/register/api/allcharitydetails/${regNo}/${0}`,
-      config
-    );
-    if (!charity) {
-      return res.status(404).json({ status: 404, error: "Charity not found" });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: charity.data,
-    });
+    const { lookupCharity } = require("../services/charityRegistry");
+    const result = await lookupCharity(req.query.country || "GB", req.params.regNo);
+    // `data` keeps the raw UK payload shape the sign-up form already reads.
+    return res.status(200).json({ success: true, data: result.raw, registry: result.registry });
   } catch (error) {
-    logger.error({ err: error });
-    return res.status(500).json({ status: 500, error: "Server error" });
+    if (error.status) return res.status(error.status).json({ status: error.status, error: error.message });
+    if (error.response?.status === 404) return res.status(404).json({ status: 404, error: "Charity not found" });
+    logger.error({ err: error.response?.data || error.message }, "charity lookup failed");
+    return res.status(502).json({ status: 502, error: "The charity register is unavailable right now. Please try again." });
   }
 };

@@ -18,6 +18,7 @@ router.post("/campaign/addComment/:id", requireAuth, validate(addCommentSchema),
 router.post("/campaign/addUpdate/:id", requireAuth, requireCampaignOwner, validate(addUpdateSchema), campaignController.addUpdate);
 router.post("/:id/dispute", requireAuth, validate(disputeSchema), campaignController.fileDispute);
 router.get("/:id/dispute-status", campaignController.getDisputeStatus);
+router.get("/:id/transparency", require("../controller/trust").transparencyScore);
 router.delete("/draft/delete/:id", requireAuth, requireCampaignOwner, campaignController.deleteDraft);
 
 module.exports = router;

@@ -132,6 +132,21 @@ exports.approveFundingRequest = async (req, res, next) => {
       });
     }
 
+    // KYC before payout (gap F-5): money only reaches a verified person.
+    // Payments to a third party/vendor (hospital, school, supplier) are paid
+    // to that institution, so they don't depend on the organiser's KYC.
+    // Admins can verify manually via POST /api/identity/admin-verify/:userId.
+    if (!isThirdParty(existing.fundingType) && process.env.REQUIRE_KYC_FOR_PAYOUT !== "false") {
+      const organizer = await Users.findById(campaign.organizerId || existing.organizerId).select("identityVerification");
+      if (organizer?.identityVerification?.status !== "verified") {
+        return res.status(403).json({
+          status: 403,
+          code: "kyc_required",
+          error: "The organiser must complete identity verification before funds can be paid to them.",
+        });
+      }
+    }
+
     // Atomically claim Pending -> Approved. A double-click or two admins
     // approving at once can no longer both pass the status check and both
     // trigger a disbursement.
@@ -158,11 +173,13 @@ exports.approveFundingRequest = async (req, res, next) => {
           bankName: fundingRequest.thirdPartyBankName,
           accountName: fundingRequest.thirdPartyAccountName,
           accountNumber: fundingRequest.thirdPartyAccountNumber,
+          bankCode: fundingRequest.thirdPartyBankCode,
         }
       : {
           bankName: campaign.funding?.bankName,
           accountName: campaign.funding?.accountName,
           accountNumber: campaign.funding?.accountNumber,
+          bankCode: campaign.funding?.bankCode,
         };
     const data = {
       campaignId: fundingRequest.campaignId,
@@ -171,6 +188,7 @@ exports.approveFundingRequest = async (req, res, next) => {
       bankName: revealSensitive(source.bankName),
       accountName: revealSensitive(source.accountName),
       accountNumber: revealSensitive(source.accountNumber),
+      bankCode: source.bankCode || "",
     };
 
     try {
@@ -199,7 +217,7 @@ exports.approveFundingRequest = async (req, res, next) => {
         {
           _id: req.params.id,
           status: "Approved",
-          "disbursement.dateDisbursed": { $exists: false },
+          "disbursement.dateDisbursed": null,
           payoutLockedAt: { $exists: false },
         },
         { $set: { status: "Pending" }, $unset: { approvedAt: 1, adminId: 1, adminName: 1 } }

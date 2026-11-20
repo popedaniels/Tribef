@@ -93,6 +93,8 @@ const fundingRequestSchema = new mongoose.Schema({
   // Set atomically by the payout handler while a disbursement is in flight so
   // concurrent/retried payout calls for the same request cannot both run.
   payoutLockedAt: { type: Date },
+  payoutAttempts: { type: Number, default: 0 },
+  thirdPartyBankCode: { type: String, default: "" },
   disbursement: {
     amount: Number,
     currency: String,
@@ -103,6 +105,13 @@ const fundingRequestSchema = new mongoose.Schema({
     receipt: String,
     stripeTransferId: String,
     stripeTransferStatus: String,
+    // stripe_connect | flutterwave | paystack | manual
+    provider: String,
+    providerReference: String,
+    providerId: String,
+    // pending | successful | failed (bank rails settle asynchronously)
+    providerStatus: String,
+    receiptUploadedAt: Date,
   },
 });
 

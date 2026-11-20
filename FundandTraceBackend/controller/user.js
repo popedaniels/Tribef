@@ -41,6 +41,17 @@ const { CAMPAIGN_PUBLIC_PROJECTION, toPublicUser } = require("../utility/publicV
 // Real bcrypt hash of a random throwaway secret (generated once at boot, same
 // cost factor as user hashes); compared against when the email is unknown so
 // failed logins take the same time either way.
+const setSessionCookie = (res, payload) => {
+  const token = jwt.sign(payload, process.env.TOKEN_SECRET, { expiresIn: "8h" });
+  const isProd = process.env.NODE_ENV == "production";
+  res.cookie("token", token, {
+    maxAge: 8 * 60 * 60 * 1000,
+    path: "/",
+    secure: isProd,
+    httpOnly: true,
+    sameSite: isProd ? "none" : "lax",
+  });
+};
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync(require("crypto").randomBytes(24).toString("hex"), 10);
 const logger = require("../utility/logger");
 const { safeProfile } = require("../utility/safeProfile");
@@ -275,7 +286,7 @@ exports.login = async (req, res, next) => {
     }
 
     const token = jwt.sign(
-      { email: email, id: userProfile._id },
+      { email: email, id: userProfile._id, sv: Number(userProfile.sessionVersion || 0) },
       process.env.TOKEN_SECRET,
       { expiresIn: "8h" }
     );
@@ -331,24 +342,53 @@ exports.changePassword = async (req, res, next) => {
     if (!req.auth || req.auth.email !== req.params.email) {
       return res.status(403).json({ status: 403, error: "Unauthorized" });
     }
+    const newPassword = typeof req.body.newPassword === "string" ? req.body.newPassword : "";
+    if (newPassword.length < 8) {
+      return res.status(400).json({ status: 400, error: "New password must be at least 8 characters" });
+    }
     const credential = await Credentials.findOne({ email: req.params.email });
-    const verifyPassword = await bcrypt.compare(
-      req.body.oldPassword,
-      credential.password
-    );
+    const verifyPassword =
+      credential && (await bcrypt.compare(String(req.body.oldPassword || ""), credential.password));
     if (!verifyPassword)
-      return res
-        .status(404)
-        .json({ status: 404, error: "password supplied is incorrect" });
+      return res.status(400).json({ status: 400, error: "Current password is incorrect" });
 
-    const hash = await bcrypt.hash(req.body.newPassword, 10);
-    credential.password = hash;
-    credential.save();
+    credential.password = await bcrypt.hash(newPassword, 10);
+    await credential.save();
+    // Sign out every other session; keep this device signed in with a fresh token.
+    const updated = await Users.findOneAndUpdate(
+      { email: req.params.email },
+      { $inc: { sessionVersion: 1 } },
+      { new: true }
+    );
+    setSessionCookie(res, {
+      email: req.params.email,
+      id: updated?._id || req.auth.id,
+      sv: Number(updated?.sessionVersion || 0),
+    });
     addActivity("changePassword", req.params.email);
     return res.status(200).json({
       success: true,
-      message: "Password Changed successfully",
+      message: "Password changed. Other devices have been signed out.",
     });
+  } catch (error) {
+    logger.error({ err: error });
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};
+
+// "Sign out everywhere": revoke every session, including this one.
+exports.logoutAll = async (req, res) => {
+  try {
+    await Users.updateOne({ _id: req.auth.id }, { $inc: { sessionVersion: 1 } });
+    res.cookie("token", "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV == "production",
+      path: "/",
+      maxAge: 0,
+    });
+    addActivity("logoutAll", req.auth.email);
+    return res.status(200).json({ success: true, message: "Signed out on all devices" });
   } catch (error) {
     logger.error({ err: error });
     return res.status(500).json({ status: 500, error: "Server error." });

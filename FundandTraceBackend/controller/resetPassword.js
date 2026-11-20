@@ -103,6 +103,8 @@ exports.resetPassword = async (req, res, next) => {
     const hash = await bcrypt.hash(password, 10);
     credential.password = hash;
     await credential.save();
+    // Revoke every existing session for this account.
+    await Users.updateOne({ email }, { $inc: { sessionVersion: 1 } });
     addActivity("resetPassword", email);
     return res.status(201).json({
       success: true,

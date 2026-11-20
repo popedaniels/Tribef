@@ -2,6 +2,7 @@
 // Recording and crediting happen exclusively in the signed Stripe webhook
 // (see donations/stripe.js), mirroring the one-time donation flow.
 const { Campaign } = require("../models/campaignModel");
+const { FROZEN_MESSAGE } = require("../utility/campaignState");
 const { Subscription } = require("../models/subscriptionModel");
 const { addActivity } = require("../services/activityLog");
 const logger = require("../utility/logger");
@@ -23,6 +24,10 @@ exports.createSubscriptionSession = async (req, res) => {
     });
     if (!campaign) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
+    }
+    // Dispute freeze: don't take new money into a campaign under review.
+    if (campaign.disputeGovernance?.isLocked) {
+      return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
     }
 
     const amount = Number(req.body.amount);

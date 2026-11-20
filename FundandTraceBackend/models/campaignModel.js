@@ -68,6 +68,8 @@ const campaignSchema = new mongoose.Schema({
     sortCode: { type: String, default: "" },
     accountName: { type: String, default: "" },
     accountNumber: { type: String, default: "" },
+    // Bank/branch code for African bank payouts (Flutterwave/Paystack). Not secret.
+    bankCode: { type: String, default: "" },
     availableBalance: { type: Number, default: 0 },
     refunded: { type: Boolean, default: false },
   },
@@ -109,6 +111,15 @@ const campaignSchema = new mongoose.Schema({
     isLocked: { type: Boolean, default: false, index: true },
     lockedAt: { type: Date, default: null },
     lockReason: { type: String, default: "" },
+    // Set when an admin resolves the dispute (unlock or pro-rata refund).
+    resolution: {
+      action: { type: String, default: "" }, // "unlock" | "refund"
+      note: { type: String, default: "" },
+      adminId: { type: String, default: "" },
+      adminName: { type: String, default: "" },
+      resolvedAt: { type: Date, default: null },
+      refundedAmount: { type: Number, default: 0 },
+    },
     disputeReports: [
       {
         donorId: { type: ObjectId, ref: "users" },

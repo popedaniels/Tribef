@@ -177,8 +177,8 @@ function issueSessionResponse(res, userProfile, scope) {
   // never be embedded in a token.
   const token = jwt.sign(
     scope === "admin"
-      ? { profile: safeJwtProfile(userProfile) }
-      : { email, id: userProfile._id },
+      ? { profile: safeJwtProfile(userProfile), sv: Number(userProfile.sessionVersion || 0) }
+      : { email, id: userProfile._id, sv: Number(userProfile.sessionVersion || 0) },
     process.env.TOKEN_SECRET,
     { expiresIn: "8h" }
   );

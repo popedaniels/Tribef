@@ -90,7 +90,7 @@ exports.adminLogin = async (req, res, next) => {
     //generate a JWT — slim payload only. Never embed the full profile
     //(it leaked the encrypted TOTP secret and admin activity trail).
     const token = jwt.sign(
-      { profile: safeJwtProfile(userProfile) },
+      { profile: safeJwtProfile(userProfile), sv: Number(userProfile.sessionVersion || 0) },
       process.env.TOKEN_SECRET,
       { expiresIn: "8h" }
     );

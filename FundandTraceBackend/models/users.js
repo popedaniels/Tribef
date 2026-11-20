@@ -13,6 +13,9 @@ const UsersSchema = new mongoose.Schema({
   joined: { type: Date, default: Date.now, index: true },
   role: { type: String, default: "user", index: true },
   suspended: { type: Boolean, default: false, index: true },
+  // Embedded in every session token as `sv`. Bumping it (password reset or
+  // change, "sign out everywhere") invalidates all existing sessions.
+  sessionVersion: { type: Number, default: 0 },
   // TOTP two-factor authentication. Secret is stored encrypted at rest
   // (utility/encryption) and never returned by API responses.
   twoFactor: {

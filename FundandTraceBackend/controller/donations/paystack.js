@@ -1,5 +1,6 @@
 // Paystack donation flow: initialization, redirect callback, webhook.
 const { default: axios } = require("axios");
+const { FROZEN_MESSAGE } = require("../../utility/campaignState");
 const crypto = require("crypto");
 
 const {
@@ -42,6 +43,10 @@ exports.initializePaystackPayment = async (req, res) => {
     }).maxTimeMS(3000);
     if (!campaign) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
+    }
+    // Dispute freeze: don't take new money into a campaign under review.
+    if (campaign.disputeGovernance?.isLocked) {
+      return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
     }
 
     const amount = Number(req.body.amount);
@@ -206,7 +211,10 @@ exports.paymentPaystack = async (req, res) => {
         donatedAmount
       );
 
-      await creditCampaign(campaign._id, donatedAmount);
+      await creditCampaign(campaign._id, donatedAmount, {
+        refId: `paystack:${reference}`,
+        currency: campaign.funding?.currency,
+      });
       notifyTargetReachedIfNeeded(campaign._id);
     }
 
@@ -240,6 +248,14 @@ exports.paystackWebhook = async (req, res) => {
     }
 
     const event = req.body;
+
+    // Bank payout outcome (services/payoutRails.js). Same signed endpoint.
+    if (["transfer.success", "transfer.failed", "transfer.reversed"].includes(event.event) && event.data?.reference) {
+      const { applyTransferOutcome } = require("./payout");
+      await applyTransferOutcome({ reference: event.data.reference, status: event.event.split(".")[1] });
+      return res.status(200).json({ received: true });
+    }
+
     if (event.event !== "charge.success") {
       return res.status(200).json({ received: true });
     }
@@ -310,7 +326,10 @@ exports.paystackWebhook = async (req, res) => {
       throw createError;
     }
 
-    await creditCampaign(campaign._id, donatedAmount);
+    await creditCampaign(campaign._id, donatedAmount, {
+      refId: `paystack:${txData.reference}`,
+      currency: txData.currency,
+    });
     notifyTargetReachedIfNeeded(campaign._id);
 
     await sendDonationMailSafely(

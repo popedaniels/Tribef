@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const { Campaign } = require("../models/campaignModel");
 const { Users } = require("../models/users");
 const { addActivity } = require("../services/activityLog");
-const { encrypt } = require("../utility/encryption");
+const { buildOrganizerUpdate } = require("../utility/campaignEdits");
 const logger = require("../utility/logger");
 
 exports.save = async (req, res, next) => {
@@ -17,15 +17,18 @@ exports.save = async (req, res, next) => {
     if (!saveCampaign || typeof saveCampaign !== "object") {
       return res.status(400).json({ status: 400, error: "saveCampaign is required" });
     }
-    let camp = await Campaign.findOneAndUpdate(
-      { _id: id },
-      saveCampaign,
-      { runValidators: true }
-    ).maxTimeMS(3000);
-    if (!camp) {
+    const existing = await Campaign.findById(id).maxTimeMS(3000);
+    if (!existing) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
-    await camp.save();
+    // Whitelist organiser-editable fields (see utility/campaignEdits.js).
+    const { set, errors } = buildOrganizerUpdate(saveCampaign, existing);
+    if (errors.length) {
+      return res.status(422).json({ status: 422, error: errors.join("; ") });
+    }
+    if (Object.keys(set).length) {
+      await Campaign.updateOne({ _id: id }, { $set: set }, { runValidators: true }).maxTimeMS(3000);
+    }
     return res.status(201).json({
       success: true,
       message: "Saved successfully",
@@ -167,13 +170,14 @@ exports.funding = async (req, res, next) => {
     if (!camp) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
-    const fundingData = { ...funding };
-    if (fundingData.accountNumber) fundingData.accountNumber = encrypt(fundingData.accountNumber);
-    if (fundingData.accountName) fundingData.accountName = encrypt(fundingData.accountName);
-    if (fundingData.bankName) fundingData.bankName = encrypt(fundingData.bankName);
-    if (fundingData.sortCode) fundingData.sortCode = encrypt(fundingData.sortCode);
-    camp.funding = fundingData;
-    const campaign = await camp.save();
+    // Only goal, currency and payout details are editable. The old code
+    // replaced the whole sub-document, so a client could set its own
+    // amountRaised / availableBalance (escrow bypass).
+    const { set, errors } = buildOrganizerUpdate({ funding }, camp);
+    if (errors.length) {
+      return res.status(422).json({ status: 422, error: errors.join("; ") });
+    }
+    const campaign = await Campaign.findByIdAndUpdate(id, { $set: set }, { new: true, runValidators: true }).maxTimeMS(3000);
     return res.status(201).json({
       success: true,
       message: "Saved successfully",

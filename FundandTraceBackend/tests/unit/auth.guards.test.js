@@ -72,20 +72,54 @@ describe("auth guards", () => {
   });
 
   describe("requireAuth", () => {
-    it("calls next() for a valid token and attaches req.auth", () => {
+    const { Users } = require("../../models/users");
+    const userLookup = (user) =>
+      Users.findById.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(user) }) });
+    afterEach(() => Users.findById.mockReset());
+
+    it("calls next() for a valid token whose session is current", async () => {
+      userLookup({ sessionVersion: 0, suspended: false });
       const token = jwt.sign({ id: "user-2" }, SECRET);
       const req = bearerReq(token);
       const next = jest.fn();
-      auth.requireAuth(req, mockRes(), next);
+      await auth.requireAuth(req, mockRes(), next);
       expect(next).toHaveBeenCalled();
       expect(req.auth).toMatchObject({ id: "user-2" });
     });
 
-    it("returns 401 on an invalid signature", () => {
+    it("returns 401 on an invalid signature", async () => {
       const token = jwt.sign({ id: "user-3" }, "some-other-secret-value-at-least-32ch");
       const res = mockRes();
-      auth.requireAuth(bearerReq(token), res, jest.fn());
+      await auth.requireAuth(bearerReq(token), res, jest.fn());
       expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it("returns 401 for a revoked session (password reset / sign out everywhere)", async () => {
+      userLookup({ sessionVersion: 2, suspended: false });
+      const token = jwt.sign({ id: "user-4", sv: 1 }, SECRET);
+      const res = mockRes();
+      const next = jest.fn();
+      await auth.requireAuth(bearerReq(token), res, next);
+      expect(next).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it("returns 401 for a suspended account even with a valid token", async () => {
+      userLookup({ sessionVersion: 0, suspended: true });
+      const token = jwt.sign({ id: "user-5" }, SECRET);
+      const res = mockRes();
+      await auth.requireAuth(bearerReq(token), res, jest.fn());
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it("returns 503 (not 401) when the session can't be checked", async () => {
+      Users.findById.mockImplementation(() => {
+        throw new Error("db down");
+      });
+      const token = jwt.sign({ id: "user-6" }, SECRET);
+      const res = mockRes();
+      await auth.requireAuth(bearerReq(token), res, jest.fn());
+      expect(res.status).toHaveBeenCalledWith(503);
     });
   });
 

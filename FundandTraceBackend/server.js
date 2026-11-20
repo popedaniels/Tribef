@@ -30,6 +30,8 @@ const recurring = require("./routes/recurring");
 const twoFactor = require("./routes/twoFactor");
 const discovery = require("./routes/discovery");
 const pushSubscriptions = require("./routes/pushSubscriptions");
+const ledger = require("./routes/ledger");
+const payouts = require("./routes/payouts");
 
 // Web push (no-op without VAPID keys).
 require("./services/push").initPush();
@@ -123,6 +125,8 @@ app.use("/api/recurring", apiLimiter, recurring);
 app.use("/api/auth/2fa", authLimiter, twoFactor);
 app.use("/api/discovery", apiLimiter, discovery);
 app.use("/api/pushSubscriptions", apiLimiter, pushSubscriptions);
+app.use("/api/ledger", apiLimiter, ledger);
+app.use("/api/payouts", apiLimiter, payouts);
 
 const isDatabaseConnected = () => mongoose.connection.readyState === 1;
 

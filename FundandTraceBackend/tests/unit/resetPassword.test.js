@@ -6,7 +6,7 @@ const state = { credential: null };
 const mockSend = jest.fn(async () => undefined);
 
 jest.mock("../../models/users", () => ({
-  Users: {},
+  Users: { updateOne: jest.fn(async () => ({ modifiedCount: 1 })) },
   Credentials: { findOne: jest.fn(async () => state.credential) },
 }));
 jest.mock("../../services/resetPassword", () => ({ resetPasswordMailService: (...a) => mockSend(...a) }));
@@ -57,6 +57,11 @@ describe("password reset", () => {
     await controller.resetPassword({ body: { email: "a@b.com", password: "new-password-1", token } }, first);
     expect(first.statusCode).toBe(201);
     expect(state.credential.password).not.toBe("$2b$10$originalhash");
+    // every existing session is revoked
+    expect(require("../../models/users").Users.updateOne).toHaveBeenCalledWith(
+      { email: "a@b.com" },
+      { $inc: { sessionVersion: 1 } }
+    );
 
     const replay = res();
     await controller.resetPassword({ body: { email: "a@b.com", password: "new-password-2", token } }, replay);

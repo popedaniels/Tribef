@@ -157,10 +157,13 @@ export default function FundraisingStories() {
 
           {/* Filter Bar & Search */}
           <div className="controls-bar d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 pb-3 border-bottom">
-            <div className="tab-filters d-flex align-items-center mb-3 mb-md-0">
+            <div className="tab-filters d-flex align-items-center mb-3 mb-md-0" role="tablist" aria-label="Filter stories">
               {["All", "Stories", "News", "Events"].map((tab) => (
                 <button
                   key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === tab}
                   className={`tab-btn ${view === tab ? "active" : ""}`}
                   onClick={() => setView(tab)}
                 >
@@ -546,8 +549,26 @@ const Wrapper = styled.main`
   .controls-bar {
     .tab-filters {
       gap: 8px;
+      /* Scroll the pills horizontally on narrow screens instead of pushing
+         the page wider than the viewport. */
+      max-width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      &::-webkit-scrollbar {
+        display: none;
+      }
 
       .tab-btn {
+        flex: 0 0 auto;
+        min-height: 40px;
+        white-space: nowrap;
+
+        &:focus-visible {
+          outline: 2px solid var(--color-primary);
+          outline-offset: 2px;
+        }
+
         background: #f3f4f8;
         border: none;
         padding: 8px 16px;

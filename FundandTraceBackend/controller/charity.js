@@ -26,16 +26,16 @@ exports.getCharity = async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(500).json({ status: 500, error: "Invalid Charity ID" });
+      return res.status(400).json({ status: 400, error: "Invalid Charity ID" });
     }
 
     if (mongoose.connection.readyState !== 1) {
-      return res.status(401).json({ status: 401, error: "Charity not found" });
+      return res.status(503).json({ status: 503, error: "Service temporarily unavailable. Please try again." });
     }
 
     const charity = await Charity.findById(id);
     if (!charity) {
-      return res.status(401).json({ status: 401, error: "Charity not found" });
+      return res.status(404).json({ status: 404, error: "Charity not found" });
     }
 
     return res.status(200).json({
@@ -63,7 +63,7 @@ exports.checkCharity = async (req, res, next) => {
       config
     );
     if (!charity) {
-      return res.status(401).json({ status: 401, error: "Charity not found" });
+      return res.status(404).json({ status: 404, error: "Charity not found" });
     }
 
     return res.status(200).json({

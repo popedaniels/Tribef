@@ -11,6 +11,7 @@ import HoldingPageNavbar from "./NavBar";
 import Navbar from "../Navbar/Navbar";
 import Link from "next/link";
 import { selectAuthStateState } from "../../../store/slices/authSlice";
+import { getApiBaseUrl } from "../../utils/api";
 
 const ImageMotion = () => {
   const controls = useAnimation();
@@ -50,7 +51,7 @@ export default function HoldingPageHeroSection({ showMainNav = false }) {
     setLoading(true);
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/waitlist/" + email
+        getApiBaseUrl() + "/api/waitlist/" + email
       );
       res && dispatch(toast(true, res?.data?.message, "success"));
       res && setLoading(false);

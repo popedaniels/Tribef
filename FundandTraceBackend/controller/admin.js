@@ -13,7 +13,7 @@ const {
 } = require("../services/suspendCampaignMailService");
 const {
   unsuspendCampaignMailService,
-} = require("../services/unsuspendCampaignMailService.");
+} = require("../services/unsuspendCampaignMailService");
 const logger = require("../utility/logger");
 const { getFlaggedDonations, getAdminMetrics } = require("../services/adminService");
 const { startTwoFactorChallenge } = require("./twoFactor");

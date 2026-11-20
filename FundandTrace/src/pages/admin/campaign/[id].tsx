@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../../../layouts/AdminLayout";
 import Layout from "../../../components/Layout";
 import CampaignSearch from "../../../components/adminCampaignPageComponents/campaignSearch";
 import { useCallback, useState } from "react";
@@ -30,6 +30,7 @@ import type {
   CampaignTeam,
   CampaignUpdate,
 } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 const navs = [
   "FUNDING REQUESTS",
@@ -71,7 +72,7 @@ export default function CampaignDetailsPage() {
 
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/campaign/${router.query.id}`,
+        `${getApiBaseUrl()}/api/admin/campaign/${router.query.id}`,
         config()
       );
       res && setCampaign(res?.data?.data);

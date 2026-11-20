@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import CampaignDashboardLayout from "./campaignDashboardLayout";
+import CampaignDashboardLayout from "../../../layouts/CampaignDashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import router, { useRouter } from "next/router";
@@ -22,6 +22,7 @@ import {
 import { logout } from "../../../../store/slices/authSlice";
 import { useAppDispatch } from "./../../../../store/hooks";
 import type { Campaign } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface Donation {
   anonymous?: boolean;
@@ -43,7 +44,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
     const campaigndata = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/campaign/${campaignId}`,
+      `${getApiBaseUrl()}/api/campaigns/campaign/${campaignId}`,
       { timeout: 3000 }
     );
     const campaign = campaigndata?.data?.data;
@@ -76,7 +77,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
     };
     try {
       const update = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/campaign/addUpdate/${campaignId}`,
+        `${getApiBaseUrl()}/api/campaigns/campaign/addUpdate/${campaignId}`,
         { update: updateData },
         { withCredentials: true }
       );
@@ -100,7 +101,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
   const reloadUpdates = async () => {
     try {
       const campaignData = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/campaigns/campaign/" +
           campaignId,
         { withCredentials: true }

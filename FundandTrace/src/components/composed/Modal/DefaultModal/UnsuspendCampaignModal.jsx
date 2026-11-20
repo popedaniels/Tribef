@@ -7,6 +7,7 @@ import { toast } from "../../../../../store/slices/ToastSlice";
 import { useDispatch } from "react-redux";
 import { config } from "../../../helperFunctions/helperFunctions";
 import Spinner from "../../spinner/Spinner";
+import { getApiBaseUrl } from "../../../../utils/api";
 
 export default function UnsuspendCampaignModal({
   onModalClose,
@@ -22,7 +23,7 @@ export default function UnsuspendCampaignModal({
     setLoading(true);
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/unsuspendCampaign/${campaign._id}`,
+        `${getApiBaseUrl()}/api/admin/unsuspendCampaign/${campaign._id}`,
         {
           organizerEmail: campaign?.organizerDetails?.email,
           message,

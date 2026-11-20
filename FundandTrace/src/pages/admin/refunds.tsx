@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "../../layouts/AdminLayout";
 import Layout from "../../components/Layout";
 import CampaignSearch from "../../components/adminCampaignPageComponents/campaignSearch";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { config } from "../../components/helperFunctions/helperFunctions";
 import Pagination from "../../components/composed/Pagination";
 import RefundsDetailsHeader from "../../components/adminCampaignPageComponents/RefundsDetailsHeader";
 import RefundsDetailsCard from "../../components/adminCampaignPageComponents/RefundsDetailsCard";
+import { getApiBaseUrl } from "../../utils/api";
 
 const filters = ["By campaign", "Single Donation"];
 
@@ -56,13 +57,13 @@ export default function AdminRefundsPage() {
       filter === "Single Donation"
         ? axios.get(
             `${
-              process.env.NEXT_PUBLIC_API_URL
+              getApiBaseUrl()
             }/api/admin/refunds/donations/${query}?queries=${getQuery()}`,
             config()
           )
         : axios.get(
             `${
-              process.env.NEXT_PUBLIC_API_URL
+              getApiBaseUrl()
             }/api/admin/refunds/campaign/${query}?queries=${getQuery()}`,
             config()
           );

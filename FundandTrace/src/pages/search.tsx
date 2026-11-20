@@ -7,6 +7,7 @@ import axios from "axios";
 import Spinner from "../components/composed/spinner/Spinner";
 import Layout from "../components/Layout";
 import { Campaign } from "../types/campaign";
+import { getApiBaseUrl } from "../utils/api";
 
 const Categories = [
   "All",
@@ -108,7 +109,7 @@ export default function Search() {
       // };
 
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const apiUrl = getApiBaseUrl();
       if (category !== "") {
         const campaigns = await axios.get(
           `${apiUrl}/api/campaigns/searchByName/${page}?addCount=true&queries=${

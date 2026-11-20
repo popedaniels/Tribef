@@ -27,6 +27,7 @@ import {
 } from "../../components/helperFunctions/helperFunctions";
 import { Campaign } from "../../types/campaign";
 import type { GetServerSidePropsContext } from "next";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface Country {
   name: string;
@@ -44,7 +45,7 @@ interface DonatePageProps {
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const apiUrl = getApiBaseUrl();
     const campaigndata = await axios.get(
       `${apiUrl}/api/campaigns/campaign/${campaignId}`,
       { timeout: 3000 }
@@ -194,7 +195,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
       try {
         const response = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL +
+          getApiBaseUrl() +
             "/api/donations/createStripeSession/" +
             campaignId,
           payment
@@ -224,7 +225,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
         amount: others ? tip + amount : amount + amount * tip,
         currency: currency,
         redirect_url:
-          process.env.NEXT_PUBLIC_API_URL +
+          getApiBaseUrl() +
           "/api/donations/flutterwave/" +
           campaign?._id,
         payment_options: "card,ussd,banktransfer,mobilemoneyghana,mpesa",
@@ -252,7 +253,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
       try {
         const link = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL + "/api/donations/initialize",
+          getApiBaseUrl() + "/api/donations/initialize",
           {
             payment: payment,
           }
@@ -305,7 +306,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
       try {
         const response = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL +
+          getApiBaseUrl() +
             "/api/donations/initializePaystack/" +
             campaign?._id,
           payment

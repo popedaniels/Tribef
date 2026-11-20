@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
+const { objectIdParam } = require("../utility/validate");
 
 const userController = require("../controller/user");
 const { requireAuth } = require("../utility/auth");
+
+// Reject malformed ObjectIds with 400 before any handler runs.
+router.param("id", objectIdParam("User ID"));
 
 router.post("/signup", userController.signup);
 router.post("/signup/charity", userController.signupCharity);

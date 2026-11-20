@@ -2,6 +2,7 @@ import axios from "axios";
 import React from "react";
 import styled from "styled-components";
 import type { GetServerSidePropsContext } from "next";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface CharityInfo {
   charityName?: string;
@@ -15,7 +16,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   const charityId = context.query.id;
   try {
     const charitydata = await axios.get<{ data?: CharityInfo }>(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/charities/charity/${charityId}`,
+      `${getApiBaseUrl()}/api/charities/charity/${charityId}`,
       { timeout: 3000 }
     );
     const charity = charitydata?.data?.data || null;

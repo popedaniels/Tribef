@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
 import Link from "next/link";
 import styled from "styled-components";
 import { useSelector } from "react-redux";
@@ -21,6 +21,7 @@ import {
   grabErrorMessage,
   grabErrorStatus,
 } from "../../components/helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Prelauch() {
   const [view, setView] = useState("story");
@@ -44,7 +45,7 @@ export default function Prelauch() {
     if (!profile?._id) return;
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/identity/status/${profile._id}`,
+        `${getApiBaseUrl()}/api/identity/status/${profile._id}`,
         // Session cookie must ride along: without it the backend's requireAuth
         // rejects the call and KYC status silently stays "unverified".
         { withCredentials: true }
@@ -65,7 +66,7 @@ export default function Prelauch() {
     setKycLoading(true);
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/identity/create-session`,
+        `${getApiBaseUrl()}/api/identity/create-session`,
         { userId: profile._id, campaignId },
         { withCredentials: true }
       );
@@ -149,7 +150,7 @@ export default function Prelauch() {
       checkFunding();
       if (checkTeam() && checkBasic() && checkContent() && checkFunding()) {
         const res = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/launch",
+          getApiBaseUrl() + "/api/startCampaign/launch",
           { launch: true, id: campaignId },
           { withCredentials: true }
         );

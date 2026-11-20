@@ -10,6 +10,7 @@ import Spinner from "../../components/composed/spinner/Spinner";
 import { toast } from "../../../store/slices/ToastSlice";
 import Layout from "../../components/Layout";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Verify() {
   const { profile, authenticated } = useSelector(selectAuthStateState);
@@ -25,7 +26,7 @@ export default function Verify() {
     setLoading(true);
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/auth/signup/verifyEmail/" +
           profile?.email
       );

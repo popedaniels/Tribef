@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import MobileDashboard from "../../../components/composed/MobileDashboard/MobileDashboard";
+import MobileDashboard from "../components/composed/MobileDashboard/MobileDashboard";
 import { useRef } from "react";
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
-import { selectAuthStateState } from "../../../../store/slices/authSlice";
-import Layout from "../../../components/Layout";
+import { selectAuthStateState } from "../../store/slices/authSlice";
+import Layout from "../components/Layout";
 
 interface CampaignDashboardLayoutProps {
   children: React.ReactNode;

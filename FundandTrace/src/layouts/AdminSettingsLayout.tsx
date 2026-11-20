@@ -1,6 +1,6 @@
 import styled from "styled-components";
-import AdminLayout from "../AdminLayout";
-import Layout from "../../../components/Layout";
+import AdminLayout from "./AdminLayout";
+import Layout from "../components/Layout";
 import Link from "next/link";
 import { ReactNode } from "react";
 

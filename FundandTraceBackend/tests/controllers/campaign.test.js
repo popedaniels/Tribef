@@ -99,7 +99,7 @@ describe("Campaigns Controller", () => {
           donorEmail: "donor@example.com",
           description: "Fraudulent campaign",
         });
-      expect(res).to.have.status(401);
+      expect(res).to.have.status(400); // malformed ObjectId is rejected before auth
     });
   });
 

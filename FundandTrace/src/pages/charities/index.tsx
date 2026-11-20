@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useEffect } from "react";
 import styled from "styled-components";
 import Spinner from "../../components/composed/spinner/Spinner";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface Charity {
   _id?: string;
@@ -17,7 +18,7 @@ export default function Charities() {
   const getCharities = async () => {
     try {
       const res = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL + "/api/charities"
+        getApiBaseUrl() + "/api/charities"
       );
       res && setLoading(false);
       res && setCharities(res?.data?.data);

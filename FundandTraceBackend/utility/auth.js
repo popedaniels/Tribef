@@ -78,15 +78,6 @@ const requireAdmin = async (req, res, next) => {
 
 const requireCampaignOwner = async (req, res, next) => {
   try {
-    const requestedOwnerId =
-      req.body.organizerId ||
-      req.body.fundingRequest?.organizerId ||
-      req.query.organizerId;
-    const campaignId =
-      req.body.id ||
-      req.body.fundingRequest?.campaignId ||
-      req.query.campaignId ||
-      req.params.id;
     const authUserId = getAuthUserId(req.auth);
 
     if (!authUserId) {
@@ -97,7 +88,38 @@ const requireCampaignOwner = async (req, res, next) => {
       });
     }
 
-    if (requestedOwnerId && String(requestedOwnerId) !== String(authUserId)) {
+    // Every place a request can name a campaign. They must all agree: the
+    // ownership check and the controller must act on the SAME campaign.
+    // Previously `req.body.id` won over `req.params.id`, so a caller could
+    // prove ownership of their own campaign in the body while the controller
+    // deleted/updated the victim campaign named in the URL (IDOR).
+    const body = req.body || {};
+    const query = req.query || {};
+    const params = req.params || {};
+    // Likewise, every organizer id the client supplies must be the caller.
+    const requestedOwnerIds = [
+      body.organizerId,
+      body.fundingRequest?.organizerId,
+      query.organizerId,
+    ].filter((value) => value !== undefined && value !== null && value !== "");
+    const candidateIds = [
+      params.id,
+      body.id,
+      body.fundingRequest?.campaignId,
+      query.campaignId,
+    ]
+      .filter((value) => value !== undefined && value !== null && value !== "")
+      .map(String);
+    const distinctIds = [...new Set(candidateIds)];
+    if (distinctIds.length > 1) {
+      return res.status(403).json({
+        success: false,
+        status: 403,
+        error: "Campaign ownership required",
+      });
+    }
+    const campaignId = distinctIds[0];
+    if (requestedOwnerIds.some((ownerId) => String(ownerId) !== String(authUserId))) {
       return res.status(403).json({
         success: false,
         status: 403,

@@ -28,10 +28,11 @@ export default function Layout({
         description={description}
         ogImage={ogImage}
       />
-      {/* <!-- Google Tag Manager (noscript) — production only (see SEOHead) --> */}
-      {typeof window !== "undefined" &&
-      window.location.hostname !== "localhost" &&
-      window.location.hostname !== "127.0.0.1" ? (
+      {/* <!-- Google Tag Manager (noscript) — production builds only.
+          Gated on NODE_ENV (identical on server and client) rather than
+          `window`, which rendered nothing on the server but a <noscript> on
+          the client and caused a hydration mismatch on every production page. --> */}
+      {process.env.NODE_ENV === "production" ? (
         <noscript
           dangerouslySetInnerHTML={{
             __html: `

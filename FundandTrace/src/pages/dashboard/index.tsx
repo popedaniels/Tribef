@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import DashboardLayout from "./DashboardLayout";
+import DashboardLayout from "../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import { useSelector } from "react-redux";
@@ -15,6 +15,7 @@ import {
 import { toast } from "../../../store/slices/ToastSlice";
 import router from "next/router";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Dashboard() {
   const [view, setView] = useState("activeCampaign");
@@ -31,7 +32,7 @@ export default function Dashboard() {
       setLoading(true);
       if (!profileId) return;
       const campaigns = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL + "/api/campaigns/" + profileId,
+        getApiBaseUrl() + "/api/campaigns/" + profileId,
         { withCredentials: true }
       );
       campaigns && setCampaigns(campaigns?.data?.data?.active);

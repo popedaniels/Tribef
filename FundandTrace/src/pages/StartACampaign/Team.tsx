@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
 import Link from "next/link";
 // import ImageUploader from "react-images-upload";
 import { useState } from "react";
@@ -23,6 +23,7 @@ import {
   handlePhoneSearchFunction,
   handleStateSearchFunction,
 } from "../../components/helperFunctions/locationFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface CountryOption {
   name: string;
@@ -204,7 +205,7 @@ export default function Team() {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/team",
+        getApiBaseUrl() + "/api/startCampaign/team",
         { team: startCampaign?.team, id: campaignId },
         { withCredentials: true }
       );

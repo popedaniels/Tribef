@@ -4,7 +4,8 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import type { Campaign } from "../../../types/campaign";
-import CampaignDashboardLayout from "./campaignDashboardLayout";
+import CampaignDashboardLayout from "../../../layouts/CampaignDashboardLayout";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface SocialsProps {
   campaign: Campaign | null;
@@ -15,7 +16,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
     const campaigndata = await axios.get(
-    process.env.NEXT_PUBLIC_API_URL + "/api/campaigns/campaign/" + campaignId
+    getApiBaseUrl() + "/api/campaigns/campaign/" + campaignId
   );
     const campaign = campaigndata?.data?.data;
 

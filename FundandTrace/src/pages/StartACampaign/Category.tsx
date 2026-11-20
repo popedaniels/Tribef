@@ -21,6 +21,7 @@ import {
   grabErrorMessage,
   grabErrorStatus,
 } from "../../components/helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Category() {
   const router = useRouter();
@@ -97,7 +98,7 @@ export default function Category() {
         organizerId: profile._id,
       };
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/",
+        getApiBaseUrl() + "/api/startCampaign/",
         startCampaign,
         { withCredentials: true }
       );

@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../../../layouts/AdminLayout";
 import Layout from "../../../components/Layout";
 import { useCallback, useState } from "react";
 import axios from "axios";
@@ -11,6 +11,7 @@ import { config } from "../../../components/helperFunctions/helperFunctions";
 import ApproveCampaignModal from "../../../components/composed/Modal/DefaultModal/ApproveCampaignModal";
 import DeclineCampaignModal from "../../../components/composed/Modal/DefaultModal/DeclineCampaignModal";
 import type { BasicInformation } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface FundingRequestDetail {
   _id?: string;
@@ -45,7 +46,7 @@ export default function FundingRequestDetailPage() {
 
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/fundingRequest/${router.query.id}`,
+        `${getApiBaseUrl()}/api/admin/fundingRequest/${router.query.id}`,
         config()
       );
       res && setFundingRequest(res?.data?.data);

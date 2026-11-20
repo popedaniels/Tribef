@@ -86,7 +86,11 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(new Error("Origin not allowed by CORS"));
+    // 403, not the global handler's default 500: a foreign origin is a
+    // client/policy problem, not a server fault, and must not page on-call.
+    const corsError = new Error("Origin not allowed by CORS");
+    corsError.status = 403;
+    return callback(corsError);
   },
 };
 

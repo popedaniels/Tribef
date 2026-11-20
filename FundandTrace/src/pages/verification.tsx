@@ -13,6 +13,7 @@ import { toast } from "../../store/slices/ToastSlice";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { useAppDispatch } from "./../../store/hooks";
+import { getApiBaseUrl } from "../utils/api";
 
 export default function Verification() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function Verification() {
       );
       dispatch(authStateActions.setLoggingIn(true));
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/auth/login",
+        getApiBaseUrl() + "/api/auth/login",
         {
           email,
           password,

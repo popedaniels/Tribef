@@ -18,6 +18,7 @@ import FeaturesGrid from "../../components/homepageComponents/FeaturesGrid/Featu
 import { useAppDispatch } from "./../../../store/hooks";
 import type { Campaign } from "../../types/campaign";
 import type { Campaign as ListedCampaign } from "../../types/campaigns";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface FundingRequestSummary {
   status?: string;
@@ -32,7 +33,7 @@ interface DonatedPageProps {
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const apiUrl = getApiBaseUrl();
     const [fundingRequestsData, campaigndata] = await Promise.allSettled([
       axios.get(`${apiUrl}/api/fundingRequests/fundingRequest/${campaignId}`, { timeout: 3000 }),
       axios.get(`${apiUrl}/api/campaigns/campaign/${campaignId}`, { timeout: 3000 }),
@@ -80,7 +81,7 @@ export default function DonatedPage({
   const getAllCampaigns = async () => {
     try {
       const campaigns = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL + "/api/campaigns"
+        getApiBaseUrl() + "/api/campaigns"
       );
 
       campaigns && setCampaigns(campaigns?.data?.data);
@@ -104,7 +105,7 @@ export default function DonatedPage({
     try {
       const whitelist = { email, campaignId };
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/campaignEmailWhitelist`,
+        `${getApiBaseUrl()}/api/campaignEmailWhitelist`,
         whitelist
       );
       res && dispatch(toast(true, "Added to tracking list", "success"));

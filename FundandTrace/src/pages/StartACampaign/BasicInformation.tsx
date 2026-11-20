@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
 import { useRouter } from "next/router";
 import axios from "axios";
 import {
@@ -29,6 +29,7 @@ import {
 } from "../../components/helperFunctions/locationFunctions";
 import CategoryModal from "../../components/composed/Modal/DefaultModal/CategoryModal";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface CountryOption {
   name: string;
@@ -204,7 +205,7 @@ export default function BasicInformation() {
       //     : false
       // ) {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/basicInformation",
+        getApiBaseUrl() + "/api/startCampaign/basicInformation",
         { basicInformation: startCampaign?.basicInformation, id: campaignId },
         { withCredentials: true }
       );

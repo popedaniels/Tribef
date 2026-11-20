@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useRouter } from "next/router";
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
 import { useState } from "react";
 import styled from "styled-components";
 import { useSelector } from "react-redux";
@@ -18,6 +18,7 @@ import {
   grabErrorMessage,
   grabErrorStatus,
 } from "../../components/helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Funding() {
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function Funding() {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/funding",
+        getApiBaseUrl() + "/api/startCampaign/funding",
         { funding: startCampaign?.funding, id: campaignId },
         { withCredentials: true }
       );

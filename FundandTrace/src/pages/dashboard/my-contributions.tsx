@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import DashboardLayout from "./DashboardLayout";
+import DashboardLayout from "../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import axios from "axios";
@@ -19,6 +19,7 @@ import {
 import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
 import type { Campaign } from "../../types/campaign";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface Contribution {
   amount: number;
@@ -258,7 +259,7 @@ export default function MyContributions() {
     try {
       setLoading(true);
       const campaigns = await axios.get<{ contributions: Contribution[] }>(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/auth/contributions/" +
           profile.email,
         { withCredentials: true }

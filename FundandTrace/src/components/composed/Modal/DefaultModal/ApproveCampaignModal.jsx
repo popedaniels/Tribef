@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import Spinner from "../../spinner/Spinner";
 import { config } from "../../../helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../../../utils/api";
 
 export default function ApproveCampaignModal({
   onModalClose,
@@ -23,7 +24,7 @@ export default function ApproveCampaignModal({
 
     try {
       const res = await axios.patch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/fundingRequest/approve/${fundingRequest?._id}`,
+        `${getApiBaseUrl()}/api/admin/fundingRequest/approve/${fundingRequest?._id}`,
         { campaignId: fundingRequest?.campaign?._id },
         config()
       );

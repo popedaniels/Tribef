@@ -6,6 +6,7 @@ import { selectAuthStateState } from "../../../../../store/slices/authSlice";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { toast } from "../../../../../store/slices/ToastSlice";
+import { getApiBaseUrl } from "../../../../utils/api";
 
 export default function ChangePasswordModalModal({ onModalClose, showModal }) {
   const dispatch = useDispatch();
@@ -21,7 +22,7 @@ export default function ChangePasswordModalModal({ onModalClose, showModal }) {
       setError("");
       if (newPassword === confirmPassword) {
         const res = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL +
+          getApiBaseUrl() +
             "/api/auth/changePassword/" +
             profile?.email,
           { oldPassword: oldPassword, newPassword: newPassword },

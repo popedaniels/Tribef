@@ -1,5 +1,5 @@
 import React from "react";
-import DashboardLayout from "../DashboardLayout";
+import DashboardLayout from "../../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import SettingsComp from "../../../components/SettingsComp";

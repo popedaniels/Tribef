@@ -11,6 +11,7 @@ import { useRouter } from "next/router";
 import Preloader from "../../components/composed/Preloader/Preloader";
 import Layout from "../../components/Layout";
 import type { GetServerSidePropsContext } from "next";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface CategoryInfo {
   category?: string;
@@ -57,7 +58,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     };
 
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const apiUrl = getApiBaseUrl();
     const categoryData = await axios.get(
       `${apiUrl}/api/categories/category/${nameLower}`,
       { timeout: 2500 }
@@ -88,7 +89,7 @@ export default function Category({ category }: CategoryPageProps) {
   const getAllCampaigns = useCallback(async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const apiUrl = getApiBaseUrl();
       const camps = await axios.get(
         `${apiUrl}/api/campaigns/searchByCategory/${router.query.name}`,
         { timeout: 2500 }

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import DashboardLayout from "../DashboardLayout";
+import DashboardLayout from "../../../layouts/DashboardLayout";
 import styled from "styled-components";
 import styles from "./contribution.module.scss";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import FundingRequestsComponent from "../../../components/composed/fundingReques
 import UpdateComponent from "../../../components/composed/UpdatesComponent";
 import { addCommaToNumber, getDaysRemaining } from "../../../components/helperFunctions/helperFunctions";
 import type { Campaign } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface FundingRequestSummary {
   status?: string;
@@ -30,7 +31,7 @@ export default function Contribution() {
   const getAllFundingRequests = useCallback(async () => {
     try {
       const res = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/fundingRequests/fundingRequest/" +
           router.query.id
       );
@@ -46,7 +47,7 @@ export default function Contribution() {
   const getCampaign = useCallback(async () => {
     try {
       const campaign = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/campaigns/campaign/" +
           router.query.id
       );

@@ -193,3 +193,78 @@ describe("auth guards", () => {
     });
   });
 });
+
+// Regression: requireCampaignOwner used to check `req.body.id` before
+// `req.params.id`, letting an owner of campaign A delete/update campaign B by
+// sending {id: A} in the body of a request to /…/:id=B.
+describe("requireCampaignOwner (IDOR regression)", () => {
+  const OWNER = "60f7117f2ee78d31b4de0f01";
+  const MINE = "60f7117f2ee78d31b4de0aaa";
+  const VICTIM = "60f7117f2ee78d31b4de0bbb";
+  let auth;
+  let findById;
+
+  beforeAll(() => {
+    process.env.TOKEN_SECRET = SECRET;
+    jest.doMock("../../models/campaignModel", () => {
+      findById = jest.fn((id) => ({
+        select: () =>
+          Promise.resolve(
+            id === MINE
+              ? { organizerId: OWNER }
+              : id === VICTIM
+              ? { organizerId: "60f7117f2ee78d31b4de0f99" }
+              : null
+          ),
+      }));
+      return { Campaign: { findById } };
+    });
+    auth = require("../../utility/auth");
+  });
+
+  const run = async (req) => {
+    const res = mockRes();
+    const next = jest.fn();
+    await auth.requireCampaignOwner(
+      { body: {}, query: {}, params: {}, auth: { id: OWNER }, ...req },
+      res,
+      next
+    );
+    return { res, next };
+  };
+
+  it("rejects a body id that disagrees with the route id", async () => {
+    const { res, next } = await run({ params: { id: VICTIM }, body: { id: MINE } });
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects when the route names a campaign the caller does not own", async () => {
+    const { res, next } = await run({ params: { id: VICTIM } });
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects a funding request whose campaignId disagrees with body.id", async () => {
+    const { res } = await run({ body: { id: MINE, fundingRequest: { campaignId: VICTIM } } });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects any supplied organizerId that is not the caller", async () => {
+    const { res } = await run({
+      body: { id: MINE, organizerId: OWNER, fundingRequest: { organizerId: "someone-else" } },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("allows the owner when all ids agree", async () => {
+    const { res, next } = await run({ params: { id: MINE }, body: { id: MINE } });
+    expect(res.statusCode).toBeNull();
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 401 (not 403) when unauthenticated", async () => {
+    const { res } = await run({ auth: undefined, params: { id: VICTIM }, body: { id: MINE } });
+    expect(res.statusCode).toBe(401);
+  });
+});

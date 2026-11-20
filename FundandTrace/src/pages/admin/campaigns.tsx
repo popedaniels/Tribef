@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "../../layouts/AdminLayout";
 import Layout from "../../components/Layout";
 import CampaignDetailsCard from "../../components/adminCampaignPageComponents/campaignDetailsCard";
 import CampaignDetailsHeader from "../../components/adminCampaignPageComponents/campaignDetailsHeader";
@@ -11,6 +11,7 @@ import Spinner from "../../components/composed/spinner/Spinner";
 import { config } from "../../components/helperFunctions/helperFunctions";
 import Pagination from "../../components/composed/Pagination";
 import type { Campaign } from "../../types/campaign";
+import { getApiBaseUrl } from "../../utils/api";
 
 const filters = [
   "Latest",
@@ -73,7 +74,7 @@ export default function AdminCampaignPage() {
     try {
       const res = await axios.get(
         `${
-          process.env.NEXT_PUBLIC_API_URL
+          getApiBaseUrl()
         }/api/admin/campaigns/${query}?queries=${getQuery()}`,
         config()
       );

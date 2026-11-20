@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import CampaignDashboardLayout from "./campaignDashboardLayout";
+import CampaignDashboardLayout from "../../../layouts/CampaignDashboardLayout";
 import PaymentHistoryCard from "../../../components/PaymentHistoryCard/PaymentHistoryCard";
 import router from "next/router";
 import type { GetServerSidePropsContext } from "next";

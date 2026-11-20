@@ -1,190 +1,179 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
-
 import { useRouter } from "next/router";
 import Link from "next/link";
-import Navbar from "../../components/Navbar/Navbar";
+import { useRef } from "react";
+import { useEffect } from "react";
 import { useSelector } from "react-redux";
-import { selectStartCampaignState } from "../../../store/slices/startCampaignSlice";
-import { logout, selectAuthStateState } from "../../../store/slices/authSlice";
-import axios from "axios";
-import { toast } from "../../../store/slices/ToastSlice";
-import Layout from "../../components/Layout";
-import LogoutModal from "../../components/composed/Modal/DefaultModal/LogoutModal";
-import { useAppDispatch } from "./../../../store/hooks";
-import {
-  grabErrorMessage,
-  grabErrorStatus,
-} from "../../components/helperFunctions/helperFunctions";
+import { selectAuthStateState } from "../../store/slices/authSlice";
+import LogoutModal from "../components/composed/Modal/DefaultModal/LogoutModal";
+import MobileCampaignMenu from "../components/composed/mobileCampaignMenu/MobileCampaignMenu";
+import Layout from "../components/Layout";
 
-type StartLayoutProps = {
+interface DashboardLayoutProps {
   children: React.ReactNode;
   active?: number;
+  hideMobileNav?: boolean;
   page?: string;
-  handle?: (() => void | Promise<void>) | null;
-  errorBasic?: boolean;
-  errorContent?: boolean;
-  errorTeam?: boolean;
-  errorFunding?: boolean;
-};
+}
 
-export default function StartLayout({
+export default function DashboardLayout({
   children,
-  active = 1,
-  page = "Campaign",
-  handle = null,
-  errorBasic = false,
-  errorContent = false,
-  errorTeam = false,
-  errorFunding = false,
-}: StartLayoutProps) {
+  active = 0,
+  hideMobileNav = false,
+  page = "Dashboard",
+}: DashboardLayoutProps) {
   const router = useRouter();
-  const { startCampaign } = useSelector(selectStartCampaignState);
-  const { profile, authenticated } = useSelector(selectAuthStateState);
-  const dispatch = useAppDispatch();
   const [showModal, setShowModal] = useState(false);
+  const ref = useRef(null);
+  const [showFixed, setShowFixed] = useState(false);
+  const { profile, authenticated } = useSelector(selectAuthStateState);
+
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
-    !profile?.verified && router.push("/SignUp/Verify");
-  }, [profile, router]);
-
-  useEffect(() => {
-    !authenticated && router.push("/SignUp");
+    !authenticated && router.push("/");
   }, [authenticated, router]);
 
-  const saveCampaign = async () => {
-    try {
-      const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/saveCampaign",
-        { saveCampaign: startCampaign, id: startCampaign?._id },
-        { withCredentials: true }
-      );
+  useEffect(() => {
+    window.onscroll = function () {
+      window.pageYOffset > 300 ? setShowFixed(true) : setShowFixed(false);
+    };
+  });
 
-      res && dispatch(toast(true, "Campaign Saved to drafts!", "success"));
-    } catch (error) {
-      dispatch(toast(true, grabErrorMessage(error), "error"));
-      if (grabErrorStatus(error) == 403) {
-        dispatch(logout());
-      }
-    }
-  };
-
-  const getWidth = () => {
-    switch (active) {
-      case 1:
-        return 5;
-        break;
-      case 2:
-        return 25;
-        break;
-      case 3:
-        return 47;
-        break;
-      case 4:
-        return 68;
-        break;
-      case 5:
-        return 92;
-        break;
-      case 6:
-        return 100;
-        break;
-
-      default:
-        return 0;
-        break;
-    }
+  const fixed: React.CSSProperties = {
+    background: "white",
+    position: "sticky",
+    top: 0,
+    left: 0,
+    width: "100%",
+    paddingTop: "10px",
+    paddingBottom: "10px",
+    transition: "all 0.5s ease",
+    zIndex: 100000,
   };
 
   return (
-    <Layout title={page}>
+    <Layout url="https://fundandtrace.com" ogImage="/og-image.jpg" title={`Dashboard | ${page}`} description="Fund&Trace Dashboard">
       <Wrapper className="d-flex">
-        <aside className="py-4">
-          <div className="px-4 mb-4">
-            <div className="border-bottom border-secondary d-flex justify-content-between align-items-center">
-              <p className="mb-0">
-                {startCampaign?.basicInformation?.campaignTitle}
-              </p>
+        <aside>
+          <div className="px-4 mb-4 mt-5">
+            <div className="py-3 border-bottom border-secondary d-flex justify-content-between align-items-center">
+              <p className="mb-0">{`${profile?.firstName} ${profile?.lastName}`}</p>
             </div>
           </div>
           <div className="d-flex flex-column mb-5">
-            <Link href={`/StartACampaign/BasicInformation`} passHref>
+            <Link href={`/dashboard`} passHref>
               <a
                 className={`navlink d-flex align-items-center pl-4 ${
                   active == 1 ? "active" : ""
-                } ${errorBasic ? "bg-danger" : ""}`}
+                }`}
               >
-                <h3 className="mb-0">1. Basic Information</h3>
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5 3V19H21V21H3V3H5ZM19.94 5.94L22.06 8.06L16 14.122L13 11.122L9.06 15.062L6.94 12.94L13 6.88L16 9.88L19.94 5.94Z"
+                    fill={active == 1 ? "white" : "gray"}
+                  />
+                </svg>
+
+                <h3 className="mb-0 ml-4">My Campaigns</h3>
               </a>
             </Link>
-            <Link href={`/StartACampaign/Content`} passHref>
+            <Link href={`/dashboard/my-contributions`} passHref>
               <a
                 className={`navlink d-flex align-items-center pl-4 ${
                   active == 2 ? "active" : ""
-                } ${errorContent ? "bg-danger" : ""}`}
+                }`}
               >
-                <h3 className="mb-0">2. Content</h3>
+                <svg
+                  width="23"
+                  height="19"
+                  viewBox="0 0 23 19"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4 6.99996C4.26522 6.99996 4.51957 7.10531 4.70711 7.29285C4.89464 7.48039 5 7.73474 5 7.99996C6.57114 7.99764 8.09698 8.52622 9.33 9.49996H11.5C12.832 9.49996 14.03 10.079 14.853 10.999L18 11C18.9453 10.9997 19.8712 11.2674 20.6705 11.772C21.4698 12.2766 22.1097 12.9975 22.516 13.851C20.151 16.972 16.322 19 12 19C9.21 19 6.85 18.397 4.94 17.342C4.87004 17.535 4.74224 17.7018 4.57402 17.8196C4.40579 17.9373 4.20534 18.0003 4 18H1C0.734784 18 0.48043 17.8946 0.292893 17.7071C0.105357 17.5195 0 17.2652 0 17V7.99996C0 7.73474 0.105357 7.48039 0.292893 7.29285C0.48043 7.10531 0.734784 6.99996 1 6.99996H4ZM5.001 9.99996L5 15.021L5.045 15.054C6.84 16.314 9.178 17 12 17C15.004 17 17.799 15.844 19.835 13.87L19.968 13.737L19.848 13.637C19.3758 13.2671 18.8034 13.0476 18.205 13.007L18 13L15.888 12.999C15.961 13.321 16 13.656 16 14V15H7V13L13.79 12.999L13.756 12.921C13.5644 12.5205 13.2696 12.1783 12.9019 11.9294C12.5343 11.6806 12.107 11.5341 11.664 11.505L11.5 11.5H8.57C8.10531 11.0247 7.55027 10.6471 6.93752 10.3895C6.32477 10.1319 5.66669 9.99948 5.002 9.99996H5.001ZM3 8.99996H2V16H3V8.99996ZM12.646 1.57496L13 1.92996L13.354 1.57596C13.5858 1.34217 13.8615 1.15648 14.1653 1.02954C14.469 0.902593 14.7949 0.836898 15.1241 0.836224C15.4533 0.83555 15.7795 0.89991 16.0837 1.02561C16.388 1.15131 16.6645 1.33587 16.8973 1.5687C17.13 1.80153 17.3145 2.07805 17.4401 2.38237C17.5657 2.68669 17.63 3.01282 17.6292 3.34204C17.6285 3.67127 17.5627 3.9971 17.4356 4.30083C17.3086 4.60456 17.1228 4.88021 16.889 5.11196L13 8.99996L9.11 5.10996C8.87622 4.87815 8.69053 4.60244 8.56358 4.29868C8.43664 3.99491 8.37094 3.66906 8.37027 3.33983C8.36959 3.01061 8.43396 2.68449 8.55965 2.38021C8.68535 2.07592 8.86992 1.79946 9.10275 1.5667C9.33558 1.33394 9.61209 1.14945 9.91641 1.02384C10.2207 0.898224 10.5469 0.833956 10.8761 0.834724C11.2053 0.835491 11.5311 0.901278 11.8349 1.02831C12.1386 1.15534 12.4143 1.34111 12.646 1.57496ZM10.526 2.98996C10.4431 3.07238 10.3917 3.18123 10.3808 3.2976C10.3698 3.41397 10.4 3.53051 10.466 3.62696L10.524 3.69596L13 6.16996L15.476 3.69596C15.5588 3.61322 15.61 3.50405 15.6206 3.38746C15.6312 3.27088 15.6006 3.15427 15.534 3.05796L15.476 2.98796C15.3931 2.90528 15.2839 2.85429 15.1673 2.84388C15.0507 2.83346 14.9342 2.86428 14.838 2.93096L14.768 2.98896L12.999 4.75696L11.232 2.98696L11.164 2.93096C11.0677 2.8644 10.9511 2.83376 10.8345 2.84436C10.7179 2.85496 10.6087 2.90613 10.526 2.98896V2.98996Z"
+                    fill={active == 2 ? "white" : "gray"}
+                  />
+                </svg>
+
+                <h3 className="mb-0 ml-4">My Contributions</h3>
               </a>
             </Link>
-            <Link href={`/StartACampaign/Team`} passHref>
+            <Link href={`/dashboard/account`} passHref>
               <a
                 className={`navlink d-flex align-items-center pl-4 ${
                   active == 3 ? "active" : ""
-                } ${errorTeam ? "bg-danger" : ""}`}
+                }`}
               >
-                <h3 className="mb-0">3. Contact</h3>
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20 22H18V20C18 19.2044 17.6839 18.4413 17.1213 17.8787C16.5587 17.3161 15.7956 17 15 17H9C8.20435 17 7.44129 17.3161 6.87868 17.8787C6.31607 18.4413 6 19.2044 6 20V22H4V20C4 18.6739 4.52678 17.4021 5.46447 16.4645C6.40215 15.5268 7.67392 15 9 15H15C16.3261 15 17.5979 15.5268 18.5355 16.4645C19.4732 17.4021 20 18.6739 20 20V22ZM12 13C11.2121 13 10.4319 12.8448 9.7039 12.5433C8.97595 12.2417 8.31451 11.7998 7.75736 11.2426C7.20021 10.6855 6.75825 10.0241 6.45672 9.2961C6.15519 8.56815 6 7.78793 6 7C6 6.21207 6.15519 5.43185 6.45672 4.7039C6.75825 3.97595 7.20021 3.31451 7.75736 2.75736C8.31451 2.20021 8.97595 1.75825 9.7039 1.45672C10.4319 1.15519 11.2121 1 12 1C13.5913 1 15.1174 1.63214 16.2426 2.75736C17.3679 3.88258 18 5.4087 18 7C18 8.5913 17.3679 10.1174 16.2426 11.2426C15.1174 12.3679 13.5913 13 12 13ZM12 11C13.0609 11 14.0783 10.5786 14.8284 9.82843C15.5786 9.07828 16 8.06087 16 7C16 5.93913 15.5786 4.92172 14.8284 4.17157C14.0783 3.42143 13.0609 3 12 3C10.9391 3 9.92172 3.42143 9.17157 4.17157C8.42143 4.92172 8 5.93913 8 7C8 8.06087 8.42143 9.07828 9.17157 9.82843C9.92172 10.5786 10.9391 11 12 11Z"
+                    fill={active == 3 ? "white" : "gray"}
+                  />
+                </svg>
+
+                <h3 className="mb-0 ml-4">Account</h3>
               </a>
             </Link>
-            <Link href={`/StartACampaign/Funding`} passHref>
+            <Link href={`/dashboard/settings`} passHref>
               <a
                 className={`navlink d-flex align-items-center pl-4 ${
                   active == 4 ? "active" : ""
-                } ${errorFunding ? "bg-danger" : ""}`}
-              >
-                <h3 className="mb-0">4. Funding</h3>
-              </a>
-            </Link>
-            <Link href={`/StartACampaign/Settings`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 5 ? "active" : ""
                 }`}
               >
-                <h3 className="mb-0">5. Settings</h3>
-              </a>
-            </Link>
-            <Link href={`/StartACampaign/Prelaunch`} passHref>
-              <a
-                className={`navlink d-flex align-items-center pl-4 ${
-                  active == 6 ? "active" : ""
-                }`}
-              >
-                <h3 className="mb-0">6. Pre-Launch page</h3>
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M3.33933 16.9999C2.9166 16.2689 2.58799 15.4874 2.36133 14.6739C2.85464 14.423 3.26892 14.0406 3.55836 13.5688C3.84779 13.0971 4.00109 12.5545 4.0013 12.0011C4.00151 11.4476 3.84861 10.9049 3.55953 10.4329C3.27045 9.961 2.85645 9.57821 2.36333 9.32694C2.81536 7.69243 3.67606 6.1999 4.86433 4.98994C5.32842 5.29167 5.86695 5.45911 6.42031 5.47373C6.97367 5.48834 7.52028 5.34958 7.99966 5.07278C8.47904 4.79598 8.87248 4.39194 9.13646 3.90539C9.40043 3.41883 9.52463 2.86872 9.49533 2.31594C11.1374 1.89157 12.8606 1.89226 14.5023 2.31795C14.4733 2.87071 14.5977 3.42073 14.8619 3.90715C15.1261 4.39357 15.5197 4.79742 15.9992 5.07401C16.4786 5.35059 17.0253 5.48913 17.5786 5.4743C18.1319 5.45946 18.6704 5.29183 19.1343 4.98994C19.7133 5.57994 20.2273 6.25095 20.6593 6.99995C21.0923 7.74895 21.4163 8.52995 21.6373 9.32595C21.144 9.57685 20.7297 9.95932 20.4403 10.4311C20.1509 10.9028 19.9976 11.4454 19.9974 11.9988C19.9971 12.5523 20.15 13.095 20.4391 13.5669C20.7282 14.0389 21.1422 14.4217 21.6353 14.6729C21.1833 16.3075 20.3226 17.8 19.1343 19.0099C18.6702 18.7082 18.1317 18.5408 17.5784 18.5262C17.025 18.5115 16.4784 18.6503 15.999 18.9271C15.5196 19.2039 15.1262 19.6079 14.8622 20.0945C14.5982 20.5811 14.474 21.1312 14.5033 21.6839C12.8612 22.1083 11.1381 22.1076 9.49633 21.6819C9.52537 21.1292 9.40093 20.5792 9.13675 20.0927C8.87257 19.6063 8.47897 19.2025 7.9995 18.9259C7.52003 18.6493 6.97338 18.5108 6.42005 18.5256C5.86673 18.5404 5.32829 18.7081 4.86433 19.0099C4.27332 18.4069 3.76092 17.7315 3.33933 16.9999ZM8.99933 17.1959C10.065 17.8106 10.8662 18.797 11.2493 19.9659C11.7483 20.0129 12.2493 20.0139 12.7483 19.9669C13.1317 18.7978 13.9333 17.8114 14.9993 17.1969C16.0645 16.5806 17.3199 16.3794 18.5243 16.6319C18.8143 16.2239 19.0643 15.7889 19.2723 15.3339C18.4518 14.4174 17.9984 13.2302 17.9993 11.9999C17.9993 10.7399 18.4693 9.56295 19.2723 8.66595C19.0629 8.21109 18.8118 7.77658 18.5223 7.36795C17.3186 7.62025 16.0641 7.41942 14.9993 6.80395C13.9337 6.18932 13.1325 5.20293 12.7493 4.03394C12.2503 3.98694 11.7493 3.98594 11.2503 4.03294C10.8669 5.20209 10.0653 6.1885 8.99933 6.80295C7.93411 7.41926 6.67881 7.62046 5.47433 7.36795C5.18489 7.77623 4.93446 8.21081 4.72633 8.66595C5.5469 9.5825 6.00021 10.7697 5.99933 11.9999C5.99933 13.2599 5.52933 14.4369 4.72633 15.3339C4.9358 15.7888 5.18687 16.2233 5.47633 16.6319C6.68005 16.3796 7.93454 16.5805 8.99933 17.1959ZM11.9993 14.9999C11.2037 14.9999 10.4406 14.6839 9.87801 14.1213C9.3154 13.5587 8.99933 12.7956 8.99933 11.9999C8.99933 11.2043 9.3154 10.4412 9.87801 9.87862C10.4406 9.31602 11.2037 8.99995 11.9993 8.99995C12.795 8.99995 13.558 9.31602 14.1206 9.87862C14.6833 10.4412 14.9993 11.2043 14.9993 11.9999C14.9993 12.7956 14.6833 13.5587 14.1206 14.1213C13.558 14.6839 12.795 14.9999 11.9993 14.9999ZM11.9993 12.9999C12.2645 12.9999 12.5189 12.8946 12.7064 12.7071C12.894 12.5195 12.9993 12.2652 12.9993 11.9999C12.9993 11.7347 12.894 11.4804 12.7064 11.2928C12.5189 11.1053 12.2645 10.9999 11.9993 10.9999C11.7341 10.9999 11.4798 11.1053 11.2922 11.2928C11.1047 11.4804 10.9993 11.7347 10.9993 11.9999C10.9993 12.2652 11.1047 12.5195 11.2922 12.7071C11.4798 12.8946 11.7341 12.9999 11.9993 12.9999Z"
+                    fill={active == 4 ? "white" : "gray"}
+                  />
+                </svg>
+
+                <h3 className="mb-0 ml-4">Settings</h3>
               </a>
             </Link>
           </div>
           <Link href="/StartACampaign" passHref>
             <a>
-              <div className="d-flex align-items-center mb-4 px-3">
+              <div className="d-flex align-items-center mb-5 px-3">
                 <img
                   src="/images/icons/add.svg"
                   width="20px"
                   height="20px"
-                  alt="addicon"
+                  alt="addIcon"
                   style={{ opacity: 0.3 }}
                 />
-                <p className="mb-0 ml-3">Add another campaign</p>
+                <p className="mb-0 ml-3">Start a campaign</p>
               </div>
             </a>
           </Link>
           <Link href="/help" passHref>
             <a>
-              <div className="d-flex align-items-center px-3">
+              <div className="d-flex align-items-center mb-5 px-3">
                 <img
                   src="/images/icons/questionmark.svg"
                   width="20px"
                   height="20px"
-                  alt="questionicon"
+                  alt="questionMarkIcon"
                   style={{ opacity: 0.3 }}
                 />
                 <p className="mb-0 ml-3">Need some help?</p>
@@ -192,13 +181,49 @@ export default function StartLayout({
             </a>
           </Link>
         </aside>
-        <main>
+        <main style={{ minWidth: "calc(100% - 300px)" }}>
+          <div
+            ref={ref}
+            className={`mobileNav ${
+              hideMobileNav ? "d-none" : "d-flex"
+            } align-items-center justify-content-between py-3 custom-container d-lg-none`}
+            style={showFixed ? fixed : { transition: "all 0.5s ease" }}
+          >
+            <div onClick={() => setShowMenu(true)} role="button">
+              <img
+                src="/images/icons/mobileMenu.svg"
+                width="18px"
+                height="16px"
+                alt="menuIcon"
+              />
+            </div>
+            <Link href="/" passHref>
+              <a
+                onClick={showModal ? () => setShowModal(false) : undefined}
+                role="button"
+              >
+                <img src="/images/logo.png" width={63} height={48}  alt="Fund&Trace" />
+              </a>
+            </Link>
+            <Link href="/search" passHref>
+              <img
+                src="/images/icons/search.svg"
+                width={20}
+                height={20}
+               alt="Search" />
+            </Link>
+          </div>
           <div
             className="bg-white"
-            style={{ boxShadow: "0px 3px 2px 0px rgba(0,0,0,0.06)" }}
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+              boxShadow: "0px 3px 2px 0px rgba(0,0,0,0.06)",
+            }}
           >
             <nav
-              className="custom d-none d-md-flex mx-auto"
+              className="custom d-none d-lg-flex mx-auto"
               style={{ maxWidth: 1140 }}
             >
               <div className="d-flex align-items-center">
@@ -263,8 +288,8 @@ export default function StartLayout({
                   <img
                     src="/images/logo.png"
                     alt="fundandtraceLogo"
-                    width={76}
-                    height={58}
+                    width={82}
+                    height={62}
                     className="my-5"
                   />
                 </a>
@@ -331,228 +356,18 @@ export default function StartLayout({
               </div>
             </nav>
           </div>
-          <div
-            className="bg-white"
-            style={{ position: "sticky", top: 0, zIndex: 1000 }}
-          >
-            <nav
-              className="custom mx-auto"
-              style={{ background: "white", maxWidth: 1140 }}
-            >
-              <p className="text-blue mb-0">
-                {startCampaign?.basicInformation?.campaignTitle} / {page}
-              </p>
-              {active != 6 ? (
-                <div className="d-flex align-items-center">
-                  <button
-                    className="btn text-white"
-                    onClick={handle ? handle : saveCampaign}
-                  >
-                    {active != 5 ? "Save campaign" : "Review & Launch!"}
-                  </button>
-                </div>
-              ) : null}
-            </nav>
-          </div>
-          <div className="d-flex flex-column d-md-none">
-            <div className="position-relative" style={{ height: "100%" }}>
-              <Navbar />
-            </div>
-            <div
-              className="d-flex align-items-center justify-content-between bg-white mb-4"
-              style={{
-                height: 80,
-                width: "100%",
-                padding: "0 15px",
-                marginTop: "72px",
-              }}
-            >
-              <button
-                className="btn text-white ml-auto"
-                style={{ padding: active != 6 ? "12px 15px" : undefined }}
-                onClick={handle ? handle : saveCampaign}
-              >
-                {active == 5
-                  ? "Review & Launch"
-                  : active == 6
-                  ? "Launch"
-                  : "Save campaign"}
-              </button>
-            </div>
-          </div>
-          <div className="mt-4 mobile" style={{ padding: "0 15px" }}>
-            <div className="progress mb-3">
-              <Progress
-                width={getWidth()}
-                className="progress-bar "
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-              ></Progress>
-            </div>
-            <div
-              className="d-flex justify-content-between w-100 align-items-center progressHolder"
-              style={{ marginTop: "-23px" }}
-            >
-              <Link href="BasicInformation" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 1 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p
-                      className=""
-                      style={{ color: active >= 1 ? "var(--color-primary)" : "#979797" }}
-                    >
-                      1.
-                    </p>
-                    <p
-                      className=""
-                      style={{
-                        color: errorBasic
-                          ? "red"
-                          : active >= 1
-                          ? "var(--color-primary)"
-                          : "#979797",
-                      }}
-                    >
-                      Basic
-                    </p>
-                  </div>
-                </a>
-              </Link>
-              <Link href="Content" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 2 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p
-                      className=""
-                      style={{ color: active >= 2 ? "var(--color-primary)" : "#979797" }}
-                    >
-                      2.
-                    </p>
-                    <p
-                      className=""
-                      style={{
-                        color: errorContent
-                          ? "red"
-                          : active >= 2
-                          ? "var(--color-primary)"
-                          : "#979797",
-                      }}
-                    >
-                      Content
-                    </p>
-                  </div>
-                </a>
-              </Link>
-              <Link href="Team" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 3 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p style={{ color: active >= 3 ? "var(--color-primary)" : "#979797" }}>
-                      3.
-                    </p>
-                    <p
-                      style={{
-                        color: errorTeam
-                          ? "red"
-                          : active >= 3
-                          ? "var(--color-primary)"
-                          : "#979797",
-                      }}
-                    >
-                      Team
-                    </p>
-                  </div>
-                </a>
-              </Link>
-              <Link href="Funding" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 4 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p style={{ color: active >= 4 ? "var(--color-primary)" : "#979797" }}>
-                      4.
-                    </p>
-                    <p
-                      style={{
-                        color: errorFunding
-                          ? "red"
-                          : active >= 4
-                          ? "var(--color-primary)"
-                          : "#979797",
-                      }}
-                    >
-                      Funding
-                    </p>
-                  </div>
-                </a>
-              </Link>
-              <Link href="Settings" passHref>
-                <a>
-                  <div className="mobileProgress">
-                    <div
-                      className="smallCircle"
-                      style={{
-                        background: active >= 5 ? "var(--color-primary)" : "#D7D7D9",
-                      }}
-                    ></div>
-                    <p style={{ color: active >= 5 ? "var(--color-primary)" : "#979797" }}>
-                      5.
-                    </p>
-                    <p style={{ color: active >= 5 ? "var(--color-primary)" : "#979797" }}>
-                      Settings
-                    </p>
-                  </div>
-                </a>
-              </Link>
-            </div>
-          </div>
-          {active == 6 ? (
-            <section className="mt-20 mx-auto" style={{ maxWidth: 1140 }}>
-              <div className="my-4 d-block d-md-none">
-                <p className="text-blue text-center">
-                  {startCampaign?.basicInformation?.campaignTitle} / {page}
-                </p>
-              </div>
-              {children}
-            </section>
-          ) : (
-            <article
-              className="mt-20 custom mx-auto"
-              style={{ maxWidth: 1140 }}
-            >
-              <div className="my-4 d-block d-md-none">
-                <p className="text-blue text-center">
-                  {startCampaign?.basicInformation?.campaignTitle} / {page}
-                </p>
-              </div>
-              {children}
-            </article>
-          )}
+          {children}
         </main>
         {showModal && (
           <LogoutModal
             onModalClose={() => setShowModal(false)}
             showModal={showModal}
+          />
+        )}
+        {showMenu && (
+          <MobileCampaignMenu
+            setShowDelete={() => setShowModal(true)}
+            onClose={() => setShowMenu(false)}
           />
         )}
       </Wrapper>
@@ -562,6 +377,7 @@ export default function StartLayout({
 
 const Wrapper = styled.div`
   min-height: 100vh;
+  min-width: 100%;
   background: #f9f9f9;
   aside {
     @media screen and (max-width: 1023px) {
@@ -571,28 +387,29 @@ const Wrapper = styled.div`
     position: sticky;
     top: 0;
     left: 0;
-
     min-width: 300px;
     max-width: 300px;
     height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    
-    overflow-y: scroll;
+    // overflow-y: scroll;
     background: black;
-    ::-webkit-scrollbar {
-      height: 4px;
-      width: 4px;
-      background: whitesmoke;
+    // ::-webkit-scrollbar {
+    //   height: 4px;
+    //   width: 4px;
+    //   background: whitesmoke;
+    // }
+    // ::-webkit-scrollbar-thumb:vertical {
+    //   background: var(--color-primary);
+    //   border-radius: 4px;
+    // }
+    a{
+      cursor: pointer;
+      text-decoration: none !important
     }
-    ::-webkit-scrollbar-thumb:vertical {
-      background: var(--color-primary);
-      border-radius: 4px;
-    }
-    
     p {
-    
+      
       font-style: normal;
       font-weight: 400;
       font-size: 16px;
@@ -603,9 +420,6 @@ const Wrapper = styled.div`
 
       opacity: 0.5;
     }
-    a{
-      text-decoration: none;
-    }
     .navlink {
       background-color: #1c1c1c;
       width: 100%;
@@ -615,7 +429,7 @@ const Wrapper = styled.div`
         text-decoration: none !important
       }
       h3 {
-      
+        
         font-style: normal;
         font-weight: 400;
         font-size: 16px;
@@ -638,7 +452,7 @@ const Wrapper = styled.div`
         text-decoration: none !important
       }
       h3 {
-      
+        
         font-style: normal;
         font-weight: bold;
         font-size: 16px;
@@ -653,16 +467,17 @@ const Wrapper = styled.div`
     }
   }
   main {
-    width: calc(100% - 300px);
-    @media screen and (max-width: 1023px) {
-      width: 100%
-    }
+    width: 100%;
     .custom {
       padding-left: 50px;
       padding-right: 50px;
-      @media screen and (max-width: 767px)  {
+      @media screen and (min-width: 1024px) and (max-width: 1100px) {
+        padding-left: 25px;
+        padding-right: 25px;
+      }
+      @media screen and (max-width: 767px) {
         padding-left: 15px;
-      padding-right: 15px;
+        padding-right: 15px;
       }
     }
     button {
@@ -670,12 +485,12 @@ const Wrapper = styled.div`
       flex-direction: row;
       justify-content: center;
       align-items: center;
-      padding: 12px 30px;
+      padding: 15px 30px;
       background: var(--color-primary);
       box-shadow: 0px 2px 4px rgba(50, 50, 71, 0.06),
         0px 2px 2px rgba(50, 50, 71, 0.06);
       border-radius: 4px;
-    
+      
       font-style: normal;
       font-weight: normal;
       font-size: 16px;
@@ -685,12 +500,7 @@ const Wrapper = styled.div`
       color: #ffffff;
       &:hover{
         box-shadow: 0px 12px 12px rgba(50, 50, 71, 0.08), 0px 16px 24px rgba(50, 50, 71, 0.08);
-      }
     }
-    .mobileBtn-full{
-      @media screen and (max-width: 767px) {
-        width: 100% !important
-      }
     }
     nav {
       display: flex;
@@ -698,16 +508,12 @@ const Wrapper = styled.div`
       justify-content: space-between;
       height: 80px;
       background: white;
-      @media screen and (max-width: 767px) {
-        display: none
-      }
       .exploreDropdown {
         position: absolute;
         width: 250px;
         display: none;
-
         left:0;
-        z-index: 100000;
+        z-index: 100;
         border-radius: 4px;
         background-color: white;
         box-shadow: 2px 2px 6px rgba(50, 50, 71, 0.06), 2px 2px 6px rgba(50, 50, 71, 0.06);
@@ -721,9 +527,9 @@ const Wrapper = styled.div`
             margin: 0;
     
             li {
-                margin-bottom: 20px;
+                margin-bottom: 30px;
                 cursor: pointer;
-              
+                
                 font-style: normal;
                 font-weight: normal;
                 font-size: 16px;
@@ -770,7 +576,7 @@ const Wrapper = styled.div`
             li {
                 margin-bottom: 30px;
                 cursor: pointer;
-              
+                
                 font-style: normal;
                 font-weight: normal;
                 font-size: 16px;
@@ -797,7 +603,7 @@ const Wrapper = styled.div`
       .accountDropdown {
         width: 260px;
         display: none;
-        z-index: 100000;
+        z-index: 100;
         position: absolute;
         right:0;
         background-color: white;
@@ -813,9 +619,9 @@ const Wrapper = styled.div`
             margin: 0;
     
             li {
-                margin-bottom: 20px;
+                margin-bottom: 30px;
                 cursor: pointer;
-              
+                
                 font-style: normal;
                 font-weight: normal;
                 font-size: 16px;
@@ -841,60 +647,15 @@ const Wrapper = styled.div`
         }
     }
 
-    .mobile{
-      display: none;
-      @media screen and (max-width: 1023px) {
-        display: block
-      }
-    }
-
-
-    .progressHolder{
-      a{
-        text-decoration: none !important
-      }
-    }
-
-    .progress {
-      height: 5px !important;
-      background-color:#D7D7D9 !important;
-    }
-    .progressbar {
-      background-color: var(--color-primary) !important;
-    }
-    
-    .mobileProgress{
-      display: flex;
-      flex-direction: column;
-      align-items:center;
-      justify-content: center;
-      .smallCircle{
-        width: 10px;
-        height: 10px;
-        margin-bottom: 10px;
-        border-radius: 50%
-      }
-    }
-
     article {
-      width: 100%;
-      padding-right: 18% !important;
-      @media screen and (max-width: 1100px) {
-        width: 100%
-      }
-      @media screen and (max-width: 767px) {
-        padding-right: 15px !important
-      }
       padding-top: 40px;
       padding-bottom: 120px;
       input[type="text"],
-      input[type="email"],
       input[type="date"],
-      input[type="number"],
       input[type="phone"] {
-        background: white;
-        border: none;
-        box-shadow: 0 4px 10px -10px rgba(255, 255, 255, 0.1), 0 4px 10px 0px rgba(0, 0, 0, 0.04), 0 7px 8px -5px rgba(255, 255, 255, 0.2);
+        background: #fafafa;
+        border:none;
+        box-shadow: -2px 4px 48px rgba(50, 50, 71, 0.05), 2px 10px 24px rgba(50, 50, 71, 0.05);
         box-sizing: border-box;
         border-radius: 4px;
         width: 100%;
@@ -902,7 +663,7 @@ const Wrapper = styled.div`
         padding: 5px 15px;
       }
       p {
-      
+        
         font-style: normal;
         font-weight: 400;
         font-size: 16px;
@@ -912,11 +673,6 @@ const Wrapper = styled.div`
         color: #514949;
 
         opacity: 0.9;
-      }
-      .launchBtn-big{
-        @media screen and (max-width: 767px) {
-          display : none
-        }
       }
       
       input[type='checkbox'],
@@ -931,12 +687,14 @@ const Wrapper = styled.div`
     --disabled-inner: #E1E6F9;
     -webkit-appearance: none;
     -moz-appearance: none;
-    height: 21px;
+    height: 24px;
+    width: 24px;
     outline: none;
     display: inline-block;
     vertical-align: top;
     position: relative;
     margin: 0;
+    margin-right: 15px;
     cursor: pointer;
     border: 1px solid var(--bc, var(--border));
     background: white;
@@ -980,7 +738,8 @@ const Wrapper = styled.div`
       box-shadow: 0 0 0 var(--focus);
     }
     &:not(.switch) {
-      min-width: 21px;
+      width: 24px;
+      height: 24px;
       &:after {
         opacity: var(--o, 0);
       }
@@ -990,7 +749,7 @@ const Wrapper = styled.div`
     }
     & + label {
       font-size: 14px;
-    
+      
         font-style: normal;
         font-weight: 400;
         font-size: 16px;
@@ -1004,11 +763,9 @@ const Wrapper = styled.div`
       display: inline-block;
       vertical-align: top;
       cursor: pointer;
-      margin-left: 15px;
       margin-top: -2px
     }
   }
-  
   
   input[type='radio'] {
     border-radius: 50%;
@@ -1032,32 +789,28 @@ const Wrapper = styled.div`
       textarea {
         width: 100%;
         height: 348px;
-        background: white;
+        background: #fafafa;
         border: none;
-        box-shadow: 0 4px 10px -10px rgba(255, 255, 255, 0.1), 0 4px 10px 0px rgba(0, 0, 0, 0.04), 0 7px 8px -5px rgba(255, 255, 255, 0.2);
+        box-shadow: -2px 4px 48px rgba(50, 50, 71, 0.05), 2px 10px 24px rgba(50, 50, 71, 0.05);
         box-sizing: border-box;
         border-radius: 4px;
         padding: 5px 15px;
       }
       .file {
-        width: 400px;
-        @media screen and (max-width: 767px) {
-          width: 100%
-        }
+       max-width: 400px;
+        width: 100%;
         height: 200px;
-        background: white;
+        background: #fafafa;
         border: none;
-        box-shadow: 0 4px 10px -10px rgba(255, 255, 255, 0.1), 0 4px 10px 0px rgba(0, 0, 0, 0.04), 0 7px 8px -5px rgba(255, 255, 255, 0.2);
         box-sizing: border-box;
         border-radius: 4px;
         input {
           background: transparent !important;
           border-style: none;
-          box-shadow: 0 4px 10px -10px rgba(255, 255, 255, 0.1), 0 4px 10px 0px rgba(0, 0, 0, 0.04), 0 7px 8px -5px rgba(255, 255, 255, 0.2);
-          width: max-content;
+          box-shadow: -2px 4px 48px rgba(50, 50, 71, 0.05), 2px 10px 24px rgba(50, 50, 71, 0.05);
+          width: 100px;
         }
       }
-      
       .currency-drop {
         list-style: none;
         background: white;
@@ -1074,11 +827,11 @@ const Wrapper = styled.div`
       height: auto;
       .progress {
         height: 5px !important;
-        background-color:#697af821 ;
+        background-color:#697af821 !important;
       }
       section{
         p{
-        
+          
             font-style: normal;
             font-weight: 400;
             font-size: 16px;
@@ -1091,25 +844,10 @@ const Wrapper = styled.div`
             opacity: 0.9;
         }
       }
-    
+      
       .progressbar {
         background-color: var(--color-primary)!important;
       }
     }
-  }
-`;
-
-const Progress = styled.div<{ width: number }>`
-  width: ${(props) => props.width}%;
-  @media screen and (min-width: 768px) and (max-width: 1023px) {
-    width: ${(props) => {
-      return props.width == 68
-        ? props.width + 3.3
-        : props.width == 5
-        ? props.width - 2
-        : props.width == 92
-        ? props.width + 4
-        : props.width + 1.8;
-    }}%;
   }
 `;

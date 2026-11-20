@@ -6,6 +6,7 @@ import Layout from "../components/Layout";
 import { toast } from "../../store/slices/ToastSlice";
 import axios from "axios";
 import { useAppDispatch } from "./../../store/hooks";
+import { getApiBaseUrl } from "../utils/api";
 
 const emptyState = {
   fullName: "",
@@ -25,7 +26,7 @@ export default function Contact() {
     }
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/supports",
+        getApiBaseUrl() + "/api/supports",
         { support }
       );
       res && setSupport(emptyState);

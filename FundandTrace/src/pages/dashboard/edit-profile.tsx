@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import DashboardLayout from "./DashboardLayout";
+import DashboardLayout from "../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import {
@@ -23,6 +23,7 @@ import {
   getAllCountries as locationGetAllCountries,
   getStates as locationGetStates,
 } from "../../components/helperFunctions/locationFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface Country {
   name: string;
@@ -109,7 +110,7 @@ export default function EditProfile() {
         update.code
       ) {
         const res = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL +
+          getApiBaseUrl() +
             "/api/auth/updateprofile/" +
             profile._id,
           { profile: { ...profile, ...update } },

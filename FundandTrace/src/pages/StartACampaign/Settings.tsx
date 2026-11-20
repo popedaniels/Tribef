@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import {
@@ -17,6 +17,7 @@ import {
   grabErrorMessage,
   grabErrorStatus,
 } from "../../components/helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Content() {
   const dispatch = useAppDispatch();
@@ -39,7 +40,7 @@ export default function Content() {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/settings",
+        getApiBaseUrl() + "/api/startCampaign/settings",
         { settings: startCampaign?.settings, id: campaignId },
         { withCredentials: true }
       );

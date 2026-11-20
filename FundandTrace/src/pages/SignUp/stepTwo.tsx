@@ -8,6 +8,7 @@ import axios from "axios";
 import { toast } from "../../../store/slices/ToastSlice";
 import Layout from "../../components/Layout";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function StepOne() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function StepOne() {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/auth/signup/verifyEmail/" +
           email
       );

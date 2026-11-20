@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import styled from "styled-components";
 import { toast } from "../../../store/slices/ToastSlice";
 import Spinner from "../composed/spinner/Spinner";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function HoldingPageFooter() {
   const dispatch = useDispatch();
@@ -16,7 +17,7 @@ export default function HoldingPageFooter() {
     setLoading(true);
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/waitlist/" + email
+        getApiBaseUrl() + "/api/waitlist/" + email
       );
       res && dispatch(toast(true, res?.data?.message, "success"));
       res && setLoading(false);

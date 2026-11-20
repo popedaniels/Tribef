@@ -19,6 +19,7 @@ import {
 } from "../../components/helperFunctions/helperFunctions";
 import axios from "axios";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function StepOne() {
   const [view, setView] = useState("");
@@ -46,7 +47,7 @@ export default function StepOne() {
         organizerId: profile._id,
       };
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/",
+        getApiBaseUrl() + "/api/startCampaign/",
         startCampaign,
         { withCredentials: true }
       );

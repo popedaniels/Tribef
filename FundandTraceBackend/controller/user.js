@@ -497,7 +497,7 @@ exports.getCampaignOrganizerStats = async (req, res, next) => {
           },
         });
       }
-      return res.status(401).json({ status: 401, error: "User not found" });
+      return res.status(404).json({ status: 404, error: "User not found" });
     }
 
     const user = await Users.findById({ _id: id });
@@ -516,7 +516,7 @@ exports.getCampaignOrganizerStats = async (req, res, next) => {
           },
         });
       }
-      return res.status(401).json({ status: 401, error: "User not found" });
+      return res.status(404).json({ status: 404, error: "User not found" });
     }
     const fields = {
       "funding.accountName": 0,

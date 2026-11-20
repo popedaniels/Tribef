@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import type { ReactNode } from "react";
-import Layout from "../../components/Layout";
+import Layout from "../components/Layout";
 import styled from "styled-components";
 import Link from "next/link";
-import Navbar from "../../components/Navbar/Navbar";
+import Navbar from "../components/Navbar/Navbar";
 import { useSelector } from "react-redux";
-import { selectAuthStateState } from "../../../store/slices/authSlice";
+import { selectAuthStateState } from "../../store/slices/authSlice";
 import { useRouter } from "next/router";
 
 interface ForgotPasswordLayoutProps {

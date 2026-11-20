@@ -18,6 +18,7 @@ import {
   getStates as locationGetStates,
   getCountries as locationGetCountries,
 } from "../../components/helperFunctions/locationFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface CharityForm {
   charityName: string;
@@ -174,12 +175,12 @@ export default function StepOne() {
           };
           try {
             const charityCheck = await axios.get(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/charities/charity/checkCharity/${charity.registrationNumber}`
+              `${getApiBaseUrl()}/api/charities/charity/checkCharity/${charity.registrationNumber}`
             );
 
             if (charityCheck.data) {
               const res = await axios.post(
-                process.env.NEXT_PUBLIC_API_URL + "/api/auth/signup/charity",
+                getApiBaseUrl() + "/api/auth/signup/charity",
                 data
               );
 

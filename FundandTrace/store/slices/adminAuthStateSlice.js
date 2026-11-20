@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { toast } from "./ToastSlice";
+import { getApiBaseUrl } from "../../src/utils/api";
 
 // Slice
 const adminAuthStateSlice = createSlice({
@@ -44,14 +45,7 @@ export default adminAuthStateSlice.reducer;
 // Actions
 export const adminAuthStateActions = adminAuthStateSlice.actions;
 
-const getApiUrl = () => {
-  return (
-    process.env.NEXT_PUBLIC_API_URL ||
-    (typeof window !== "undefined" && window.location.port === "3000"
-      ? "http://localhost:5000"
-      : "http://localhost:5000")
-  );
-};
+const getApiUrl = () => getApiBaseUrl();
 
 export const adminLogin = (email, password) => async (dispatch) => {
   try {
@@ -110,7 +104,7 @@ export const adminLogout = () => async (dispatch) => {
 
 // export const check = (id) => async (dispatch) => {
 //   const checked = await axios.get(
-//     process.env.NEXT_PUBLIC_API_URL + "/api/auth/checkExists/" + id
+//     getApiBaseUrl() + "/api/auth/checkExists/" + id
 //   );
 //   if (checked?.data?.status == true) {
 //     dispatch(adminAuthStateActions.setAdminProfile(checked?.data?.data));

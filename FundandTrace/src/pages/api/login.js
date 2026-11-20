@@ -1,11 +1,12 @@
 import axios from "axios";
 import cookie from "cookie";
+import { getApiBaseUrl } from "../../utils/api";
 
 const handler = async (req, res) => {
   try {
     const { email, password } = req.body;
     const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+      `${getApiBaseUrl()}/api/auth/login`,
       { email, password }
     );
     res.setHeader(

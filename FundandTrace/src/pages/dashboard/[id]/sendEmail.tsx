@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import CampaignDashboardLayout from "./campaignDashboardLayout";
+import CampaignDashboardLayout from "../../../layouts/CampaignDashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import type { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 import axios from "axios";
 import type { Campaign } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface SendEmailProps {
   campaign: Campaign | null;
@@ -16,7 +17,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
     const campaigndata = await axios.get(
-    process.env.NEXT_PUBLIC_API_URL + "/api/campaigns/campaign/" + campaignId
+    getApiBaseUrl() + "/api/campaigns/campaign/" + campaignId
   );
     const campaign = campaigndata?.data?.data;
 

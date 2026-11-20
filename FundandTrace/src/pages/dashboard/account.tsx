@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import DashboardLayout from "./DashboardLayout";
+import DashboardLayout from "../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import { useSelector } from "react-redux";
@@ -8,6 +8,7 @@ import axios from "axios";
 import Spinner from "../../components/composed/spinner/Spinner";
 import { addCommaToNumber } from "../../components/helperFunctions/helperFunctions";
 import type { Campaign } from "../../types/campaign";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Account() {
   const { profile } = useSelector(selectAuthStateState);
@@ -22,7 +23,7 @@ export default function Account() {
   const getCount = useCallback(async () => {
     try {
       const campaigns = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL + "/api/campaigns/" + profile?._id
+        getApiBaseUrl() + "/api/campaigns/" + profile?._id
       );
 
       campaigns && setCampaigns(campaigns?.data?.data?.active);
@@ -34,7 +35,7 @@ export default function Account() {
   const getDonations = useCallback(async () => {
     try {
       const donations = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/donations/allDonations/" +
           profile?.email
       );

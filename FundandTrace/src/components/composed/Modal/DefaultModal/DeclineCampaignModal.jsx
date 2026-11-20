@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import Spinner from "../../spinner/Spinner";
 import { config } from "../../../helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../../../utils/api";
 
 export default function DeclineCampaignModal({
   onModalClose,
@@ -24,7 +25,7 @@ export default function DeclineCampaignModal({
 
     try {
       const res = await axios.patch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/fundingRequest/decline/${id}`,
+        `${getApiBaseUrl()}/api/admin/fundingRequest/decline/${id}`,
         { organizerId: organizerId, message: message },
         config()
       );

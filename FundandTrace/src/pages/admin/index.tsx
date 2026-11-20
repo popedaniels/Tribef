@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import styled from "styled-components";
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "../../layouts/AdminLayout";
 import Layout from "../../components/Layout";
 import axios from "axios";
 import { config } from "../../components/helperFunctions/helperFunctions";
 import Preloader from "../../components/composed/Preloader/Preloader";
 import daysjs from "dayjs";
+import { getApiBaseUrl } from "../../utils/api";
 
 const AdminOverviewCharts = dynamic(
   () => import("../../components/adminCampaignPageComponents/AdminOverviewCharts"),
@@ -52,7 +53,7 @@ export default function OverviewPage() {
   const getOverviewDetails = async () => {
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/overview`,
+        `${getApiBaseUrl()}/api/admin/overview`,
         config()
       );
 
@@ -154,7 +155,7 @@ export default function OverviewPage() {
     try {
       const res = await axios.get(
         `${
-          process.env.NEXT_PUBLIC_API_URL
+          getApiBaseUrl()
         }/api/admin/charts?dateFilter=${getStartDate()}`,
         config()
       );

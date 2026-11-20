@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
 import { useState } from "react";
 import axios from "axios";
 import { cloudinaryUploadUrl } from "../../utils/cloudinary";
@@ -22,6 +22,7 @@ import {
   grabErrorMessage,
   grabErrorStatus,
 } from "../../components/helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Content() {
   const router = useRouter();
@@ -102,7 +103,7 @@ export default function Content() {
       let startCampaignContent = { content: data, id: campaignId };
 
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/content",
+        getApiBaseUrl() + "/api/startCampaign/content",
         startCampaignContent,
         { withCredentials: true }
       );

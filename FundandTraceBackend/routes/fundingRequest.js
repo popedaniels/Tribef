@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
+const { objectIdParam } = require("../utility/validate");
 
 const fundingRequestController = require("../controller/fundingRequest");
 const { requireAuth, requireCampaignOwner } = require("../utility/auth");
+
+// Reject malformed ObjectIds with 400 before any handler runs.
+router.param("id", objectIdParam("ID"));
 
 router.get("/", fundingRequestController.getAllFundingRequests);
 router.get(

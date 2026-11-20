@@ -15,6 +15,7 @@ import { selectAuthStateState } from "../../../../store/slices/authSlice";
 import { useAppDispatch } from "./../../../../store/hooks";
 import { Campaign } from "../../../types/campaign";
 import type { GetServerSidePropsContext } from "next";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface Disbursement {
   amount?: number;
@@ -67,7 +68,7 @@ interface CampaignTrackerPageProps {
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const apiUrl = getApiBaseUrl();
     const data = await axios.get(
       `${apiUrl}/api/fundingRequests/campaignTracker/${campaignId}`,
       { timeout: 3000 }
@@ -133,7 +134,7 @@ export default function CampaignTrackerPage({
     setIsSubmitting(true);
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/campaigns/${campaign?._id}/dispute`,
+        `${getApiBaseUrl()}/api/campaigns/${campaign?._id}/dispute`,
         {
           donorId: profile?._id,
           ...disputeForm,

@@ -8,6 +8,7 @@ import Navbar from "../../components/Navbar/Navbar";
 import Spinner from "../../components/composed/spinner/Spinner";
 import { Campaign } from "../../types/campaign";
 import type { GetServerSidePropsContext } from "next";
+import { getApiBaseUrl } from "../../utils/api";
 
 const OrganizerPieChart = dynamic(() => import("../../components/OrganizerPieChart"), {
   ssr: false,
@@ -59,7 +60,7 @@ interface CampaignOrganizerPageProps {
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const apiUrl = getApiBaseUrl();
     const data = await axios.get(
       `${apiUrl}/api/auth/campaignOrganizer/${context.query.id}`,
       { timeout: 3000 }

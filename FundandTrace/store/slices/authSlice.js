@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { toast } from "./ToastSlice";
+import { getApiBaseUrl } from "../../src/utils/api";
 
 // Slice
 const authStateSlice = createSlice({
@@ -38,14 +39,7 @@ export default authStateSlice.reducer;
 // Actions
 export const authStateActions = authStateSlice.actions;
 
-const getApiUrl = () => {
-  return (
-    process.env.NEXT_PUBLIC_API_URL ||
-    (typeof window !== "undefined" && window.location.port === "3000"
-      ? "http://localhost:5000"
-      : "http://localhost:5000")
-  );
-};
+const getApiUrl = () => getApiBaseUrl();
 
 export const login = (email, password) => async (dispatch) => {
   try {

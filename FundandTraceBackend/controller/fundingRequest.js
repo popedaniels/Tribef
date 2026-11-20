@@ -146,7 +146,7 @@ exports.getAllUserFundingRequests = async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(500).json({ status: 500, error: "Invalid Organizer ID" });
+      return res.status(400).json({ status: 400, error: "Invalid Organizer ID" });
     }
 
     if (mongoose.connection.readyState !== 1) {
@@ -175,7 +175,7 @@ exports.getSingleFundingRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(500).json({ status: 500, error: "Invalid Funding Request ID" });
+      return res.status(400).json({ status: 400, error: "Invalid Funding Request ID" });
     }
 
     if (mongoose.connection.readyState !== 1) {

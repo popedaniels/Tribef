@@ -3,8 +3,11 @@ const router = express.Router();
 
 const campaignController = require("../controller/campaign");
 const { requireAuth, requireCampaignOwner } = require("../utility/auth");
-const { validate } = require("../utility/validate");
+const { validate, objectIdParam } = require("../utility/validate");
 const { addCommentSchema, addUpdateSchema, disputeSchema } = require("../utility/schemas");
+
+// Reject malformed ObjectIds with 400 before any handler runs.
+router.param("id", objectIdParam("Campaign ID"));
 
 router.get("/", campaignController.getAllCampaigns);
 router.get("/:id", campaignController.getAllUserCampaigns);

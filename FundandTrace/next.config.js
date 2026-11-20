@@ -6,16 +6,19 @@
 const cspDirectives = [
   "default-src 'self'",
   // Next.js hydration requires inline scripts; GTM injects inline snippets.
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+  // Payment SDKs load their own scripts: Stripe.js (@stripe/stripe-js loads
+  // https://js.stripe.com/v3), Flutterwave inline checkout and Paystack inline.
+  // Without these, the donate/campaign pages throw "Failed to load Stripe.js".
+  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://checkout.flutterwave.com https://js.paystack.co https://www.googletagmanager.com https://www.google-analytics.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
   // Campaign images come from Cloudinary; avatars may point at any https origin.
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
   // Stripe Elements + KYC (m.stripe.network), payment iframes.
-  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.paystack.com https://checkout.flutterwave.com https://www.google.com",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://verify.stripe.com https://checkout.paystack.com https://checkout.flutterwave.com https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com",
   "connect-src 'self' " +
     (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") +
-    " https://api.stripe.com https://m.stripe.network https://api.paystack.co https://api.flutterwave.com https://api.Cloudinary.com https://res.cloudinary.com https://www.google-analytics.com https://www.googletagmanager.com",
+    " https://api.stripe.com https://m.stripe.network https://api.paystack.co https://api.flutterwave.com https://api.cloudinary.com https://res.cloudinary.com https://www.google-analytics.com https://www.googletagmanager.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

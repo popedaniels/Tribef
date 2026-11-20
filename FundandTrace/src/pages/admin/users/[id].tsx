@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../../../layouts/AdminLayout";
 import Layout from "../../../components/Layout";
 import CampaignSearch from "../../../components/adminCampaignPageComponents/campaignSearch";
 import { useCallback, useState } from "react";
@@ -15,6 +15,7 @@ import AdminSendEmailModal from "../../../components/composed/Modal/DefaultModal
 import SuspendUserModal from "../../../components/composed/Modal/DefaultModal/SuspendUserModal";
 import UnsuspendUserModal from "../../../components/composed/Modal/DefaultModal/UnsuspendUserModal";
 import type { Campaign } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface UserDetails {
   _id?: string;
@@ -45,7 +46,7 @@ export default function UsersDetailsPage() {
 
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/user/${router.query.id}`,
+        `${getApiBaseUrl()}/api/admin/user/${router.query.id}`,
         config()
       );
       res && setUser(res?.data?.data);

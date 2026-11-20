@@ -138,7 +138,7 @@ describe("Auth Controller", () => {
   describe("POST /api/auth/login", () => {
     it("should reject login with empty body or non-existent email", async () => {
       const res = await chai.request(server).post("/api/auth/login").send({});
-      expect(res.status).to.be.oneOf([404, 500]);
+      expect(res.status).to.be.oneOf([401, 500]);
     });
 
     it("should reject login with non-existent email (or 500 without DB)", async () => {
@@ -146,7 +146,7 @@ describe("Auth Controller", () => {
         email: `nonexistent${Date.now()}@test.com`,
         password: "anything",
       });
-      expect(res.status).to.be.oneOf([404, 500]);
+      expect(res.status).to.be.oneOf([401, 500]);
     });
   });
 

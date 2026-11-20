@@ -29,6 +29,7 @@ tribef/
 │   └── package.json           # Backend dependencies & test scripts
 │
 ├── docs/                      # Technical Documentation & Operational Guides
+│   ├── USER_STORIES.md        # Personas, epics & user stories with acceptance criteria + gap analysis
 │   ├── API_REFERENCE.md       # Comprehensive REST API contracts & Webhook specifications
 │   ├── ARCHITECTURE.md        # System architecture, Escrow state machine & data flows
 │   ├── LOCAL_DEVELOPMENT.md   # Step-by-step local development & Stripe CLI setup
@@ -108,8 +109,8 @@ Visit **`http://localhost:3000`** in your browser.
 ## 🧪 Testing & Validation
 
 ```bash
-# Run backend test suite (Mocha)
-cd FundandTraceBackend && npm test
+# Run backend unit tests (Jest, with coverage floor) and integration tests (Mocha)
+cd FundandTraceBackend && npm run test:unit:cov && npm test
 
 # Run backend environment configuration validator
 cd FundandTraceBackend && npm run validate-env

@@ -37,6 +37,10 @@ const { convertToPounds } = require("../currencyConverter");
 const { Charity } = require("../models/charity");
 const { validate } = require("../utility/validate");
 const { startTwoFactorChallenge } = require("./twoFactor");
+// Real bcrypt hash of a random throwaway secret (generated once at boot, same
+// cost factor as user hashes); compared against when the email is unknown so
+// failed logins take the same time either way.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync(require("crypto").randomBytes(24).toString("hex"), 10);
 const logger = require("../utility/logger");
 const { safeProfile } = require("../utility/safeProfile");
 
@@ -237,16 +241,17 @@ exports.login = async (req, res, next) => {
     const email = String(req.body.email || "").trim().toLowerCase();
     const { password } = req.body;
     const user = await Credentials.findOne({ email });
-    if (!user)
-      return res.status(404).json({
-        status: 404,
-        error: "Email supplied is incorrect or doesn't exist",
-      });
-    const verifyPassword = await bcrypt.compare(password, user.password);
-    if (!verifyPassword)
+    // Same status, message and (via a dummy bcrypt compare) timing whether the
+    // email is unknown or the password is wrong. Distinct messages previously
+    // let anyone enumerate which emails have accounts.
+    const verifyPassword = await bcrypt.compare(
+      String(password || ""),
+      user ? user.password : DUMMY_PASSWORD_HASH
+    );
+    if (!user || !verifyPassword)
       return res
-        .status(404)
-        .json({ status: 404, error: "password supplied is incorrect" });
+        .status(401)
+        .json({ status: 401, error: "Email or password is incorrect" });
 
     const userProfile = await Users.findOne({ email: email });
     //check for user

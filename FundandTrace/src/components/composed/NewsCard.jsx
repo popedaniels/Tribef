@@ -184,7 +184,7 @@ const Wrapper = styled.article`
 
   .author-role {
     font-size: 11px;
-    color: #717688;
+    color: #565d6d;
   }
 
   .read-more-link {

@@ -274,10 +274,11 @@ export default function FundRaisingIdeas() {
                   <p className="calc-panel-desc mb-4">{selectedCategory.summary}</p>
 
                   <div className="goal-input-box mb-4">
-                    <label className="goal-label">Campaign Target Goal (USD):</label>
+                    <label className="goal-label" htmlFor="ideas-target">Campaign Target Goal (USD):</label>
                     <div className="input-group">
                       <span className="currency-prefix">$</span>
                       <input
+                        id="ideas-target"
                         type="number"
                         min="500"
                         step="500"
@@ -646,7 +647,7 @@ const Wrapper = styled.main`
 
     .badge-pill-custom {
       background: #ecfdf5;
-      color: #059669;
+      color: #047857;
       font-size: 12px;
       font-weight: 700;
       padding: 4px 12px;

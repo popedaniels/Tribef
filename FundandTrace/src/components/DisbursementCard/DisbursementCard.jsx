@@ -40,7 +40,7 @@ export default function DisbursementCard({ disbursement, fundingRequest, last })
         <img src="/images/icons/approved.svg" width="20" height="20" alt="" />
       </div>
 
-      <button type="button" className={styles.summary} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
+      <button type="button" className={`ft-plain ${styles.summary}`} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
         <span>
           <span className={styles.amount}>{money(d.amount, d.currency)}</span>
           <span className={styles.meta}>

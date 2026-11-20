@@ -272,7 +272,7 @@ const Article = styled.article`
     font-size: 16px;
     line-height: 16px;
     margin-bottom: 45px;
-    color: #b3b3b3;
+    color: #5f6672;
   }
   h3 {
     font-style: normal;

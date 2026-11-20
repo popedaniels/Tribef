@@ -940,8 +940,10 @@ export default function PrivacyPage() {
             <a
               href="https://www.swiftaid.co.uk/legal/terms/"
               target="_blank" rel="noopener noreferrer"
-            ></a>{" "}
-            donor terms. You can edit your account details or close your account
+            >
+              donor terms
+            </a>
+            . You can edit your account details or close your account
             with Swiftaid by contacting Swiftaid directly. If you do not wish
             for us to share your data with Swiftaid, do not elect to claim Gift
             Aid on your donation. It is necessary for us to share your data with

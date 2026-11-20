@@ -194,7 +194,7 @@ const Card = styled.div`
         line-height: 24px;
         /* identical to box height, or 171% */
 
-        color: #807373;
+        color: #565d6d;
       }
       width: 255px;
       @media screen and (max-width: 767px) {
@@ -211,7 +211,7 @@ const Card = styled.div`
       line-height: 18px;
       /* identical to box height, or 150% */
 
-      color: #a3a3a3;
+      color: #5f6672;
     }
     h2 {
       font-style: normal;
@@ -237,7 +237,7 @@ const Card = styled.div`
       line-height: 18px;
       /* identical to box height, or 150% */
 
-      color: #a3a3a3;
+      color: #5f6672;
     }
     h2 {
       font-style: normal;

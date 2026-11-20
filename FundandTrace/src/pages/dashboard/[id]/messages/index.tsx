@@ -172,7 +172,7 @@ const Wrapper = styled.div`
     line-height: 24px;
     /* identical to box height, or 171% */
 
-    color: #b3b3b3;
+    color: #5f6672;
     opacity: 0.9;
   }
   .whitebtn {

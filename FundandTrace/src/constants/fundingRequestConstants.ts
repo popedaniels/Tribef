@@ -9,7 +9,7 @@ export const activeBtn: React.CSSProperties = {
 
 export const inactiveBtn: React.CSSProperties = {
   borderRadius: 4,
-  color: "#B3B3B3",
+  color: "#5f6672",
   boxShadow: "none",
   fontSize: 14,
   background: "white",

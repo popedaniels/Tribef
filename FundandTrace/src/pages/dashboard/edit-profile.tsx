@@ -679,7 +679,7 @@ const Select = styled.div`
   height: 46px;
   padding: 5px 15px;
   &:disabled {
-    color: #b3b3b3;
+    color: #5f6672;
   }
   position: relative;
   .value{
@@ -775,7 +775,7 @@ const Div = styled.div`
           height: 46px;
           padding: 5px 15px;
           &:disabled {
-            color: #b3b3b3;
+            color: #5f6672;
           }
         }
       }

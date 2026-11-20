@@ -105,6 +105,9 @@ export default function CampaignTrackerPage({
   allFundingRequests,
 }: CampaignTrackerPageProps) {
   const [view, setView] = useState("fundingRequests");
+  const fundedPct = campaign?.funding?.amountExpected
+    ? Math.min(100, Math.round((100 * Number(campaign.funding.amountRaised || 0)) / Number(campaign.funding.amountExpected)))
+    : 0;
   const [showInspectorModal, setShowInspectorModal] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [isLocked, setIsLocked] = useState(campaign?.disputeGovernance?.isLocked || false);
@@ -268,18 +271,9 @@ export default function CampaignTrackerPage({
                 <div
                   className={["progress-bar"].join(" ")}
                   role="progressbar"
-                  style={{
-                    width: `${
-                      ((campaign?.funding?.amountRaised as number) /
-                        (campaign?.funding?.amountExpected as number)) *
-                      100
-                    }%`,
-                  }}
-                  aria-valuenow={
-                    ((campaign?.funding?.amountRaised as number) /
-                      (campaign?.funding?.amountExpected as number)) *
-                    100
-                  }
+                  aria-label="Funding progress"
+                  style={{ width: `${fundedPct}%` }}
+                  aria-valuenow={fundedPct}
                   aria-valuemin={0}
                   aria-valuemax={100}
                 ></div>
@@ -292,7 +286,7 @@ export default function CampaignTrackerPage({
                   height="17.5px"
                   className="mr-2"
                 />
-                <p className="mb-0" style={{ color: "#807373" }}>
+                <p className="mb-0" style={{ color: "#565d6d" }}>
                   {getDaysRemaining(campaign)} days left
                 </p>
               </div>
@@ -338,7 +332,7 @@ export default function CampaignTrackerPage({
                     height: 58,
                     background: "#F0F0F0",
                     borderRadius: "50%",
-                    color: "#A3A3A3",
+                    color: "#5f6672",
                     fontSize: 12,
                   }}
                 >
@@ -386,7 +380,7 @@ export default function CampaignTrackerPage({
                   Disbursed
                 </span>
                 <p className="mb-1 text-muted" style={{ fontSize: 13, fontWeight: 600 }}>TOTAL DISBURSED</p>
-                <h4 className="mb-0" style={{ fontSize: 24, fontWeight: 800, color: "#10B981" }}>
+                <h4 className="mb-0" style={{ fontSize: 24, fontWeight: 800, color: "#047857" }}>
                   {campaign?.funding?.currency == "USD"
                     ? "$"
                     : campaign?.funding?.currency == "GBP"
@@ -455,7 +449,7 @@ export default function CampaignTrackerPage({
                 className="border-right w-50 d-flex align-items-center justify-content-center"
                 style={{
                   background: view == "fundingRequests" ? "#F0F1FE" : "#FAFAFA",
-                  color: view == "fundingRequests" ? "var(--color-primary)" : "#A3A3A3",
+                  color: view == "fundingRequests" ? "var(--color-primary)" : "#5f6672",
                   height: 40,
                 }}
                 role="button"
@@ -467,7 +461,7 @@ export default function CampaignTrackerPage({
                 className="w-50 d-flex align-items-center justify-content-center"
                 style={{
                   background: view == "disbursements" ? "#F0F1FE" : "#FAFAFA",
-                  color: view == "disbursements" ? "var(--color-primary)" : "#A3A3A3",
+                  color: view == "disbursements" ? "var(--color-primary)" : "#5f6672",
                   height: 40,
                 }}
                 role="button"
@@ -579,10 +573,11 @@ export default function CampaignTrackerPage({
             </div>
 
             <div className="mb-3">
-              <label className="font-weight-bold mb-1" style={{ fontSize: 13 }}>
+              <label htmlFor="disputeCategory" className="font-weight-bold mb-1" style={{ fontSize: 13 }}>
                 Discrepancy Category <span className="text-danger">*</span>
               </label>
               <select
+                id="disputeCategory"
                 className="form-control"
                 value={disputeForm.disputeCategory}
                 onChange={(e) =>

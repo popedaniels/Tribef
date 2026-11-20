@@ -424,9 +424,9 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 className={[styles.input, "d-flex flex-column"].join(" ")}
                 style={{ width: "47%" }}
               >
-                <h2 className="text-medium mb-4">
+                <label htmlFor="firstName" className="text-medium mb-4 d-block">
                   First Name <span className="text-danger">*</span>
-                </h2>
+                </label>
                 <input
                   type="text"
                   onChange={(e) => setFirstName(e.target.value)}
@@ -439,9 +439,9 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 className={[styles.input, "d-flex flex-column"].join(" ")}
                 style={{ width: "47%" }}
               >
-                <h2 className="text-medium mb-4">
+                <label htmlFor="lastName" className="text-medium mb-4 d-block">
                   Last Name <span className="text-danger">*</span>
-                </h2>
+                </label>
                 <input
                   type="text"
                   name="lastName"
@@ -456,10 +456,12 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 " "
               )}
             >
-              <h2 className="text-medium mb-4">
+              <label htmlFor="donorEmail" className="text-medium mb-4 d-block">
                 Email Address <span className="text-danger">*</span>
-              </h2>
+              </label>
               <input
+                id="donorEmail"
+                autoComplete="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -562,8 +564,12 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 </Select>
               </div>
               <div className="d-flex flex-column " style={{ width: "47%" }}>
-                <h2 className="text-medium mb-4">Zip/Postal Code</h2>
+                <label htmlFor="donorZip" className="text-medium mb-4 d-block">
+                  Zip/Postal Code
+                </label>
                 <input
+                  id="donorZip"
+                  autoComplete="postal-code"
                   type="text"
                   onChange={(e) => setZip(e.target.value)}
                   value={zip}
@@ -576,7 +582,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <h3 className="text-medium-heading mb-0">Select Payment Rail</h3>
                 {country && (
-                  <span className="badge badge-light px-3 py-2" style={{ borderRadius: 999, fontSize: 12 }}>
+                  <span className="badge px-3 py-2" style={{ borderRadius: 999, fontSize: 12, background: "#eef0fd", color: "#2f3a99" }}>
                     📍 Location: {country}
                   </span>
                 )}
@@ -810,6 +816,9 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
               Fund&Trace charges <strong>0% platform fees</strong> to organizers. We operate entirely through voluntary donor tips:
             </p>
             <div className="d-flex align-items-center">
+              <label htmlFor="tips" className="sr-only">
+                Optional tip to Fund&amp;Trace
+              </label>
               <select
                 name="tips"
                 id="tips"
@@ -871,7 +880,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
           <div className="d-flex justify-content-between align-items-center mb-3">
             <div className="d-flex align-items-center">
               <p className="mb-0 text-small mr-2">Platform Fee</p>
-              <span className="badge badge-success" style={{ fontSize: "11px", borderRadius: 4, background: "#10B981" }}>
+              <span className="badge badge-success" style={{ fontSize: "11px", borderRadius: 4, background: "#047857", color: "#fff" }}>
                 0% FREE
               </span>
             </div>
@@ -973,7 +982,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   style={{
                     fontWeight: "normal",
                     fontSize: "14px",
-                    color: "#807373",
+                    color: "#565d6d",
                   }}
                 >
                   {campaign?.category}
@@ -989,7 +998,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   </h3>
                   <p
                     className="mb-0"
-                    style={{ fontWeight: "300", color: "#B3B3B3" }}
+                    style={{ fontWeight: "300", color: "#5f6672" }}
                   >
                     raised of{" "}
                     {campaign?.funding?.currency == "USD"
@@ -1004,6 +1013,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   <div
                     className={[styles.progressbar, "progress-bar "].join(" ")}
                     role="progressbar"
+                    aria-label="Funding progress"
                     style={{ width: progressString + "%" }}
                     aria-valuenow={Number(progressString)}
                     aria-valuemin={0}
@@ -1018,7 +1028,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                     height="17.5px"
                     className="mr-2"
                   />
-                  <p className="mb-0" style={{ color: "#807373" }}>
+                  <p className="mb-0" style={{ color: "#565d6d" }}>
                     {getDaysRemaining(campaign)} days left
                   </p>
                 </div>
@@ -1052,7 +1062,7 @@ const Select = styled.div`
   height: 46px;
   padding: 5px 15px;
   &:disabled {
-    color: #b3b3b3;
+    color: #5f6672;
   }
   position: relative;
   .value{

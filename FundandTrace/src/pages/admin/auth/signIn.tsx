@@ -96,7 +96,16 @@ export default function AdminSignInPage() {
                 <div
                   className="img"
                   role="button"
+                  tabIndex={0}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
                   onClick={() => setShowPassword(!showPassword)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setShowPassword(!showPassword);
+                    }
+                  }}
                 >
                   <svg
                     width="100%"

@@ -102,7 +102,7 @@ export default function ActiveCampaignCard({ campaign }) {
                 height="17.5px"
                 className="mr-2"
               />
-              <p className="mb-0" style={{ color: "#807373" }}>
+              <p className="mb-0" style={{ color: "#565d6d" }}>
                 {getDaysRemaining(campaign)} days left
               </p>
             </div>

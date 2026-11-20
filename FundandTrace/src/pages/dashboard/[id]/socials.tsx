@@ -354,7 +354,7 @@ const Wrapper = styled.div`
       input {
         border-style: none;
         padding: 10px 20px;
-        color: #b3b3b3;
+        color: #5f6672;
         font-style: normal;
         font-weight: normal;
         font-size: 14px;

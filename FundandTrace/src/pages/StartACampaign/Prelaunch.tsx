@@ -359,7 +359,7 @@ export default function Prelauch() {
                 </h3>
                 <p
                   className="mb-0"
-                  style={{ fontWeight: "300", color: "#B3B3B3" }}
+                  style={{ fontWeight: "300", color: "#5f6672" }}
                 >
                   raised of {startCampaign?.funding?.currency}{" "}
                   {startCampaign?.funding?.amountExpected}
@@ -389,7 +389,7 @@ export default function Prelauch() {
                   height="17.5px"
                   className="mr-2"
                 />
-                <p className="mb-0" style={{ color: "#807373" }}>
+                <p className="mb-0" style={{ color: "#565d6d" }}>
                   {getDaysRemaining(startCampaign)} days left
                 </p>
               </div>

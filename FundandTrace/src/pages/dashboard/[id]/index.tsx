@@ -229,7 +229,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                       height="17.5px"
                       className="mr-2"
                     />
-                    <p className="mb-0" style={{ color: "#807373" }}>
+                    <p className="mb-0" style={{ color: "#565d6d" }}>
                       {getDaysRemaining(campaign!)} days left
                     </p>
                   </div>
@@ -439,7 +439,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                     </h3>
                     <p
                       className="mb-0"
-                      style={{ fontWeight: "300", color: "#B3B3B3" }}
+                      style={{ fontWeight: "300", color: "#5f6672" }}
                     >
                       raised of{" "}
                       {campaign?.funding?.currency == "USD"
@@ -473,7 +473,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                       height="17.5px"
                       className="mr-2"
                     />
-                    <p className="mb-0" style={{ color: "#807373" }}>
+                    <p className="mb-0" style={{ color: "#565d6d" }}>
                       {getDaysRemaining(campaign!)} days left
                     </p>
                   </div>

@@ -259,13 +259,13 @@ const Wrapper = styled.main`
 
     .author-role {
       font-size: 13px;
-      color: #717688;
+      color: #565d6d;
     }
 
     .share-label {
       font-size: 13px;
       font-weight: 600;
-      color: #717688;
+      color: #565d6d;
     }
 
     .share-btn {

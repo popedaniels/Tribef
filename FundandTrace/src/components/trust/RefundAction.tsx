@@ -47,7 +47,7 @@ export default function RefundAction({ donationId, amount, currency, createdAt, 
   return (
     <div className={styles.refundRow}>
       {step === "idle" ? (
-        <button type="button" className={styles.linkButton} onClick={() => setStep("confirm")}>
+        <button type="button" className={`ft-plain ${styles.linkButton}`} onClick={() => setStep("confirm")}>
           Changed your mind? Refund this donation (until {deadline.toLocaleDateString()})
         </button>
       ) : (
@@ -56,7 +56,7 @@ export default function RefundAction({ donationId, amount, currency, createdAt, 
           <button type="button" className="btn-brand-primary" onClick={confirm} disabled={step === "working"}>
             {step === "working" ? "Refunding…" : "Yes, refund"}
           </button>
-          <button type="button" className={styles.linkButton} onClick={() => setStep("idle")} disabled={step === "working"}>
+          <button type="button" className={`ft-plain ${styles.linkButton}`} onClick={() => setStep("idle")} disabled={step === "working"}>
             Cancel
           </button>
         </div>

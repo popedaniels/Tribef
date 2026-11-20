@@ -55,7 +55,7 @@ export default function TransparencyScore({ campaignId, initiallyOpen = false }:
             Transparency Score
           </p>
           <p className={`${styles.scoreGrade} ${styles[tone]}`}>{result.grade}</p>
-          <button type="button" className={styles.linkButton} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+          <button type="button" className={`ft-plain ${styles.linkButton}`} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
             {open ? "Hide how it's calculated" : "How it's calculated"}
           </button>
         </div>

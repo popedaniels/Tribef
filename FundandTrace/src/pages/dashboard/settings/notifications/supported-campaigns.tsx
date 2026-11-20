@@ -66,7 +66,7 @@ export default function SupportedCampaigns() {
                   <p className="mb-2">Target</p>
                   <p
                     className="mb-0"
-                    style={{ color: "#A0A2AF", fontSize: 12 }}
+                    style={{ color: "#5f6672", fontSize: 12 }}
                   >
                     {checkTarget
                       ? "You’ll receive notifications from Fund&Trace via emails when campaign reaches its traget"
@@ -84,7 +84,7 @@ export default function SupportedCampaigns() {
                   <p className="mb-2">Funding requests</p>
                   <p
                     className="mb-0"
-                    style={{ color: "#A0A2AF", fontSize: 12 }}
+                    style={{ color: "#5f6672", fontSize: 12 }}
                   >
                     {checkFunding
                       ? "You’ll receive notifications from Fund&Trace via emails when a funding request is approved"

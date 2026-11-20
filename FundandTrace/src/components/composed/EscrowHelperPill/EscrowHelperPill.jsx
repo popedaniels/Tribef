@@ -26,11 +26,11 @@ export default function EscrowHelperPill() {
         type="button"
         onClick={() => setOpen(true)}
         className={styles.floatingPill}
-        aria-label="Ask Fund and Trace AI about escrow security"
+        aria-haspopup="dialog"
       >
-        <span className={styles.shieldIcon}>🛡️</span>
+        <span className={styles.shieldIcon} aria-hidden="true">🛡️</span>
         <span className={styles.pillText}>How Escrow Protects You</span>
-        <span className={styles.arrow}>→</span>
+        <span className={styles.arrow} aria-hidden="true">→</span>
       </button>
 
       {open && (

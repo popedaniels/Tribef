@@ -90,6 +90,9 @@ export default function FeesPage() {
           <section
             className="w-100 overflow-auto"
             style={{ width: "100%", maxWidth: "100%" }}
+            tabIndex={0}
+            role="region"
+            aria-label="Fee breakdown table (scrolls horizontally)"
           >
             <section className="border mx-auto" style={{ width: 1200 }}>
               <article
@@ -374,7 +377,7 @@ export default function FeesPage() {
                   <p>2.6% (individual)</p>
                 </td>
                 <td style={{minWidth: 160}}>
-                <input type="checkbox" checked readOnly style={{height:"20px", minWidth: "20px"}} />
+                <input type="checkbox" checked readOnly aria-label="Included" tabIndex={-1} style={{ height: "20px", minWidth: "20px" }} />
                 </td>
               </tr>
               <tr>
@@ -393,7 +396,7 @@ export default function FeesPage() {
                   <p>4.9% (Standard project)</p>
                 </td>
                 <td style={{minWidth: 160}}>
-                  <input type="checkbox" checked readOnly style={{height:"20px", minWidth: "20px"}}  />
+                  <input type="checkbox" checked readOnly aria-label="Included" tabIndex={-1} style={{ height: "20px", minWidth: "20px" }} />
                 </td>
               </tr>
               <tr>

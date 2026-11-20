@@ -253,7 +253,7 @@ const Wrapper = styled.main`
     .share-label {
       font-size: 13px;
       font-weight: 600;
-      color: #717688;
+      color: #565d6d;
     }
 
     .share-btn {
@@ -341,7 +341,7 @@ const Wrapper = styled.main`
 
       .rsvp-attendees {
         font-size: 13.5px;
-        color: #059669;
+        color: #047857;
       }
 
       .rsvp-input {

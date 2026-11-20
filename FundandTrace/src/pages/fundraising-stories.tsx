@@ -380,7 +380,7 @@ const Wrapper = styled.main`
     .verified-badge-label {
       font-size: 13px;
       font-weight: 600;
-      color: #059669;
+      color: #047857;
       background: #ecfdf5;
       padding: 4px 12px;
       border-radius: 4px;
@@ -416,7 +416,7 @@ const Wrapper = styled.main`
         }
 
         .featured-cta {
-          color: #4b5df5;
+          color: var(--color-primary);
         }
       }
 
@@ -503,7 +503,7 @@ const Wrapper = styled.main`
 
             .label {
               font-size: 11px;
-              color: #717688;
+              color: #565d6d;
               text-transform: uppercase;
               font-weight: 600;
               margin-bottom: 2px;
@@ -532,7 +532,7 @@ const Wrapper = styled.main`
 
         .author-role {
           font-size: 12px;
-          color: #717688;
+          color: #565d6d;
         }
 
         .featured-cta {
@@ -592,7 +592,7 @@ const Wrapper = styled.main`
           color: #ffffff;
 
           .count-tag {
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(17, 24, 39, 0.28);
             color: #ffffff;
           }
         }
@@ -761,7 +761,7 @@ const Wrapper = styled.main`
 
     .privacy-note {
       font-size: 12px;
-      color: #9ca3af;
+      color: #5f6672;
     }
   }
 `;

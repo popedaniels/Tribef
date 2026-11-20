@@ -111,7 +111,7 @@ export default function Workings() {
                   <span>→</span>
 
                 </Link>
-                <a href="#comparison" className="btnSecondary">
+                <a href="#comparison" className="btnSecondaryLight">
                   <span>See Platform Comparison</span>
                   <span>↓</span>
                 </a>
@@ -289,7 +289,7 @@ const HeroSection = styled.section`
     .badge {
       display: inline-block;
       background: #eef1fe;
-      color: #4b5df5;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 0.6px;
@@ -363,7 +363,9 @@ const HeroSection = styled.section`
         }
       }
 
-      .btnSecondary {
+      /* Not "btnSecondary": the global brand-button rule forces that class to a
+         blue fill, which made this white button's dark text unreadable. */
+      .btnSecondaryLight {
         background: #ffffff;
         color: #333a56 !important;
         font-weight: 600;
@@ -404,7 +406,7 @@ const StepsSection = styled.section`
 
     .tag {
       display: inline-block;
-      color: #4b5df5;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 1px;
@@ -521,7 +523,7 @@ const ComparisonSection = styled.section`
 
     .tag {
       display: inline-block;
-      color: #4b5df5;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 1px;
@@ -575,7 +577,7 @@ const ComparisonSection = styled.section`
 
       &.highlightCol {
         background: #eef1fe;
-        color: #4b5df5;
+        color: var(--color-primary);
         font-size: 16px;
       }
     }
@@ -594,7 +596,7 @@ const ComparisonSection = styled.section`
       &.highlightCell {
         background: #fbfcfe;
         font-weight: 700;
-        color: #1e8e3e;
+        color: #166534;
 
         .cellContent {
           display: flex;
@@ -604,7 +606,7 @@ const ComparisonSection = styled.section`
       }
 
       &.otherCell {
-        color: #788099;
+        color: #565d6d;
       }
     }
   }
@@ -621,7 +623,7 @@ const FaqSection = styled.section`
 
     .tag {
       display: inline-block;
-      color: #4b5df5;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 1px;

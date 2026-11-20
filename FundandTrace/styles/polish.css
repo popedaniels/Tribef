@@ -124,3 +124,14 @@ input[type="number"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* Bootstrap's .text-success (#198754) is 4.3:1 on our off-white canvas. */
+.text-success {
+  color: #146c43 !important;
+}
+
+/* Bootstrap's .text-danger (#dc3545, plus a pink tint somewhere) falls under
+   4.5:1 on our off-white surfaces. */
+.text-danger {
+  color: #b42318 !important;
+}

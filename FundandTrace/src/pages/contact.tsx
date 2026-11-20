@@ -65,9 +65,11 @@ export default function Contact() {
           <Section>
             <h2 className="heading text-heading">Send Us A Message</h2>
             <div>
-              <p>Full Name</p>
+              <label htmlFor="contact-name">Full Name</label>
               <input
+                id="contact-name"
                 type="text"
+                autoComplete="name"
                 value={support?.fullName}
                 onChange={(e) =>
                   setSupport({ ...support, fullName: e.target.value })
@@ -75,9 +77,11 @@ export default function Contact() {
               />
             </div>
             <div>
-              <p>Email</p>
+              <label htmlFor="contact-email">Email</label>
               <input
+                id="contact-email"
                 type="email"
+                autoComplete="email"
                 value={support?.email}
                 onChange={(e) =>
                   setSupport({ ...support, email: e.target.value })
@@ -85,9 +89,11 @@ export default function Contact() {
               />
             </div>
             <div>
-              <p>Subject</p>
+              <label htmlFor="contact-subject">Subject</label>
               <input
+                id="contact-subject"
                 type="text"
+                autoComplete="off"
                 value={support?.subject}
                 onChange={(e) =>
                   setSupport({ ...support, subject: e.target.value })
@@ -95,7 +101,7 @@ export default function Contact() {
               />
             </div>
             <div>
-              <p>Message</p>
+              <label htmlFor="message">Message</label>
               <textarea
                 name="message"
                 value={support?.message}
@@ -164,7 +170,9 @@ const Section = styled.section`
   .heading {
     margin-bottom: 31px;
   }
-  p {
+  p,
+  label {
+    display: block;
     font-style: normal;
     font-weight: 400;
     font-size: 16px;

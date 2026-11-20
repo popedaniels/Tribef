@@ -188,7 +188,7 @@ const Wrapper = styled.section`
       line-height: 19px;
       /* identical to box height */
 
-      color: #a0a2af;
+      color: #5f6672;
     }
   }
   .bordered-wrapper {

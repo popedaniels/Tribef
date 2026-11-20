@@ -298,7 +298,7 @@ export default function StartLayout({
                           height: 40,
                           background: "#F0F0F0",
                           borderRadius: "50%",
-                          color: "#A3A3A3",
+                          color: "#5f6672",
                           fontSize: 12,
                         }}
                       >

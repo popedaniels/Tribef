@@ -11,7 +11,7 @@ export default function CommentComponent({ comment }) {
           height: 50,
           borderRadius: "50%",
           background: "#F0F0F0",
-          color: "#A0A2AF",
+          color: "#5f6672",
           opacity: 0.9,
         }}
       >

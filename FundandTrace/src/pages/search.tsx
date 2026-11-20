@@ -474,7 +474,7 @@ const Wrapper = styled.section`
         line-height: 24px;
         /* identical to box height, or 150% */
 
-        color: #a3a3a3;
+        color: #5f6672;
       }
     }
     .select {

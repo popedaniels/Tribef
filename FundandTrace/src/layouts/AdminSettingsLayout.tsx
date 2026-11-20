@@ -76,7 +76,7 @@ const Article = styled.article`
     font-weight: normal;
     font-size: 14px;
     line-height: 100%;
-    color: #a3a3a3;
+    color: #5f6672;
   }
   padding-left: 35px;
   padding-right: 35px;
@@ -164,7 +164,7 @@ const Wrapper = styled.section`
   //         font-weight: normal;
   //         font-size: 14px;
   //         line-height: 30px;
-  //         color: #a3a3a3;
+  //         color: #5f6672;
   //       }
   //     }
   //   }

@@ -52,6 +52,10 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 export default function CampaignPage({ campaign }: CampaignPageProps) {
   const [view, setView] = useState("story");
   const isFrozen = Boolean(campaign?.disputeGovernance?.isLocked);
+  // Guard against a 0 goal (NaN/Infinity widths and ARIA values).
+  const fundedPct = campaign?.funding?.amountExpected
+    ? Math.min(100, Math.round((100 * Number(campaign.funding.amountRaised || 0)) / Number(campaign.funding.amountExpected)))
+    : 0;
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const router = useRouter();
@@ -143,13 +147,7 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                 />
 
                 <CopyToClipboard
-                  text={`https://fundandtrace.com/campaign/${
-                    campaign?._id
-                  }?title=${(
-                    campaign?.basicInformation?.campaignTitle || ""
-                  )
-                    .split(" ")
-                    .join("%")}`}
+                  text={`https://fundandtrace.com/campaign/${campaign?._id}`}
                   onCopy={() => {
                     setCopied(true);
                     setTimeout(() => setCopied(false), 4000);
@@ -254,7 +252,8 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                     alt="profileIcon"
                   />
                   <Link
-                    href={`/campaign-organizers/${campaign?.organizerId}`}
+                    href={campaign?.organizerId ? `/campaign-organizers/${campaign.organizerId}` : "#organizer"}
+                    aria-label={`Organiser: ${campaign?.organizer || "profile"}`}
                     passHref
                     className="ml-3 mb-0"
                     style={{
@@ -308,7 +307,7 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                       🛡️ UK Charity Commission Registered
                     </span>
                   ) : (
-                    <span className="badge badge-pill badge-success py-1 px-2" style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: "11.5px", fontWeight: 600 }}>
+                    <span className="badge badge-pill badge-success py-1 px-2" style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", fontSize: "11.5px", fontWeight: 600 }}>
                       🛡️ 100% Escrow Verified (Direct-to-Vendor Routing)
                     </span>
                   )}
@@ -318,13 +317,9 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                   <div
                     className="progress-bar "
                     role="progressbar"
-                    style={{
-                      width: `${
-                        (campaign?.funding?.amountRaised /
-                          campaign?.funding?.amountExpected) *
-                        100
-                      }%`,
-                    }}
+                    aria-label="Funding progress"
+                    style={{ width: `${fundedPct}%` }}
+                    aria-valuenow={fundedPct}
                     aria-valuemin={0}
                     aria-valuemax={100}
                   ></div>
@@ -337,7 +332,7 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                     height="17.5px"
                     className="mr-2"
                   />
-                  <p className="mb-0" style={{ color: "#807373" }}>
+                  <p className="mb-0" style={{ color: "#565d6d" }}>
                     {getDaysRemaining(campaign)} days left
                   </p>
                 </div>

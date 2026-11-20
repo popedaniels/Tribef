@@ -64,7 +64,7 @@ export default function PersonalCampaigns() {
                   <p className="mb-2">Donations</p>
                   <p
                     className="mb-0"
-                    style={{ color: "#A0A2AF", fontSize: 12 }}
+                    style={{ color: "#5f6672", fontSize: 12 }}
                   >
                     {checkDonations
                       ? "You’ll receive notifications from Fund&Trace via emails when someone donates"
@@ -82,7 +82,7 @@ export default function PersonalCampaigns() {
                   <p className="mb-2">Turn On/Off all notifications</p>
                   <p
                     className="mb-0"
-                    style={{ color: "#A0A2AF", fontSize: 12 }}
+                    style={{ color: "#5f6672", fontSize: 12 }}
                   >
                     You’ll receive all updates from Fund&Trace via SMS
                   </p>

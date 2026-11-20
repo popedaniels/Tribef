@@ -225,7 +225,7 @@ const Wrapper = styled.div`
       .inactive {
         background: white;
         padding: 15px 25px;
-        color: #b3b3b3;
+        color: #5f6672;
         border-radius: 4px;
         cursor: pointer;
       }

@@ -378,7 +378,7 @@ const Wrapper = styled.section`
           font-weight: normal;
           font-size: 14px;
           line-height: 30px;
-          color: #a3a3a3;
+          color: #5f6672;
         }
       }
     }

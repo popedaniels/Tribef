@@ -24,7 +24,7 @@ export default function TermsModal({
           <button
             type="button"
             onClick={onModalClose}
-            className="closeBtn"
+            className="ft-plain closeBtn"
             aria-label="Close terms of service"
           >
             &times;

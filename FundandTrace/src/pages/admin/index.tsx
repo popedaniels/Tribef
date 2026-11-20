@@ -290,7 +290,7 @@ const Wrapper = styled.section`
       font-size: 12px;
       line-height: 16px;
 
-      color: #b3b3b3;
+      color: #5f6672;
     }
     .smallOverviewBox {
       background: #ffffff;

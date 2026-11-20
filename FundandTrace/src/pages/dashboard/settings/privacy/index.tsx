@@ -44,7 +44,7 @@ export default function Privacy() {
                   <p className="mb-2">Two-factor authentication</p>
                   <p
                     className="mb-0"
-                    style={{ color: "#A0A2AF", fontSize: 12, width: "90%" }}
+                    style={{ color: "#5f6672", fontSize: 12, width: "90%" }}
                   >
                     Help protect your account from unauthorized access by
                     requiring a second authentication method in addition to your

@@ -889,7 +889,7 @@ const Wrapper = styled.main`
             font-size: 13px;
             font-weight: 700;
             border-top: none;
-            color: #6b7280;
+            color: #5f6672;
             padding: 12px 10px;
           }
 

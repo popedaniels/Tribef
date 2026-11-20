@@ -5,6 +5,7 @@
 > this file doubles as a feature inventory and gap analysis.
 >
 > **Last reviewed:** November 2026 against branch `fix/audit-hardening-ui-polish`.
+> Competitive context and the reasoning behind the trust features: [`COMPETITIVE_ANALYSIS.md`](COMPETITIVE_ANALYSIS.md).
 
 **Status key**
 
@@ -63,14 +64,16 @@
 
 *Code:* `POST /api/auth/signup` · `src/pages/SignUp/individual.tsx` · `TermsModal.jsx`
 
-### A-2 Sign up as a registered charity 🟡 (S)
+### A-2 Sign up as a registered charity ✅ (S)
 **As** Grace **I want to** register my charity with its registration number **so that** campaigns show as charity-verified.
 
 - **Given** a registration number, **when** I tab out of the field, **then** the number is checked against the charity register and the charity name is pre-filled.
 - **Given** a number that is not found, **then** I see "We couldn't find this charity" and can't submit as a verified charity.
 
 *Code:* `POST /api/auth/signup/charity` · `GET /api/charities/charity/checkCharity/:regNo` · `src/pages/SignUp/charities.tsx`
-*Gap:* the lookup is hard-wired to the UK Charity Commission; other jurisdictions (e.g. Nigeria CAC, Kenya NGO Board) aren't supported.
+- I choose where the charity is registered: **England & Wales** (Charity Commission), **United States** (EIN via IRS/ProPublica), or **elsewhere** (Nigeria, Kenya, Ghana, other), which is marked for manual review by our team because those registries have no public API.
+
+*Code:* `services/charityRegistry.js`
 
 ### A-3 Verify my email ✅ (M)
 **As a** new user **I want to** confirm my email **so that** the platform knows I own it.
@@ -99,14 +102,17 @@
 
 *Code:* `useRequireAuth()` · `AuthGate` · `src/layouts/DashboardLayout.tsx`, `CampaignDashboardLayout.tsx`
 
-### A-6 Reset a forgotten password 🟡 (M)
+### A-6 Reset a forgotten password ✅ (M)
 **As a** user who forgot my password **I want to** reset it by email **so that** I can regain access.
 
 - **Given** any email, **when** I request a reset, **then** I always get the same "if an account exists, we've sent a link" response; only real accounts receive mail (no enumeration).
 - **Given** a valid reset link, **when** I set a new password (min. 8 characters), **then** I can sign in with it.
 - Reset links expire after **15 minutes** and are **single-use**: each token is bound to the current password hash, so it stops working once used, and older outstanding links die too.
 
-*Gap:* existing sign-in sessions (JWT cookies) are not revoked when the password is reset.
+- Resetting or changing my password **signs out every other session** (each token carries a session version that is checked on every request); changing it keeps this device signed in.
+- I can **sign out of all devices** from Settings → Security. Suspended accounts lose access immediately.
+
+*Code:* `authenticate()` in `utility/auth.js` · `POST /api/auth/logout-all`
 
 *Code:* `/api/resetPassword/*` · `src/pages/ForgotPassword/*`
 
@@ -125,7 +131,7 @@
 
 *Code:* `POST /api/auth/updateProfile/:id` · `POST /api/auth/changePassword/:email` · `src/pages/dashboard/edit-profile.tsx`
 
-### A-9 Verify my identity (KYC) 🟡 (M)
+### A-9 Verify my identity (KYC) ✅ (M)
 **As** Kofi **I want to** verify my identity once **so that** donors trust me and I can receive funds.
 
 - **Given** I start verification, **then** a Stripe Identity session opens (ID document and selfie).
@@ -133,7 +139,7 @@
 - **Given** `REQUIRE_KYC_TO_LAUNCH=true`, **when** an unverified organiser tries to launch, **then** launch is refused with "Verify your identity before launching a campaign".
 
 *Code:* `routes/identity.js` · `controller/startCampaign.js#launch`
-*Gap:* KYC is **not** yet enforced before a *payout* (only optionally at launch). Recommend enforcing it in `approveFundingRequest`.
+- KYC is **required before any payout to the organiser** (see F-5).
 
 ### A-10 Sign out ✅ (M)
 - Signing out clears the session cookie server-side and the persisted client state.
@@ -170,11 +176,12 @@
 
 *Code:* `GET /api/discovery/trending` · `GET /api/discovery/similar/:id`
 
-### B-5 View a campaign 🟡 (M)
+### B-5 View a campaign ✅ (M)
 **As** Dami **I want** a campaign page with the story, goal, progress, organiser and updates **so that** I can decide whether to give.
 
 - Shows title, media, story, amount raised vs goal (progress bar), number of donors, organiser profile, updates, comments, and a link to the public tracker.
-- The public tracker shows when the campaign's escrow is frozen under dispute review (G-2). *Gap:* the main campaign page and donate page don't show this yet, so donors can still give to a frozen campaign without being told.
+- Shows the campaign's **Transparency Score** (G-5).
+- **Given** the campaign is frozen under dispute review, **then** the campaign page shows a "Paused for review" notice and the Donate button is disabled; the donate page explains the pause instead of showing the form, and the API refuses new donations and subscriptions with **423**.
 - Invalid campaign ids return **400**; unknown ids show a friendly not-found state.
 
 *Code:* `GET /api/campaigns/campaign/:id` · `src/pages/campaign/[id]/index.tsx`
@@ -211,13 +218,15 @@
 
 *Code:* `GET /api/donations/:donationId/receipt` · `services/donation.js`
 
-### C-4 Give monthly 🟡 (S)
+### C-4 Give monthly ✅ (S)
 **As** Dami **I want to** set up a monthly gift **so that** I support a long-running cause without remembering.
 
 - **Given** I choose monthly, **then** a Stripe subscription is created; I can see and cancel my subscriptions.
 
 *Code:* `routes/recurring.js`
-*Gap:* no UI entry point for "My subscriptions"/cancel was found in the dashboard.
+- `/dashboard/subscriptions` lists my monthly gifts (campaign, amount, status, total given) and lets me cancel; cancellation stops future payments at the end of the paid period.
+
+*UI:* `src/pages/dashboard/subscriptions.tsx`
 
 ### C-5 See my contribution history ✅ (S)
 - `/dashboard/my-contributions` lists my donations; I can only fetch my own (403 for other emails).
@@ -294,13 +303,16 @@
 
 *Code:* `routes/campaignEmailWhitelist.js`
 
-### E-6 Connect a payout account 🟡 (M)
+### E-6 Get paid into my bank account ✅ (M)
 **As** Kofi **I want to** connect a Stripe Express account **so that** approved funds reach me.
 
 - Onboarding returns me to the dashboard; payouts are refused until `payoutsEnabled` is true (unless the request pays a third party).
 
 *Code:* `routes/stripeConnect.js` · `controller/donations/payout.js`
-*Gap:* African bank payouts via Flutterwave/Paystack transfers are not implemented. Non-Stripe organisers can only be paid via third-party/vendor requests.
+- **Given** a campaign in an African currency (NGN, GHS, KES, ZAR, …), **when** I add payout details, **then** I pick my bank from a list and the account holder's name is confirmed before saving.
+- Approved payouts are sent by **Flutterwave or Paystack** bank transfer with a unique reference per attempt; a failed or reversed transfer returns the money to escrow, is recorded on the public ledger, and reopens the request with a clear reason.
+
+*Code:* `services/payoutRails.js` · `routes/payouts.js` · `BankAccountFields.tsx`
 
 ### E-7 Track referrals ✅ (C)
 - I (or an admin) can see how many donations came from my shared links.
@@ -352,8 +364,13 @@
 
 *Code:* `controller/donations/payout.js` · tests in `tests/unit/payout.test.js`
 
-### F-5 Require KYC before payout ⬜ (M)
-- **Given** the organiser's identity status is not `verified`, **when** an admin approves a non-vendor payout, **then** it is refused with a message to complete KYC.
+### F-5 Require KYC before payout ✅ (M)
+- **Given** the organiser's identity status is not `verified`, **when** an admin approves a payout to the organiser, **then** it is refused with **403** `kyc_required`. Payouts straight to a third party/vendor are exempt. Admins can verify manually. (`REQUIRE_KYC_FOR_PAYOUT`)
+
+### F-6 Organisers can't edit server-owned campaign data ✅ (M)
+- The campaign wizard can change only the story, media, team, settings, goal, currency (until money arrives) and payout details. Escrow balances, suspension, dispute state, ownership and the Stripe payout account are server-owned; the API ignores them. (Previously an organiser could set their own balance or clear a dispute freeze.)
+
+*Code:* `utility/campaignEdits.js`
 
 ---
 
@@ -371,10 +388,21 @@
 
 *Code:* `GET /api/campaigns/:id/dispute-status`
 
-### G-3 Upload proof of spend 🟡 (S)
+### G-3 Upload proof of spend ✅ (S)
 **As** Kofi **I want to** upload receipts after a payout **so that** donors see proof.
 
-*Gap:* `disbursement.receipt` exists but no organiser-facing upload flow was found.
+- After a payout I upload a receipt or invoice (image/PDF, ≤ 10 MB) from my payout history. Donors see it on the tracker.
+- Proof is due within **14 days** (`PROOF_DUE_DAYS`); after that the payout shows "Proof overdue" and the Transparency Score drops.
+
+### G-4 Verify the money trail myself ✅ (M)
+**As** a sceptical donor, journalist or auditor **I want** a tamper-evident record of every money movement **so that** I don't have to take the platform's word for it.
+
+- Every credit, payout, payout reversal and refund is appended to a per-campaign **SHA-256 hash chain** (each entry includes the previous entry's hash).
+- The tracker lists the entries and a **Verify ledger** button recomputes the chain **in my browser**; any edited, removed or reordered entry is reported with its position.
+- The raw ledger and a server-side check are public at `/api/ledger/:id` and `/verify`.
+
+### G-5 Judge trust at a glance ✅ (M)
+- Each campaign shows a 0–100 **Transparency Score** with a grade, computed only from verifiable facts: identity verified (25), proof uploaded (25), proof on time (15), disputes (15), share paid directly to suppliers (10), recent updates (10). "How it's calculated" shows every factor and its reason.
 
 ---
 
@@ -394,10 +422,11 @@
 
 *Code:* `POST /api/campaigns/:id/dispute` · `controller/campaign.js#fileDispute`
 
-### H-3 Resolve a dispute ⬜ (M)
+### H-3 Resolve a dispute ✅ (M)
 **As** Ada **I want to** unlock a campaign or trigger pro-rata refunds **so that** a dispute ends cleanly.
 
-*Gap:* no admin endpoint/UI to unlock or to run a dispute-driven pro-rata refund was found (the architecture doc describes one).
+- `/admin/disputes` lists frozen campaigns with the donor reports and escrow balance. With a written note I either **unlock** (donations and payouts resume) or **refund**: the campaign is suspended and everything left in escrow is refunded to every donor **pro-rata** to what they gave. Failed gateway refunds are listed and retryable.
+- Both outcomes are recorded on the campaign and in the audit trail; refunds appear on the public ledger.
 
 ### H-4 Flag suspicious donations ✅ (M)
 - Each donation is scored on email velocity, campaign hopping, IP velocity and geo mismatch; above the threshold it is **flagged, not blocked**, and appears in the admin fraud queue.
@@ -416,10 +445,13 @@
 
 *Code:* `controller/adminRefunds.js` · `src/pages/admin/refunds.tsx`
 
-### I-2 Refund my own donation (self-service) ⬜ (S)
+### I-2 Refund my own donation (self-service) ✅ (S)
 **As** Dami **I want to** refund a donation I made by mistake within 30 days **so that** I don't have to email support or charge back.
 
-*Spec:* `docs/SELF_SERVICE_REFUNDS.md` (not implemented).
+- From My Contributions I can refund a donation within **30 days** with a two-step confirmation, as long as the money is still in escrow and the campaign isn't frozen. Ineligible requests explain why (`window_closed`, `insufficient_escrow`, …). Max 5 requests a day.
+- All refunds (mine, admin, dispute) go through one pipeline: atomic claim → escrow reserved with a balance guard (never below zero) → gateway refund (Stripe, Flutterwave or Paystack) with an idempotency key → ledger entry; any failure releases the reservation.
+
+*Spec:* `docs/SELF_SERVICE_REFUNDS.md` · *Flag:* `ENABLE_SELF_REFUNDS`
 
 ---
 
@@ -433,7 +465,8 @@
 | J-4 | I can email a user from the console. | ✅ |
 | J-5 | I can work the helpdesk: read, reply to and delete support messages. | ✅ |
 | J-6 | I can review reports and the fraud queue. | ✅ |
-| J-7 | Every admin action is recorded in the activity log with who did it. | 🟡 approvals record `adminId`; other actions don't consistently record the actor |
+| J-7 | Every successful admin change is recorded with who did it, what and to which record (`GET /api/admin/audit`). | ✅ |
+| J-9 | I can resolve frozen campaigns (H-3). | ✅ |
 | J-8 | Admin-only endpoints return **401/403** for anyone else, including the category seeding endpoint (previously open). | ✅ |
 
 *Code:* `routes/admin.js` (all behind `requireAdmin`) · `src/pages/admin/*`
@@ -464,9 +497,10 @@ Emails are sent asynchronously and failures never fail the user's action.
 - **Public responses never contain private data.** Every unauthenticated campaign, tracker, search, discovery and organiser endpoint goes through `utility/publicViews.js`: no payout bank details, team contact email/phone/date of birth/address/ID images, Stripe account ids, dispute reporters, commenter emails, donor emails/IPs, or anonymous donors' names. The campaign owner gets full detail from `GET /api/campaigns/campaign/:id` only when signed in. (Previously this endpoint decrypted and returned the organiser's bank account to any visitor.)
 - Secrets are validated at boot; production refuses to start with missing or placeholder secrets.
 
-### L-2 Accessibility 🟡 (M)
+### L-2 Accessibility ✅ (M)
 - Visible keyboard focus on all interactive elements; reduced-motion respected; 44px touch targets on touch devices; primary colour meets WCAG AA (4.8:1) for button labels.
-- *Gap:* full audit (screen-reader labels on icon buttons, form error announcements) not yet done.
+- Automated **axe-core WCAG 2.1 A/AA** audit of 28 public, dashboard and admin pages: **0 violations** (from ~160 elements across 9 rule types). Fixes include labelled inputs, a keyboard-operable tablist on campaign pages, named progress bars, keyboard show-password toggles and contrast-safe colour tokens.
+- Not covered by automation: screen-reader walkthroughs and form error announcements on every flow. Do a manual pass with NVDA/VoiceOver before launch.
 
 ### L-3 Responsive & mobile ✅ (M)
 - No page scrolls horizontally at 360–390px width (checked on all public pages, wizard, dashboard and admin).
@@ -503,16 +537,15 @@ A story is done when:
 
 ## Gap summary
 
-| Priority | Gap | Story |
+Every gap from the November audit is now closed except K-7 (confirm every email template carries an unsubscribe link). What remains is roadmap work identified in [`COMPETITIVE_ANALYSIS.md`](COMPETITIVE_ANALYSIS.md):
+
+| Priority | Feature | Why |
 | --- | --- | --- |
-| **Must** | Enforce KYC before non-vendor payouts | F-5 |
-| **Must** | Admin flow to resolve disputes (unlock or pro-rata refund) | H-3 |
-| **Must** | Payout rails for African bank accounts (Flutterwave/Paystack transfers) | E-6 |
-| Should | Show the dispute freeze on campaign and donate pages | B-5 |
-| Should | Revoke existing sessions on password reset | A-6 |
-| Should | Donor self-service refunds (spec exists) | I-2 |
-| Should | Organiser upload of post-payout receipts | G-3 |
-| Should | Recurring-donation management UI | C-4 |
-| Should | Full accessibility audit | L-2 |
-| Should | Consistent actor recording on all admin actions | J-7 |
-| Could | Charity registry lookups beyond the UK | A-2 |
+| High | Gift Aid declarations + HMRC claim export | +25 % on eligible UK gifts; competitors charge 5 % of it |
+| High | Pre-verified vendor network with invoice matching | Generalises the hospital-direct model that wins medical crowdfunding |
+| High | M-Pesa / mobile-money **collection** (STK push) | Payouts are covered; Kenyan donors still need native giving |
+| Medium | Anchor ledger head hashes externally (daily) | Extends tamper-evidence to the operator itself |
+| Medium | Peer-to-peer team fundraising, matching gifts | Growth loops used by GoFundMe/JustGiving/GlobalGiving |
+| Medium | CRM exports & webhooks | Charity tooling parity |
+| — | Run provider sandboxes (Stripe, Flutterwave, Paystack, Stripe Identity) end-to-end | Integrations are unit-tested with mocks only |
+| — | Manual screen-reader pass | Complements the automated a11y audit |

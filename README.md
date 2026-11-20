@@ -30,6 +30,7 @@ tribef/
 │
 ├── docs/                      # Technical Documentation & Operational Guides
 │   ├── USER_STORIES.md        # Personas, epics & user stories with acceptance criteria + gap analysis
+│   ├── COMPETITIVE_ANALYSIS.md # Benchmark vs GoFundMe, JustGiving, GlobalGiving, M-Changa, Ketto & co + roadmap
 │   ├── API_REFERENCE.md       # Comprehensive REST API contracts & Webhook specifications
 │   ├── ARCHITECTURE.md        # System architecture, Escrow state machine & data flows
 │   ├── LOCAL_DEVELOPMENT.md   # Step-by-step local development & Stripe CLI setup

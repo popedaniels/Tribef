@@ -5,7 +5,24 @@ const { FundingRequests } = require("../models/fundingRequestModel");
 const { Users } = require("../models/users");
 const { addActivity } = require("../services/activityLog");
 const { encrypt } = require("../utility/encryption");
+const { normalizeFundingType, isThirdParty } = require("../utility/fundingType");
 const logger = require("../utility/logger");
+
+// Fields only the server (admin review / payout pipeline) may set. Accepting
+// them from the organizer would let a request be created already "Approved"
+// with a fabricated disbursement record on the public tracker.
+const SERVER_OWNED_FIELDS = [
+  "_id",
+  "status",
+  "approvedAt",
+  "declinedAt",
+  "declineReason",
+  "adminId",
+  "adminName",
+  "disbursement",
+  "payoutLockedAt",
+  "createdAt",
+];
 
 exports.addFundingRequest = async (req, res, next) => {
   try {
@@ -18,6 +35,15 @@ exports.addFundingRequest = async (req, res, next) => {
       return res.status(400).json({ status: 400, error: "fundingRequest is required" });
     }
 
+    SERVER_OWNED_FIELDS.forEach((field) => delete fundingrequestBody[field]);
+    fundingrequestBody.fundingType = normalizeFundingType(fundingrequestBody.fundingType);
+
+    const requestedAmount = Number(fundingrequestBody.amount);
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+      return res.status(400).json({ status: 400, error: "amount must be a positive number" });
+    }
+    fundingrequestBody.amount = requestedAmount;
+
     // Check if campaign is frozen due to active dispute
     if (fundingrequestBody.campaignId && mongoose.Types.ObjectId.isValid(fundingrequestBody.campaignId)) {
       const campaign = await Campaign.findById(fundingrequestBody.campaignId).maxTimeMS(3000);
@@ -29,7 +55,7 @@ exports.addFundingRequest = async (req, res, next) => {
       }
     }
 
-    if (fundingrequestBody.fundingType === "thirdParty") {
+    if (isThirdParty(fundingrequestBody.fundingType)) {
       if (fundingrequestBody.thirdPartyAccountName) {
         fundingrequestBody.thirdPartyAccountName = encrypt(
           fundingrequestBody.thirdPartyAccountName

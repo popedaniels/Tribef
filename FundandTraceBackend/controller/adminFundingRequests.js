@@ -7,7 +7,8 @@ const {
   declinedFundingRequestMailService,
 } = require("../services/declinedFundingRequest");
 const { default: axios } = require("axios");
-const { decrypt } = require("../utility/encryption");
+const { revealSensitive } = require("../utility/encryption");
+const { isThirdParty } = require("../utility/fundingType");
 const logger = require("../utility/logger");
 
 exports.getAllFundingRequests = async (req, res, next) => {
@@ -79,14 +80,14 @@ exports.getSingleFundingRequests = async (req, res, next) => {
     if (!fundingRequest) {
       return res.status(404).json({ status: 404, error: "Funding request not found" });
     }
-    if (fundingRequest.fundingType === "thirdParty") {
-      // Decrypt only if values exist and look encrypted
+    if (isThirdParty(fundingRequest.fundingType)) {
+      // revealSensitive tolerates legacy plaintext records (see utility/fundingType.js)
       try {
-        fundingRequest.thirdPartyAccountName = decrypt(fundingRequest.thirdPartyAccountName);
-        fundingRequest.thirdPartyAccountNumber = decrypt(fundingRequest.thirdPartyAccountNumber);
-        fundingRequest.thirdPartyBankName = decrypt(fundingRequest.thirdPartyBankName);
-        fundingRequest.thirdPartyNameOfRef = decrypt(fundingRequest.thirdPartyNameOfRef);
-        fundingRequest.thirdPartyContact = decrypt(fundingRequest.thirdPartyContact);
+        fundingRequest.thirdPartyAccountName = revealSensitive(fundingRequest.thirdPartyAccountName);
+        fundingRequest.thirdPartyAccountNumber = revealSensitive(fundingRequest.thirdPartyAccountNumber);
+        fundingRequest.thirdPartyBankName = revealSensitive(fundingRequest.thirdPartyBankName);
+        fundingRequest.thirdPartyNameOfRef = revealSensitive(fundingRequest.thirdPartyNameOfRef);
+        fundingRequest.thirdPartyContact = revealSensitive(fundingRequest.thirdPartyContact);
       } catch (decryptErr) {
         logger.warn({ err: decryptErr }, "Failed to decrypt thirdParty fields");
       }
@@ -110,49 +111,68 @@ exports.approveFundingRequest = async (req, res, next) => {
       return res.status(401).json({ status: 401, error: "Unauthorized" });
     }
     const profile = req.auth.profile || req.auth;
-    const fundingRequest = await FundingRequests.findOne({
-      _id: req.params.id,
-    });
 
-    if (!fundingRequest) {
+    const existing = await FundingRequests.findById(req.params.id);
+    if (!existing) {
       return res.status(404).json({ status: 404, error: "Funding request not found" });
     }
-
-    if (fundingRequest.status != "Pending") {
-      return res
-        .status(402)
-        .json({ status: 402, error: "Request has been attended to" });
+    if (existing.status !== "Pending") {
+      return res.status(409).json({ status: 409, error: "Request has already been reviewed" });
     }
-    fundingRequest.status = "Approved";
-    fundingRequest.approvedAt = Date.now();
-    fundingRequest.declineReason = "";
-    fundingRequest.adminId = profile._id || profile.id;
-    fundingRequest.adminName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || "Admin";
-    await fundingRequest.save();
 
-    const campaign = await Campaign.findOne({ _id: fundingRequest.campaignId });
-
+    const campaign = await Campaign.findById(existing.campaignId);
     if (!campaign) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
+    // Dispute circuit-breaker: a locked campaign's escrow is frozen.
+    if (campaign.disputeGovernance?.isLocked) {
+      return res.status(423).json({
+        status: 423,
+        error: "Campaign escrow is frozen under active dispute review. Payouts are locked.",
+      });
+    }
 
+    // Atomically claim Pending -> Approved. A double-click or two admins
+    // approving at once can no longer both pass the status check and both
+    // trigger a disbursement.
+    const fundingRequest = await FundingRequests.findOneAndUpdate(
+      { _id: req.params.id, status: "Pending" },
+      {
+        $set: {
+          status: "Approved",
+          approvedAt: Date.now(),
+          declineReason: "",
+          adminId: profile._id || profile.id,
+          adminName: `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || "Admin",
+        },
+      },
+      { new: true }
+    );
+    if (!fundingRequest) {
+      return res.status(409).json({ status: 409, error: "Request has already been reviewed" });
+    }
+
+    const thirdParty = isThirdParty(fundingRequest.fundingType);
+    const source = thirdParty
+      ? {
+          bankName: fundingRequest.thirdPartyBankName,
+          accountName: fundingRequest.thirdPartyAccountName,
+          accountNumber: fundingRequest.thirdPartyAccountNumber,
+        }
+      : {
+          bankName: campaign.funding?.bankName,
+          accountName: campaign.funding?.accountName,
+          accountNumber: campaign.funding?.accountNumber,
+        };
     const data = {
       campaignId: fundingRequest.campaignId,
       amount: fundingRequest.amount,
       currency: fundingRequest.currency,
-      bankName:
-        fundingRequest.fundingType === "thirdParty"
-          ? decrypt(fundingRequest.thirdPartyBankName)
-          : decrypt(campaign.funding.bankName),
-      accountName:
-        fundingRequest.fundingType === "thirdParty"
-          ? decrypt(fundingRequest.thirdPartyAccountName)
-          : decrypt(campaign.funding.accountName),
-      accountNumber:
-        fundingRequest.fundingType === "thirdParty"
-          ? decrypt(fundingRequest.thirdPartyAccountNumber)
-          : decrypt(campaign.funding.accountNumber),
+      bankName: revealSensitive(source.bankName),
+      accountName: revealSensitive(source.accountName),
+      accountNumber: revealSensitive(source.accountNumber),
     };
+
     try {
       await axios.post(
         `${process.env.BACKENDURL}/api/donations/stripeWebhook/${req.params.id}`,
@@ -161,21 +181,30 @@ exports.approveFundingRequest = async (req, res, next) => {
           headers: {
             "x-internal-webhook-secret": process.env.INTERNAL_WEBHOOK_SECRET,
           },
-          timeout: 5000,
+          timeout: 15000,
         }
       );
 
       return res.status(200).json({
-        status: " success",
+        status: "success",
         data: "Request approved",
       });
     } catch (error) {
       logger.error({ err: error.response?.data || error.message }, "Disbursement webhook failed");
-      // Roll back approval so admin can retry
-      fundingRequest.status = "Pending";
-      fundingRequest.approvedAt = undefined;
-      await fundingRequest.save().catch(() => {});
-      const status = error.response?.data?.status || 502;
+      // Roll back to Pending ONLY if nothing was disbursed. The previous code
+      // saved a stale document here, which could reset an already-paid request
+      // to Pending (e.g. when a post-payout email failed) and allow a second
+      // payout on retry.
+      await FundingRequests.updateOne(
+        {
+          _id: req.params.id,
+          status: "Approved",
+          "disbursement.dateDisbursed": { $exists: false },
+          payoutLockedAt: { $exists: false },
+        },
+        { $set: { status: "Pending" }, $unset: { approvedAt: 1, adminId: 1, adminName: 1 } }
+      ).catch((rollbackErr) => logger.error({ err: rollbackErr }, "Approval rollback failed"));
+      const status = Number(error.response?.data?.status) || 502;
       const errMsg = error.response?.data?.error || "Disbursement service unavailable";
       return res.status(status).json({
         status: status,
@@ -193,28 +222,37 @@ exports.declineFundingRequest = async (req, res, next) => {
     if (!req.auth) {
       return res.status(401).json({ status: 401, error: "Unauthorized" });
     }
-    const fundingRequest = await FundingRequests.findOne({
-      _id: req.params.id,
-    });
+    const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    // Only a Pending request can be declined; an approved/disbursed request
+    // must never be silently flipped to Declined.
+    const fundingRequest = await FundingRequests.findOneAndUpdate(
+      { _id: req.params.id, status: "Pending" },
+      {
+        $set: {
+          status: "Declined",
+          declinedAt: Date.now(),
+          declineReason: message || "Declined by admin",
+        },
+      },
+      { new: true }
+    );
     if (!fundingRequest) {
-      return res.status(404).json({ status: 404, error: "Funding request not found" });
+      const exists = await FundingRequests.exists({ _id: req.params.id });
+      return exists
+        ? res.status(409).json({ status: 409, error: "Request has already been reviewed" })
+        : res.status(404).json({ status: 404, error: "Funding request not found" });
     }
-    fundingRequest.status = "Declined";
-    fundingRequest.declinedAt = Date.now();
-    fundingRequest.declineReason = req.body.message || "Declined by admin";
-    await fundingRequest.save();
-    const user = await Users.findOne({ _id: req.body.organizerId });
 
+    // Notify the request's actual organizer (not a client-supplied id).
+    const user = await Users.findOne({ _id: fundingRequest.organizerId });
     if (user) {
-      await declinedFundingRequestMailService(
-        user,
-        fundingRequest,
-        req.body.message
-      ).catch((mailErr) => logger.warn({ err: mailErr }, "Decline mail failed"));
+      await declinedFundingRequestMailService(user, fundingRequest, message).catch((mailErr) =>
+        logger.warn({ err: mailErr }, "Decline mail failed")
+      );
     }
 
     return res.status(200).json({
-      status: " success",
+      status: "success",
       data: "Request Declined",
     });
   } catch (error) {

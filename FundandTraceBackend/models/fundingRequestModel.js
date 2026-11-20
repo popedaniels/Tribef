@@ -90,6 +90,9 @@ const fundingRequestSchema = new mongoose.Schema({
   declineReason: String,
   adminId: String,
   adminName: String,
+  // Set atomically by the payout handler while a disbursement is in flight so
+  // concurrent/retried payout calls for the same request cannot both run.
+  payoutLockedAt: { type: Date },
   disbursement: {
     amount: Number,
     currency: String,

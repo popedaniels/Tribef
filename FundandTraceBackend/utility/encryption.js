@@ -77,6 +77,22 @@ exports.decrypt = (encryptedData) => {
   return decryptLegacy(encryptedData);
 };
 
+// Decrypt a stored sensitive value, tolerating records that were (wrongly)
+// persisted as plaintext — e.g. third-party bank details saved before the
+// fundingType fix. v2 ciphertext must decrypt (tampering throws); anything
+// else is tried as legacy CBC and otherwise returned as-is.
+exports.revealSensitive = (value) => {
+  if (value === undefined || value === null || value === "") return value;
+  if (typeof value === "string" && value.startsWith(VERSION_PREFIX)) {
+    return decryptV2(value);
+  }
+  try {
+    return decryptLegacy(value);
+  } catch {
+    return value;
+  }
+};
+
 exports.isLegacyCiphertext = (value) =>
   typeof value === "string" &&
   value.length > 0 &&

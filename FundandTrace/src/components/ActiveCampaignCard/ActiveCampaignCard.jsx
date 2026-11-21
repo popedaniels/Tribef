@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect } from "react";
-import { addCommaToNumber, getDaysRemaining } from "../helperFunctions/helperFunctions";
+import { addCommaToNumber, getDaysRemaining, currencyPrefix } from "../helperFunctions/helperFunctions";
 import styles from "./ActiveCampaignCard.module.scss";
 
 export default function ActiveCampaignCard({ campaign }) {
@@ -60,11 +60,7 @@ export default function ActiveCampaignCard({ campaign }) {
 
             <div className="d-flex align-items-baseline">
               <h3 className="text-heading mr-2 mb-0" style={{ fontSize: 14 }}>
-                {campaign?.funding?.currency == "USD"
-                  ? "$"
-                  : campaign?.funding?.currency == "GBP"
-                  ? "£"
-                  : "₦"}
+                {currencyPrefix(campaign?.funding?.currency)}
                 {addCommaToNumber(campaign?.funding?.amountRaised)}
               </h3>
               <p
@@ -76,11 +72,7 @@ export default function ActiveCampaignCard({ campaign }) {
                 }}
               >
                 raised of{" "}
-                {campaign?.funding?.currency == "USD"
-                  ? "$"
-                  : campaign?.funding?.currency == "GBP"
-                  ? "£"
-                  : "₦"}
+                {currencyPrefix(campaign?.funding?.currency)}
                 {addCommaToNumber(campaign?.funding?.amountExpected)}
               </p>
             </div>
@@ -88,6 +80,7 @@ export default function ActiveCampaignCard({ campaign }) {
               <div
                 className={[styles.progressbar, "progress-bar "].join(" ")}
                 role="progressbar"
+                aria-label="Funding progress"
                 style={{ width: progressString + "%" }}
                 aria-valuenow={progressString}
                 aria-valuemin="0"

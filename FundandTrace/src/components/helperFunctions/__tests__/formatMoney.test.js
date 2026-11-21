@@ -32,3 +32,17 @@ describe("timeAgo", () => {
     expect(timeAgo("nope", now)).toBe("");
   });
 });
+
+describe("currencyPrefix", () => {
+  const { currencyPrefix } = require("../helperFunctions");
+  it("uses the campaign's own currency, not ₦ for everything that isn't USD/GBP", () => {
+    expect(currencyPrefix("KES")).toBe("KSh ");
+    expect(currencyPrefix("GHS")).toBe("GH₵");
+    expect(currencyPrefix("NGN")).toBe("₦");
+    expect(currencyPrefix("usd")).toBe("$");
+    expect(currencyPrefix("XOF")).toBe("XOF ");
+  });
+  it("keeps the historical ₦ default when a legacy campaign has no currency", () => {
+    expect(currencyPrefix(undefined)).toBe("₦");
+  });
+});

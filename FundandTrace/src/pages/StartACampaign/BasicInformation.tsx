@@ -30,6 +30,7 @@ import {
 import CategoryModal from "../../components/composed/Modal/DefaultModal/CategoryModal";
 import { useAppDispatch } from "./../../../store/hooks";
 import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 interface CountryOption {
   name: string;
@@ -50,6 +51,7 @@ export default function BasicInformation() {
   const [loading, setLoading] = useState(false);
   const [campaignId, setCampaignId] = useState("");
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const [error, setError] = useState({
     title: "",
     tagline: "",
@@ -73,8 +75,8 @@ export default function BasicInformation() {
   const [type, setType] = useState("");
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   const popUp = useCallback(() => {
     setShowModal(true);

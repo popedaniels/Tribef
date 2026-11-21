@@ -19,9 +19,9 @@ import {
   addCommaToNumber,
   getDaysRemaining,
   grabErrorMessage,
-  grabErrorStatus,
-} from "../../components/helperFunctions/helperFunctions";
+  grabErrorStatus, currencyPrefix } from "../../components/helperFunctions/helperFunctions";
 import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Prelauch() {
   const [view, setView] = useState("story");
@@ -30,6 +30,7 @@ export default function Prelauch() {
   const [campaignId, setCampaignId] = useState("");
   const router = useRouter();
   const { authenticated, profile } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const [errorBasic, setErrorBasic] = useState(false);
   const [errorContent, setErrorContent] = useState(false);
   const [errorTeam, setErrorTeam] = useState(false);
@@ -38,8 +39,8 @@ export default function Prelauch() {
   const [kycLoading, setKycLoading] = useState(false);
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   const checkKyc = useCallback(async () => {
     if (!profile?._id) return;
@@ -350,11 +351,7 @@ export default function Prelauch() {
               </p>
               <div className="d-flex align-items-baseline">
                 <h3 className="text-heading mr-2">
-                  {startCampaign?.funding?.currency == "USD"
-                    ? "$"
-                    : startCampaign?.funding?.currency == "GBP"
-                    ? "£"
-                    : "₦"}
+                  {currencyPrefix(startCampaign?.funding?.currency)}
                   {addCommaToNumber(startCampaign?.funding?.amountRaised)}
                 </h3>
                 <p

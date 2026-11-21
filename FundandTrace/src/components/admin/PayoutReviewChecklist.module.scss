@@ -1,0 +1,78 @@
+.wrap {
+  margin: 0 0 24px;
+}
+
+.verdict {
+  padding: 14px 18px;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid var(--color-border);
+  border-bottom: 0;
+  h2 { font-size: 17px !important; line-height: 1.3 !important; margin: 0 0 2px; }
+  p { margin: 0; font-size: 14px; }
+}
+.ready { background: #e7f6ee; h2, p { color: #0f5132; } }
+.review { background: #fff4e0; h2, p { color: #6b3a00; } }
+.blocked { background: #fdecec; h2, p { color: #8f1d14; } }
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  border: 1px solid var(--color-border);
+  border-radius: 0 0 8px 8px;
+  @media (max-width: 991px) { grid-template-columns: 1fr; }
+}
+
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 8px 18px;
+  li {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    & + li { border-top: 1px solid var(--color-border-subtle); }
+  }
+  strong { display: block; font-size: 14.5px; color: var(--color-text-heading); }
+  span { font-size: 13.5px; color: var(--color-text-muted); line-height: 1.5; }
+}
+
+.icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px !important;
+  font-weight: 800;
+  margin-top: 1px;
+}
+.checks .pass .icon { background: #e7f6ee; color: #146c43; }
+.checks .warn .icon { background: #fff4e0; color: #8a4b00; }
+.checks .fail .icon { background: #fdecec; color: #b42318; }
+
+.side {
+  padding: 16px 18px;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-canvas);
+  @media (max-width: 991px) { border-left: 0; border-top: 1px solid var(--color-border); }
+  h3 { font-size: 14px !important; margin: 16px 0 8px; }
+}
+
+.money {
+  margin: 0;
+  > div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+  dt { font-weight: 500; color: var(--color-text-muted); }
+  dd { margin: 0; font-weight: 700; color: var(--color-text-heading); }
+}
+
+.history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  li { display: flex; flex-direction: column; padding: 6px 0; font-size: 13.5px; & + li { border-top: 1px solid var(--color-border-subtle); } }
+}
+.current { font-weight: 700; }
+
+.error { color: #b42318; font-weight: 600; }

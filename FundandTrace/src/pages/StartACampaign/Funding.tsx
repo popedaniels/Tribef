@@ -17,9 +17,9 @@ import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
 import {
   grabErrorMessage,
-  grabErrorStatus,
-} from "../../components/helperFunctions/helperFunctions";
+  grabErrorStatus, currencyPrefix } from "../../components/helperFunctions/helperFunctions";
 import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Funding() {
   const router = useRouter();
@@ -28,10 +28,11 @@ export default function Funding() {
   const { startCampaign } = useSelector(selectStartCampaignState);
   const [campaignId, setCampaignId] = useState("");
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   useEffect(() => {
     const storedCampaignId = localStorage.getItem("campaignId") || "";
@@ -86,11 +87,7 @@ export default function Funding() {
               background: "#fafafa",
             }}
           >
-            {startCampaign?.funding?.currency == "USD"
-              ? "$"
-              : startCampaign?.funding?.currency == "GBP"
-              ? "£"
-              : "₦"}
+            {currencyPrefix(startCampaign?.funding?.currency)}
           </div>
           <input
             type="number"

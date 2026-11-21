@@ -20,20 +20,22 @@ import {
 import axios from "axios";
 import { useAppDispatch } from "./../../../store/hooks";
 import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function StepOne() {
   const [view, setView] = useState("");
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { authenticated, profile } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   useEffect(() => {
-    !profile?.verified && router.push("/SignUp/Verify");
-  }, [profile, router]);
+    rehydrated && authenticated && !profile?.verified && router.push("/SignUp/Verify");
+  }, [rehydrated, authenticated, profile, router]);
 
   const handleSubmit = async (
     type: "Individual" | "non-profit" | "for-profit"

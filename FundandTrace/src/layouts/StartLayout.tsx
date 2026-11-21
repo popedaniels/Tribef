@@ -17,6 +17,7 @@ import {
   grabErrorStatus,
 } from "../components/helperFunctions/helperFunctions";
 import { getApiBaseUrl } from "../utils/api";
+import { useRehydrated } from "../hooks/useRequireAuth";
 
 type StartLayoutProps = {
   children: React.ReactNode;
@@ -42,16 +43,17 @@ export default function StartLayout({
   const router = useRouter();
   const { startCampaign } = useSelector(selectStartCampaignState);
   const { profile, authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const dispatch = useAppDispatch();
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    !profile?.verified && router.push("/SignUp/Verify");
-  }, [profile, router]);
+    rehydrated && authenticated && !profile?.verified && router.push("/SignUp/Verify");
+  }, [rehydrated, authenticated, profile, router]);
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   const saveCampaign = async () => {
     try {

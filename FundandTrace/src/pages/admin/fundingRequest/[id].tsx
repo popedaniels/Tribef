@@ -7,11 +7,12 @@ import { useEffect } from "react";
 import Spinner from "../../../components/composed/spinner/Spinner";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { config } from "../../../components/helperFunctions/helperFunctions";
+import { config, currencyPrefix } from "../../../components/helperFunctions/helperFunctions";
 import ApproveCampaignModal from "../../../components/composed/Modal/DefaultModal/ApproveCampaignModal";
 import DeclineCampaignModal from "../../../components/composed/Modal/DefaultModal/DeclineCampaignModal";
 import type { BasicInformation } from "../../../types/campaign";
 import { getApiBaseUrl } from "../../../utils/api";
+import PayoutReviewChecklist, { type Verdict } from "../../../components/admin/PayoutReviewChecklist";
 
 interface FundingRequestDetail {
   _id?: string;
@@ -40,6 +41,8 @@ export default function FundingRequestDetailPage() {
   const [approveModal, setApproveModal] = useState(false);
   const [declineModal, setDeclineModal] = useState(false);
   const [reload, setReload] = useState(false);
+  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [overrideAck, setOverrideAck] = useState(false);
 
   const getFundingRequest = useCallback(async () => {
     setLoading(true);
@@ -76,6 +79,12 @@ export default function FundingRequestDetailPage() {
                   />
                 </div>
               ) : (
+                <>
+                {fundingRequest?.status == "Pending" && (
+                  <div className="px-4 pt-4">
+                    <PayoutReviewChecklist id={String(router.query.id || "")} onVerdict={setVerdict} />
+                  </div>
+                )}
                 <Section className="w-100">
                   <article className="w-100 py-4 px-4 d-flex align-items-start">
                     <a onClick={() => router.back()} role="button">
@@ -115,10 +124,10 @@ export default function FundingRequestDetailPage() {
                             style={{
                               background:
                                 fundingRequest?.status == "Approved"
-                                  ? "#17D37B"
+                                  ? "#146c43"
                                   : fundingRequest?.status == "Pending"
-                                  ? "#EFC109"
-                                  : "#FF5050",
+                                  ? "#8a4b00"
+                                  : "#b42318",
                             }}
                           >
                             <img
@@ -168,12 +177,8 @@ export default function FundingRequestDetailPage() {
                       </div>
                       <div className="mb-4">
                         <h2 className="">
-                          {fundingRequest?.currency == "USD"
-                            ? "$"
-                            : fundingRequest?.currency == "GBP"
-                            ? "£"
-                            : "₦"}
-                          {fundingRequest?.amount}
+                          {currencyPrefix(fundingRequest?.currency)}
+                          {Number(fundingRequest?.amount || 0).toLocaleString("en-US")}
                         </h2>
                         <p
                           className="text-small mb-0"
@@ -222,12 +227,23 @@ export default function FundingRequestDetailPage() {
                         )}
                       {/* */}
                       {fundingRequest?.status == "Pending" && (
-                        <div className="d-flex align-items-center mt-4">
+                        <div className="mt-4">
+                        {verdict === "blocked" && (
+                          <label className="d-flex align-items-start mb-3" style={{ gap: 8, fontSize: 14, maxWidth: 560 }}>
+                            <input type="checkbox" checked={overrideAck} onChange={() => setOverrideAck(!overrideAck)} style={{ marginTop: 3 }} />
+                            <span>
+                              I&apos;ve checked every failed item above and have a documented reason to approve anyway. This will be recorded in the
+                              audit log.
+                            </span>
+                          </label>
+                        )}
+                        <div className="d-flex align-items-center">
                           <button
                             className="acceptButton"
+                            disabled={verdict === "blocked" && !overrideAck}
                             onClick={() => setApproveModal(true)}
                           >
-                            Approve
+                            {verdict === "blocked" ? "Approve anyway" : "Approve"}
                           </button>
                           <button
                             className="deleteButton"
@@ -236,10 +252,12 @@ export default function FundingRequestDetailPage() {
                             Decline
                           </button>
                         </div>
+                        </div>
                       )}
                     </div>
                   </article>
                 </Section>
+                </>
               )}
             </section>
           </section>

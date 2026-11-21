@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar/Navbar";
 import { useSelector } from "react-redux";
 import { selectAuthStateState } from "../../store/slices/authSlice";
 import { useRouter } from "next/router";
+import { useRehydrated } from "../hooks/useRequireAuth";
 
 interface ForgotPasswordLayoutProps {
   children: React.ReactNode;
@@ -14,11 +15,12 @@ interface ForgotPasswordLayoutProps {
 
 export default function ForgotPasswordLayout({ children }: ForgotPasswordLayoutProps) {
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const router = useRouter();
 
   useEffect(() => {
-    authenticated && router.push("/");
-  }, [authenticated, router]);
+    rehydrated && authenticated && router.push("/");
+  }, [rehydrated, authenticated, router]);
 
   return (
     <Layout url="https://fundandtrace.com" ogImage="/og-image.jpg" title={`Password Reset`}>

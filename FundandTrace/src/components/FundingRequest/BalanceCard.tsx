@@ -1,5 +1,5 @@
 import React from "react";
-import { addCommaToNumber } from "../../components/helperFunctions/helperFunctions";
+import { addCommaToNumber, currencyPrefix } from "../../components/helperFunctions/helperFunctions";
 import type { FundingCampaign } from "../../types/fundingRequest";
 
 interface Props {
@@ -19,7 +19,7 @@ export const BalanceCard: React.FC<Props> = ({ campaign }) => (
           <img src="/images/icons/donationUp.svg" width={12} height={12} alt="upIcon" />
           <div className="ml-3">
             <p className="mb-2 text-donations">
-              {campaign?.funding?.currency == "USD" ? "$" : campaign?.funding?.currency == "GBP" ? "£" : "₦"}
+              {currencyPrefix(campaign?.funding?.currency)}
               {Math.round(Number(campaign?.funding?.amountRaised))}
             </p>
             <p className="mb-0 text-blur">donations</p>
@@ -29,7 +29,7 @@ export const BalanceCard: React.FC<Props> = ({ campaign }) => (
           <img src="/images/icons/donationDown.svg" width={12} height={12} alt="downIcon" />
           <div className="ml-3">
             <p className="mb-2 text-donations">
-              {campaign?.funding?.currency == "USD" ? "$" : campaign?.funding?.currency == "GBP" ? "£" : "₦"}
+              {currencyPrefix(campaign?.funding?.currency)}
               {addCommaToNumber(Number(campaign?.funding?.amountRaised) - Number(campaign?.funding?.availableBalance))}
             </p>
             <p className="mb-0 text-blur">expenses paid</p>

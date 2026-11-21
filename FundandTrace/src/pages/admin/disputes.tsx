@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import AdminLayout from "../../layouts/AdminLayout";
+import Layout from "../../components/Layout";
 import { config } from "../../components/helperFunctions/helperFunctions";
 import { getApiBaseUrl } from "../../utils/api";
 import styles from "../../components/trust/trust.module.scss";
@@ -76,6 +77,7 @@ export default function AdminDisputes() {
   };
 
   return (
+    <Layout title="Disputes | Fund&Trace Admin" description="Frozen campaigns awaiting review">
     <AdminLayout active="Disputes">
       <section className="mx-auto my-4" style={{ maxWidth: 980, padding: "0 16px" }}>
         <h1 className="text-heading mb-2" style={{ fontSize: 26 }}>
@@ -156,5 +158,6 @@ export default function AdminDisputes() {
         )}
       </section>
     </AdminLayout>
+    </Layout>
   );
 }

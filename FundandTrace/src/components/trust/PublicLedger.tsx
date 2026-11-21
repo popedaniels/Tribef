@@ -61,6 +61,33 @@ export async function verifyChainInBrowser(entries: Entry[]) {
   return { valid: true, head: prev };
 }
 
+export type AnchorProof = {
+  included: boolean;
+  anchor: { date: string; root: string; digest: string; publications?: { target: string; ok: boolean; ref?: string }[] };
+  leaf?: { campaignId: string; seq: number; head: string };
+  leafHash?: string;
+  path?: { hash: string; side: "left" | "right" }[];
+};
+
+/**
+ * Check, in the browser, that the published daily anchor commits to this
+ * campaign's ledger as it stood then, and that today's ledger still has the
+ * same entry at that position (so history wasn't rewritten since).
+ * Mirrors services/anchoring.js.
+ */
+export async function verifyAnchorInBrowser(proof: AnchorProof, entries: Entry[]) {
+  if (!proof.included || !proof.leaf || !proof.path) return { valid: false, reason: "not included" };
+  const { campaignId, seq, head } = proof.leaf;
+  let h = await sha256(`ft-leaf:v1:${campaignId}:${seq}:${head}`);
+  for (const step of proof.path) {
+    h = step.side === "right" ? await sha256(`ft-node:v1:${h}${step.hash}`) : await sha256(`ft-node:v1:${step.hash}${h}`);
+  }
+  if (h !== proof.anchor.root) return { valid: false, reason: "proof does not lead to the published root" };
+  const current = entries.find((e) => e.seq === seq);
+  if (!current || current.hash !== head) return { valid: false, reason: `entry #${seq} has changed since ${proof.anchor.date}` };
+  return { valid: true, seq, date: proof.anchor.date };
+}
+
 const money = (n: number, currency: string) => `${n > 0 ? "+" : ""}${formatMoney(n, currency)}`;
 
 export default function PublicLedger({ campaignId }: { campaignId?: string }) {
@@ -68,6 +95,8 @@ export default function PublicLedger({ campaignId }: { campaignId?: string }) {
   const [error, setError] = useState("");
   const [verdict, setVerdict] = useState<{ valid: boolean; brokenAt?: number; head?: string } | null>(null);
   const [checking, setChecking] = useState(false);
+  const [proof, setProof] = useState<AnchorProof | null>(null);
+  const [anchorVerdict, setAnchorVerdict] = useState<{ valid: boolean; reason?: string; seq?: number; date?: string } | null>(null);
 
   useEffect(() => {
     if (!campaignId) return;
@@ -75,6 +104,10 @@ export default function PublicLedger({ campaignId }: { campaignId?: string }) {
       .get(`${getApiBaseUrl()}/api/ledger/${campaignId}?limit=500`, { timeout: 8000 })
       .then((r) => setEntries(r.data?.data?.entries || []))
       .catch(() => setError("The ledger couldn't be loaded right now."));
+    axios
+      .get(`${getApiBaseUrl()}/api/ledger/${campaignId}/proof`, { timeout: 8000 })
+      .then((r) => setProof(r.data?.data || null))
+      .catch(() => setProof(null));
   }, [campaignId]);
 
   const verify = useCallback(async () => {
@@ -82,10 +115,11 @@ export default function PublicLedger({ campaignId }: { campaignId?: string }) {
     setChecking(true);
     try {
       setVerdict(await verifyChainInBrowser(entries));
+      if (proof?.included) setAnchorVerdict(await verifyAnchorInBrowser(proof, entries));
     } finally {
       setChecking(false);
     }
-  }, [entries]);
+  }, [entries, proof]);
 
   if (!campaignId) return null;
   return (
@@ -111,6 +145,34 @@ export default function PublicLedger({ campaignId }: { campaignId?: string }) {
             ? `✓ Intact: all ${entries?.length} entries match their fingerprints.`
             : `✗ Integrity check failed at entry #${verdict.brokenAt}. Please report this to support.`}
           {verdict.valid && verdict.head ? <code className={styles.hash}>{verdict.head.slice(0, 16)}…</code> : null}
+        </p>
+      )}
+
+      {anchorVerdict && (
+        <p className={anchorVerdict.valid ? styles.verdictOk : styles.verdictBad} role="status">
+          {anchorVerdict.valid
+            ? `✓ Matches the public fingerprint published on ${anchorVerdict.date}: entries 1–${anchorVerdict.seq} are unchanged since then.`
+            : `✗ Doesn't match the published daily fingerprint (${anchorVerdict.reason}). Please report this to support.`}
+        </p>
+      )}
+
+      {proof?.included && !anchorVerdict && (
+        <p className={styles.muted}>
+          Anchored daily: on {proof.anchor.date} this ledger&apos;s first {proof.leaf?.seq} entries were committed to a public fingerprint
+          {(() => {
+            const pub = proof.anchor.publications?.find((p) => p.ok && p.ref?.startsWith("https://"));
+            return pub ? (
+              <>
+                {" "}
+                (
+                <a href={pub.ref} target="_blank" rel="noopener noreferrer">
+                  published here
+                </a>
+                )
+              </>
+            ) : null;
+          })()}
+          . &ldquo;Verify ledger&rdquo; checks that too.
         </p>
       )}
 

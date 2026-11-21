@@ -18,6 +18,7 @@ import {
   grabErrorStatus,
 } from "../../components/helperFunctions/helperFunctions";
 import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Content() {
   const dispatch = useAppDispatch();
@@ -27,9 +28,11 @@ export default function Content() {
 
   const { authenticated } = useSelector(selectAuthStateState);
 
+  const rehydrated = useRehydrated();
+
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   useEffect(() => {
     const storedCampaignId = localStorage.getItem("campaignId") || "";

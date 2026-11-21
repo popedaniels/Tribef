@@ -17,8 +17,7 @@ import {
   getDaysRemaining,
   getTimeDiff,
   grabErrorMessage,
-  grabErrorStatus,
-} from "../../../components/helperFunctions/helperFunctions";
+  grabErrorStatus, currencyPrefix } from "../../../components/helperFunctions/helperFunctions";
 import { logout } from "../../../../store/slices/authSlice";
 import { useAppDispatch } from "./../../../../store/hooks";
 import type { Campaign } from "../../../types/campaign";
@@ -184,11 +183,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
               >
                 <p className="text-small">RAISED</p>
                 <h3 className="mb-4">
-                  {campaign?.funding?.currency == "USD"
-                    ? "$"
-                    : campaign?.funding?.currency == "GBP"
-                    ? "£"
-                    : "₦"}
+                  {currencyPrefix(campaign?.funding?.currency)}
                   {addCommaToNumber(campaign?.funding?.amountRaised)}
                 </h3>
                 <p className="text-small">DONORS</p>
@@ -213,11 +208,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                   <div className="d-flex align-items-center">
                     <p className="text-small mr-1 mb-0">GOAL: </p>
                     <p className="font-weight-bold opacity-1 mb-0">
-                      {campaign?.funding?.currency == "USD"
-                        ? "$"
-                        : campaign?.funding?.currency == "GBP"
-                        ? "£"
-                        : "₦"}
+                      {currencyPrefix(campaign?.funding?.currency)}
                       {addCommaToNumber(campaign?.funding?.amountExpected)}
                     </p>
                   </div>
@@ -430,11 +421,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                   </p>
                   <div className="d-flex align-items-baseline">
                     <h3 className="text-heading mr-2">
-                      {campaign?.funding?.currency == "USD"
-                        ? "$"
-                        : campaign?.funding?.currency == "GBP"
-                        ? "£"
-                        : "₦"}
+                      {currencyPrefix(campaign?.funding?.currency)}
                       {addCommaToNumber(campaign?.funding?.amountRaised)}
                     </h3>
                     <p
@@ -442,11 +429,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                       style={{ fontWeight: "300", color: "#5f6672" }}
                     >
                       raised of{" "}
-                      {campaign?.funding?.currency == "USD"
-                        ? "$"
-                        : campaign?.funding?.currency == "GBP"
-                        ? "£"
-                        : "₦"}
+                      {currencyPrefix(campaign?.funding?.currency)}
                       {addCommaToNumber(campaign?.funding?.amountExpected)}
                     </p>
                   </div>

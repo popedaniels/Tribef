@@ -1,5 +1,6 @@
 import React from "react";
 import styles from "./FundingRequestsComponent.module.scss";
+import { currencyPrefix } from "../../helperFunctions/helperFunctions";
 
 export default function FundingRequestsComponent({ fundingRequest, campaign }) {
   return (
@@ -55,11 +56,7 @@ export default function FundingRequestsComponent({ fundingRequest, campaign }) {
             </div>
             <div className={styles.statement__right}>
               <p className="mb-0 text-small">
-                {fundingRequest?.currency == "USD"
-                  ? "$"
-                  : fundingRequest?.currency == "GBP"
-                  ? "£"
-                  : "₦"}
+                {currencyPrefix(fundingRequest?.currency)}
                 {fundingRequest?.amount}
               </p>
             </div>

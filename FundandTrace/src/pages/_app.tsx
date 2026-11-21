@@ -27,9 +27,17 @@ Router.events.on("routeChangeStart", () => NProgress.start());
 Router.events.on("routeChangeComplete", () => NProgress.done());
 Router.events.on("routeChangeError", () => NProgress.done());
 
-persistStore(store);
+// Restore the saved session only AFTER React has hydrated the server HTML.
+// Restoring it at module load made the first client render differ from the
+// server's (signed-in vs signed-out), which threw a hydration error on every
+// page for signed-in visitors and made React discard the server HTML.
+// Redirects that depend on auth wait for it via useRehydrated().
+const persistor = persistStore(store, { manualPersist: true } as unknown as undefined);
 
 function MyApp({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    persistor.persist();
+  }, []);
   return (
     <Provider store={store}>
       <Content Component={Component} pageProps={pageProps} />

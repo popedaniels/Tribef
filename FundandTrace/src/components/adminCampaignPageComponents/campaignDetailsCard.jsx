@@ -1,7 +1,7 @@
 import Link from "next/link";
 import React from "react";
 import styled from "styled-components";
-import { addCommaToNumber } from "../helperFunctions/helperFunctions";
+import { addCommaToNumber, currencyPrefix } from "../helperFunctions/helperFunctions";
 
 export default function CampaignDetailsCard({ campaign, index }) {
   return (
@@ -42,21 +42,13 @@ export default function CampaignDetailsCard({ campaign, index }) {
         </div>
         <div className="ending mx-3" style={{ width: 110 }}>
           <p className="mb-0">
-            {campaign?.funding?.currency == "USD"
-              ? "$"
-              : campaign?.funding?.currency == "GBP"
-              ? "£"
-              : "₦"}
+            {currencyPrefix(campaign?.funding?.currency)}
             {addCommaToNumber(campaign?.funding?.availableBalance)}
           </p>
         </div>
         <div className="raised mx-3" style={{ width: 110 }}>
           <p className="mb-0">
-            {campaign?.funding?.currency == "USD"
-              ? "$"
-              : campaign?.funding?.currency == "GBP"
-              ? "£"
-              : "₦"}
+            {currencyPrefix(campaign?.funding?.currency)}
             {addCommaToNumber(campaign?.funding?.amountRaised)}
           </p>
         </div>

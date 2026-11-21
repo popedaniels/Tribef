@@ -23,6 +23,7 @@ import {
   grabErrorStatus,
 } from "../../components/helperFunctions/helperFunctions";
 import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Content() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function Content() {
   const [campaignId, setCampaignId] = useState("");
   const { startCampaign } = useSelector(selectStartCampaignState);
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const [campError, setCampError] = useState(false);
   const { showCampaignError } = useSelector(selectCampaignErrorState);
   const [youtubeLink, setYoutubeLink] = useState(
@@ -44,8 +46,8 @@ export default function Content() {
   );
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   useEffect(() => {
     const storedCampaignId = localStorage.getItem("campaignId") || "";

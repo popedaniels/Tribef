@@ -22,6 +22,7 @@ import {
   grabErrorStatus,
 } from "../../components/helperFunctions/helperFunctions";
 import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Category() {
   const router = useRouter();
@@ -87,6 +88,7 @@ export default function Category() {
 
   const dispatch = useAppDispatch();
   const { profile, authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
 
   const handleSubmit = async () => {
     try {
@@ -116,12 +118,12 @@ export default function Category() {
   };
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   useEffect(() => {
-    !profile?.verified && router.push("/SignUp/Verify");
-  }, [profile, router]);
+    rehydrated && authenticated && !profile?.verified && router.push("/SignUp/Verify");
+  }, [rehydrated, authenticated, profile, router]);
 
   return (
     <Layout title="Start a campaign | Category" showFooter>

@@ -23,6 +23,7 @@ import {
   getStates as locationGetStates,
   getCountries as locationGetCountries,
 } from "../../components/helperFunctions/locationFunctions";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 interface CountryOption {
   name: string;
@@ -49,6 +50,7 @@ export default function StepOne() {
   const dispatch = useAppDispatch();
   const signUpState = useSelector(selectSignUpState);
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const router = useRouter();
   const [states, setStates] = useState<StateOption[]>([]);
   const [allStates, setAllStates] = useState<StateOption[]>([]);
@@ -143,8 +145,8 @@ export default function StepOne() {
   }, [dispatch]);
 
   useEffect(() => {
-    authenticated && router.push("/");
-  }, [authenticated, router]);
+    rehydrated && authenticated && router.push("/");
+  }, [rehydrated, authenticated, router]);
 
   const getStates = useCallback(async () => {
     try {

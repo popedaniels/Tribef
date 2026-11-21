@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { selectAuthStateState } from "../../../../store/slices/authSlice";
 import styles from "./MobileDashboard.module.scss";
+import { useRehydrated } from "../../../hooks/useRequireAuth";
 
 export default function MobileDashboard({ onClose, campaignId, title }) {
   const navItems = [
@@ -66,11 +67,13 @@ export default function MobileDashboard({ onClose, campaignId, title }) {
   ];
 
   const { authenticated, profile } = useSelector(selectAuthStateState);
+
+  const rehydrated = useRehydrated();
   const router = useRouter();
 
   useEffect(() => {
-    !authenticated && router.push("/");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/");
+  }, [rehydrated, authenticated, router]);
 
   return (
     <div className={styles.container}>

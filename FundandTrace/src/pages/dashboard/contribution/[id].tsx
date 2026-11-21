@@ -8,7 +8,7 @@ import axios from "axios";
 import ShareModal from "../../../components/composed/Modal/DefaultModal/ShareModal";
 import FundingRequestsComponent from "../../../components/composed/fundingRequestComponent/FundingRequestComponent";
 import UpdateComponent from "../../../components/composed/UpdatesComponent";
-import { addCommaToNumber, getDaysRemaining } from "../../../components/helperFunctions/helperFunctions";
+import { addCommaToNumber, getDaysRemaining, currencyPrefix } from "../../../components/helperFunctions/helperFunctions";
 import type { Campaign } from "../../../types/campaign";
 import { getApiBaseUrl } from "../../../utils/api";
 
@@ -133,11 +133,7 @@ export default function Contribution() {
                 </p>
                 <div className="d-flex align-items-baseline">
                   <h3 className="text-heading mr-2">
-                    {campaign?.funding?.currency == "USD"
-                      ? "$"
-                      : campaign?.funding?.currency == "GBP"
-                      ? "£"
-                      : "₦"}
+                    {currencyPrefix(campaign?.funding?.currency)}
                     {addCommaToNumber(campaign?.funding?.amountRaised)}
                   </h3>
                   <p
@@ -145,11 +141,7 @@ export default function Contribution() {
                     style={{ fontWeight: "300", color: "#5f6672" }}
                   >
                     raised of{" "}
-                    {campaign?.funding?.currency == "USD"
-                      ? "$"
-                      : campaign?.funding?.currency == "GBP"
-                      ? "£"
-                      : "₦"}
+                    {currencyPrefix(campaign?.funding?.currency)}
                     {addCommaToNumber(campaign?.funding?.amountExpected)}
                   </p>
                 </div>

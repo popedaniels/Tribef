@@ -9,6 +9,7 @@ import {
   adminLogout,
   selectAdminAuthStateState,
 } from "../../store/slices/adminAuthStateSlice";
+import { useAdminRehydrated } from "../hooks/useRequireAuth";
 
 const navLinks = [
   {
@@ -48,11 +49,12 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ active, children }: AdminLayoutProps) {
   const { adminAuthenticated } = useSelector(selectAdminAuthStateState);
+  const adminRehydrated = useAdminRehydrated();
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    !adminAuthenticated && router.push("/admin/auth/signIn");
-  }, [adminAuthenticated]);
+    adminRehydrated && !adminAuthenticated && router.push("/admin/auth/signIn");
+  }, [adminRehydrated, adminAuthenticated]);
 
   return (
     <Wrapper>
@@ -78,7 +80,7 @@ export default function AdminLayout({ active, children }: AdminLayoutProps) {
                   passHref
                   className="px-2"
                   style={{
-                    color: active == links.title ? "var(--color-primary)" : "#A0A2AF",
+                    color: active == links.title ? "var(--color-primary)" : "#5F6672",
                     fontWeight: active == links.title ? 500 : 400,
                   }}>
 

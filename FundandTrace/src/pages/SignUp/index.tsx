@@ -6,14 +6,16 @@ import { useSelector } from "react-redux";
 import { selectAuthStateState } from "../../../store/slices/authSlice";
 import { useRouter } from "next/router";
 import Layout from "../../components/Layout";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function StepOne() {
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const router = useRouter();
 
   useEffect(() => {
-    authenticated && router.push("/");
-  }, [authenticated, router]);
+    rehydrated && authenticated && router.push("/");
+  }, [rehydrated, authenticated, router]);
 
   return (
     <Layout

@@ -182,6 +182,17 @@ const getCurrency = (currency) => {
   return CURRENCY_SYMBOLS[upper] || upper;
 };
 
+/**
+ * Symbol to put before an amount: "₦", "$", "£", "KSh ", "GH₵", "XOF ".
+ * Missing currency keeps the historical default (₦): older campaigns were
+ * created before currency was stored and are all NGN.
+ */
+const currencyPrefix = (currency) => {
+  if (!currency) return "₦";
+  const sym = String(getCurrency(currency)).trim();
+  return /[A-Za-z]$/.test(sym) ? `${sym} ` : sym;
+};
+
 const formatCurrencyAmount = (amount, currency = "USD") => {
   const num = Number(amount) || 0;
   const upper = String(currency).toUpperCase();
@@ -356,6 +367,7 @@ export {
   getPresetDonationAmounts,
   addCommaToNumber,
   formatMoney,
+  currencyPrefix,
   timeAgo,
   selectPaymentRail,
   grabErrorMessage,

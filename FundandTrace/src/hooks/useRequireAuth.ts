@@ -45,3 +45,17 @@ export function useRequireAuth() {
 
   return { ready: rehydrated && Boolean(authenticated), profile };
 }
+
+/**
+ * True once redux-persist has restored the saved session. Gate any redirect
+ * that depends on `authenticated` on this: before it, a signed-in user looks
+ * signed out (the session is restored after hydration; see _app.tsx).
+ */
+export function useRehydrated(): boolean {
+  return useSelector((state: PersistedState) => Boolean(state?._persist?.rehydrated));
+}
+
+/** Same, for the admin session (persisted separately in sessionStorage). */
+export function useAdminRehydrated(): boolean {
+  return useSelector((state: { adminAuthStateReducer?: PersistedState }) => Boolean(state?.adminAuthStateReducer?._persist?.rehydrated));
+}

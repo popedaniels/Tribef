@@ -2,7 +2,7 @@ import Link from "next/link";
 import React, { useState } from "react";
 import styled from "styled-components";
 import DonationsModal from "../composed/Modal/DefaultModal/DonationsModal";
-import { getTimeDiff } from "../helperFunctions/helperFunctions";
+import { getTimeDiff, currencyPrefix } from "../helperFunctions/helperFunctions";
 
 export default function AdminCampaignContent({ campaign }) {
   const [showDonationModal, setShowDonationModal] = useState(false);
@@ -143,11 +143,7 @@ export default function AdminCampaignContent({ campaign }) {
                   </div>
 
                   <p className="mb-0 text-small mt-3">
-                    {campaign?.funding?.currency == "USD"
-                      ? "$"
-                      : campaign?.funding?.currency == "GBP"
-                      ? "£"
-                      : "₦"}
+                    {currencyPrefix(campaign?.funding?.currency)}
                     {Math.round(donation?.amount)}
                   </p>
                 </div>

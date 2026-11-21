@@ -4,7 +4,7 @@ import React from "react";
 import { useDispatch } from "react-redux";
 import styled from "styled-components";
 import { toast } from "../../../store/slices/ToastSlice";
-import { addCommaToNumber } from "../helperFunctions/helperFunctions";
+import { addCommaToNumber, currencyPrefix } from "../helperFunctions/helperFunctions";
 import { config } from "../helperFunctions/helperFunctions";
 import { getApiBaseUrl } from "../../utils/api";
 
@@ -71,11 +71,7 @@ const RefundsDetailsCard = ({ donation, index, single }) => {
       </div>
       <div className="ending mr-3" style={{ width: 110 }}>
         <p className="mb-0 text-left">
-          {donation?.campaignId?.funding?.currency == "USD"
-            ? "$"
-            : donation?.campaignId?.funding?.currency == "GBP"
-            ? "£"
-            : "₦"}
+          {currencyPrefix(donation?.campaignId?.funding?.currency)}
           {addCommaToNumber(
             single ? donation?.amount : donation?.funding?.availableBalance
           )}

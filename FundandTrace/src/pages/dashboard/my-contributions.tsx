@@ -14,8 +14,7 @@ import {
 import {
   addCommaToNumber,
   grabErrorMessage,
-  grabErrorStatus,
-} from "../../components/helperFunctions/helperFunctions";
+  grabErrorStatus, currencyPrefix } from "../../components/helperFunctions/helperFunctions";
 import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
 import type { Campaign } from "../../types/campaign";
@@ -77,11 +76,7 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
             </div>
             <div className="d-flex align-items-baseline">
               <h3 className="text-heading mr-2 mb-0" style={{ fontSize: 14 }}>
-                {campaign?.campaignId?.funding?.currency == "USD"
-                  ? "$"
-                  : campaign?.campaignId?.funding?.currency == "GBP"
-                  ? "£"
-                  : "₦"}
+                {currencyPrefix(campaign?.campaignId?.funding?.currency)}
                 {addCommaToNumber(campaign?.campaignId?.funding?.amountRaised)}
               </h3>
               <p
@@ -93,11 +88,7 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
                 }}
               >
                 raised of{" "}
-                {campaign?.campaignId?.funding?.currency == "USD"
-                  ? "$"
-                  : campaign?.campaignId?.funding?.currency == "GBP"
-                  ? "£"
-                  : "₦"}
+                {currencyPrefix(campaign?.campaignId?.funding?.currency)}
                 {addCommaToNumber(
                   campaign?.campaignId?.funding?.amountExpected
                 )}
@@ -123,11 +114,7 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
                 : "Donated"}
             </p>
             <h2 className="mb-3">
-              {campaign?.campaignId?.funding?.currency == "USD"
-                ? "$"
-                : campaign?.campaignId?.funding?.currency == "GBP"
-                ? "£"
-                : "₦"}
+              {currencyPrefix(campaign?.campaignId?.funding?.currency)}
               {addCommaToNumber(campaign?.amount)}
             </h2>
             <p className="mb-0">
@@ -154,11 +141,7 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
                 : "Donated"}
             </p>
             <h2 className="mb-3">
-              {campaign?.campaignId?.funding?.currency == "USD"
-                ? "$"
-                : campaign?.campaignId?.funding?.currency == "GBP"
-                ? "£"
-                : "₦"}
+              {currencyPrefix(campaign?.campaignId?.funding?.currency)}
               {addCommaToNumber(campaign?.amount)}
             </h2>
             <p className="mb-0">

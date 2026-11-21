@@ -6,6 +6,7 @@ import { selectAuthStateState } from "../../../../store/slices/authSlice";
 // import { useState } from "react";
 // import DeleteModal from "../Modal/DefaultModal/DeleteModal";
 import styles from "./MobileCampaignMenu.module.scss";
+import { useRehydrated } from "../../../hooks/useRequireAuth";
 
 export default function MobileCampaignMenu({ onClose, setShowDelete }) {
   const navItems = [
@@ -61,11 +62,13 @@ export default function MobileCampaignMenu({ onClose, setShowDelete }) {
   };
 
   const { authenticated, profile } = useSelector(selectAuthStateState);
+
+  const rehydrated = useRehydrated();
   const router = useRouter();
 
   useEffect(() => {
-    !authenticated && router.push("/");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/");
+  }, [rehydrated, authenticated, router]);
 
   return (
     <div className={styles.container}>

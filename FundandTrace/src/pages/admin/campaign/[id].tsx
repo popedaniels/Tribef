@@ -15,8 +15,7 @@ import AdminFundingDetails from "../../../components/adminCampaignPageComponents
 import {
   addCommaToNumber,
   config,
-  getDaysRemaining,
-} from "../../../components/helperFunctions/helperFunctions";
+  getDaysRemaining, currencyPrefix } from "../../../components/helperFunctions/helperFunctions";
 import UpdateComponent from "../../../components/composed/UpdatesComponent";
 import AdminSendEmailModal from "../../../components/composed/Modal/DefaultModal/AdminSendEmailModal";
 
@@ -159,20 +158,12 @@ export default function CampaignDetailsPage() {
                             className="text-heading mr-2"
                             style={{ fontSize: 16, lineHeight: "28px" }}
                           >
-                            {campaign?.funding?.currency == "USD"
-                              ? "$"
-                              : campaign?.funding?.currency == "GBP"
-                              ? "£"
-                              : "₦"}
+                            {currencyPrefix(campaign?.funding?.currency)}
                             {addCommaToNumber(campaign?.funding?.amountRaised)}
                           </h3>
                           <p className="mb-0" style={{ fontWeight: "300" }}>
                             raised of{" "}
-                            {campaign?.funding?.currency == "USD"
-                              ? "$"
-                              : campaign?.funding?.currency == "GBP"
-                              ? "£"
-                              : "₦"}
+                            {currencyPrefix(campaign?.funding?.currency)}
                             {addCommaToNumber(
                               campaign?.funding?.amountExpected
                             )}

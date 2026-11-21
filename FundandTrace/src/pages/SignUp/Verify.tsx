@@ -11,17 +11,19 @@ import { toast } from "../../../store/slices/ToastSlice";
 import Layout from "../../components/Layout";
 import { useAppDispatch } from "./../../../store/hooks";
 import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Verify() {
   const { profile, authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
     profile?.verified && router.push("/");
-    !authenticated && router.push("/");
-  }, [authenticated, profile?.verified, router]);
+    rehydrated && !authenticated && router.push("/");
+  }, [rehydrated, authenticated, profile?.verified, router]);
   const handleSubmit = async () => {
     setLoading(true);
     try {

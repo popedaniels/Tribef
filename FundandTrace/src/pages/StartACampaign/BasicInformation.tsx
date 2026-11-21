@@ -227,9 +227,9 @@ export default function BasicInformation() {
       <div className="mb-5">
         <h2 className="text-heading mb-4">Basic Information</h2>
         <p className="mb-4">
-          The Basic information condense your campaign goals and description
-          into a campaign card that’s shared with thousands of donors across our
-          platform. Write a strong statement for donors to learn more.
+          Your title, summary and photo become the campaign card donors see
+          when they browse and when you share your link. Make it clear what
+          you&apos;re raising money for and who it helps.
         </p>
       </div>
       <div className="mb-5" style={{ position: "relative" }}>

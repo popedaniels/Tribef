@@ -1,16 +1,12 @@
 import { useState } from "react";
 import styles from "./DisbursementCard.module.scss";
+import { formatMoney } from "../helperFunctions/helperFunctions";
 
 const PROOF_DUE_DAYS = 14;
 const DAY = 24 * 60 * 60 * 1000;
 
-const money = (amount, currency) => {
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: currency || "GBP" }).format(Number(amount || 0));
-  } catch {
-    return `${currency || ""} ${Number(amount || 0).toFixed(2)}`;
-  }
-};
+const money = (amount, currency) => formatMoney(amount, currency);
+const shortDate = (d) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 const isThirdParty = (type) => String(type || "").toLowerCase().replace(/[\s_-]+/g, "") === "thirdparty";
 const isPdf = (url) => /\.pdf($|\?)/i.test(String(url || ""));
@@ -44,7 +40,7 @@ export default function DisbursementCard({ disbursement, fundingRequest, last })
         <span>
           <span className={styles.amount}>{money(d.amount, d.currency)}</span>
           <span className={styles.meta}>
-            {paidAt ? paidAt.toLocaleDateString() : "—"} ·{" "}
+            {paidAt ? shortDate(paidAt) : "—"} ·{" "}
             {isThirdParty(fundingRequest?.fundingType) ? "Paid directly to supplier" : "Paid to organiser"}
           </span>
         </span>
@@ -55,7 +51,7 @@ export default function DisbursementCard({ disbursement, fundingRequest, last })
           ) : overdue ? (
             <span className={`${styles.chip} ${styles.bad}`}>Proof overdue</span>
           ) : (
-            <span className={`${styles.chip} ${styles.pending}`}>Proof due {dueAt ? dueAt.toLocaleDateString() : ""}</span>
+            <span className={`${styles.chip} ${styles.pending}`}>Proof due {dueAt ? shortDate(dueAt) : ""}</span>
           )}
           <img src={open ? "/images/icons/blueup.svg" : "/images/icons/dropdown.svg"} alt="" width={15} height={16} />
         </span>

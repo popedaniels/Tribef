@@ -705,6 +705,7 @@ export default function FundingRequest({
             allFundings.map((campaign, i) => (
               <PaymentHistoryCard
                 fundingRequest={campaign}
+                owner
                 key={i}
                 last={i == allFundings.length - 1 && "last"}
               />

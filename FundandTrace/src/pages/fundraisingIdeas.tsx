@@ -30,7 +30,7 @@ const categoriesData = [
     summary: "For community boreholes, solar microgrids, school sanitation, and rural pipelines.",
     milestones: [
       { name: "Phase 1: Geological Survey & Rig Mobilization", share: 25, proof: "Hydrogeological survey report & driller contract" },
-      { name: "Phase 2: Well Drilling, Casing & Water Strike", share: 35, proof: "Geo-tagged drilling photos & water purity laboratory test" },
+      { name: "Phase 2: Well Drilling, Casing & Water Strike", share: 35, proof: "Drilling photos & water purity laboratory test" },
       { name: "Phase 3: Solar Pump, Overhead Tank & Taps", share: 40, proof: "Pump serial numbers & community commissioning ceremony photos" },
     ],
     proTip: "Post a 15-second video of the initial water strike. This milestone update consistently triggers a second wave of donations.",
@@ -48,7 +48,7 @@ const categoriesData = [
       { name: "Phase 3: Final Certification & Capstone Projects", share: 30, proof: "Verified exam results & public GitHub repository links" },
     ],
     proTip: "Share links to student coding projects or exam scores as verification proofs to demonstrate immediate return on donor investment.",
-    pitchExample: "Equipping 85 young women in Lagos with laptops and intensive cloud engineering training. Every device serial is logged on-chain with milestone progress.",
+    pitchExample: "Equipping 85 young women in Lagos with laptops and intensive cloud engineering training. Every device purchase is backed by a published receipt.",
   },
   {
     id: "emergency",
@@ -68,7 +68,7 @@ const categoriesData = [
     id: "ngo",
     name: "NGO & Non-Profit",
     icon: "🌐",
-    badge: "Multi-Sig Governance",
+    badge: "Partner reporting",
     summary: "For registered charities, public health programs, environmental advocacy, and community trusts.",
     milestones: [
       { name: "Phase 1: Program Initiation & Procurement", share: 30, proof: "Vendor contracts & itemized public ledger initialization" },
@@ -76,7 +76,7 @@ const categoriesData = [
       { name: "Phase 3: Final Audit & Community Handover", share: 30, proof: "Independent auditor sign-off & long-term sustainability charter" },
     ],
     proTip: "Link your charity's registration number and verified board trustees to qualify for our lowest processing tiers.",
-    pitchExample: "Transparent reforestation: 1 tree planted and geo-tagged for every $2 donated. Full multi-sig governance and live audit logs for institutional partners.",
+    pitchExample: "Transparent reforestation: 1 tree planted for every $2 donated, with nursery invoices and planting photos published for every stage.",
   },
   {
     id: "memorial",
@@ -183,7 +183,7 @@ export default function FundRaisingIdeas() {
                   The Blueprint for High-Trust, High-Conversion Fundraising
                 </h1>
                 <p className="hero-subtitle">
-                  Donors don't just give to stories—they give to accountability. Discover how milestone-based escrow, transparent evidence logs, and structured campaign pitches drive <strong>3.4x higher donor conversion</strong> with <strong>0% platform fees</strong>.
+                  Donors don't just give to stories—they give to accountability. Learn how to plan stages, show evidence and write a pitch that answers the question every donor asks: where will my money go? All with <strong>0% platform fees</strong>.
                 </p>
 
                 <div className="hero-cta-group d-flex flex-wrap align-items-center">
@@ -191,7 +191,7 @@ export default function FundRaisingIdeas() {
                     href={authenticated ? "/StartACampaign/type" : "/SignUp"}
                     passHref
                     className="btn primary-cta mr-3 mb-2">
-                    Start a Verified Campaign
+                    Start a campaign
                   </Link>
                   <a href="#calculator" className="btn secondary-cta mb-2">
                     Try Milestone Calculator ↓
@@ -204,8 +204,8 @@ export default function FundRaisingIdeas() {
                     <span className="stat-text">Platform Fees on Medical & Relief</span>
                   </div>
                   <div className="stat-item mr-4 mb-2">
-                    <strong className="stat-number">3.4x</strong>
-                    <span className="stat-text">Higher Conversion with Milestones</span>
+                    <strong className="stat-number">Stages</strong>
+                    <span className="stat-text">Money released as you show progress</span>
                   </div>
                   <div className="stat-item mb-2">
                     <strong className="stat-number">100%</strong>
@@ -387,7 +387,7 @@ export default function FundRaisingIdeas() {
               <div className="row align-items-center">
                 <div className="col-lg-6 mb-4 mb-lg-0">
                   <span className="comp-tag">The Fund&Trace Advantage</span>
-                  <h2 className="comp-title mb-3">Why Transparent Escrow Drives 3.4x More Giving</h2>
+                  <h2 className="comp-title mb-3">Why transparent escrow helps people give</h2>
                   <p className="comp-desc mb-4">
                     Traditional crowdfunding platforms ask donors to "trust blindly." When donors are unsure if their money actually reaches doctors, drillers, or students, they donate less or abandon checkout.
                   </p>
@@ -423,7 +423,7 @@ export default function FundRaisingIdeas() {
                           <tr>
                             <td>Proof Verification</td>
                             <td>None / Self-reported</td>
-                            <td className="highlight-col text-success font-weight-bold">Geo-Tagged & Invoice Verified</td>
+                            <td className="highlight-col text-success font-weight-bold">Invoice & photo proof</td>
                           </tr>
                           <tr>
                             <td>Direct Vendor Payout</td>

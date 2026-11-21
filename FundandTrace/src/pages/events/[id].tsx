@@ -13,12 +13,9 @@ export default function EventPage() {
   const [registered, setRegistered] = useState(false);
   const [email, setEmail] = useState("");
 
-  const currentEvent =
-    eventsList.find((e) => e.slug === id || e.id === id) || eventsList[0];
+  const currentEvent = eventsList.find((e) => e.slug === id || e.id === id);
 
-  const relatedEvents = eventsList.filter(
-    (e) => e.id !== currentEvent.id
-  ).slice(0, 2);
+  const relatedEvents = eventsList.filter((e) => e.id !== currentEvent?.id).slice(0, 2);
 
   const handleRSVP = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,6 +23,21 @@ export default function EventPage() {
       setRegistered(true);
     }
   };
+
+  if (!currentEvent) {
+    return (
+      <Layout title="Event not found | Fund&Trace" description="This event could not be found." showFooter>
+        <Navbar />
+        <main className="custom-container text-center" style={{ padding: "160px 0 100px", minHeight: "60vh" }}>
+          <h1 style={{ fontSize: 28 }}>Event not found</h1>
+          <p className="ft-muted mb-4">There are no events scheduled right now.</p>
+          <Link href="/fundraising-stories" className="ft-btn ft-btn--primary">
+            Back to stories &amp; news
+          </Link>
+        </main>
+      </Layout>
+    );
+  }
 
   return (
     <Layout

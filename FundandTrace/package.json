@@ -46,8 +46,7 @@
     "recharts": "^2.15.4",
     "redux-persist": "^6.0.0",
     "sass": "^1.86.0",
-    "styled-components": "^6.1.19",
-    "three": "^0.169.0"
+    "styled-components": "^6.1.19"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

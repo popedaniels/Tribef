@@ -227,7 +227,7 @@ const Navbar = ({ white = false }) => {
                         className={styles.signInBtn}
                         role="button"
                       >
-                        Sign In
+                        Sign in
                       </li>
 
                     </Link>
@@ -437,17 +437,18 @@ const Navbar = ({ white = false }) => {
               >
                 <Link href="/SignUp/SignIn" legacyBehavior>
                   <button
-                    className={styles.signInBtn}
+                    type="button"
+                    className={`ft-btn ft-btn--secondary ${styles.signInBtn}`}
                     style={{
                       background: white ? "transparent" : undefined,
                       color: white ? "white" : undefined,
                       border: white ? "1px solid white" : undefined,
                       width: "100%",
                       fontSize: 14,
-                      fontWeight: 400,
+                      fontWeight: 600,
                     }}
                   >
-                    Sign In
+                    Sign in
                   </button>
                 </Link>
               </Wrapper1>
@@ -469,8 +470,8 @@ const Navbar = ({ white = false }) => {
                     : router.push("/SignUp")
                 }
               >
-                <p className="mb-0" style={{ fontSize: 14, fontWeight: 400 }}>
-                  Start a Campaign
+                <p className="mb-0" style={{ fontSize: 14, fontWeight: 700 }}>
+                  Start a campaign
                 </p>
               </button>
             </Wrapper>
@@ -710,7 +711,7 @@ const Navbar = ({ white = false }) => {
                         className={styles.signInBtn}
                         role="button"
                       >
-                        Sign In
+                        Sign in
                       </li>
 
                     </Link>

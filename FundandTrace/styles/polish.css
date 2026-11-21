@@ -135,3 +135,6 @@ input[type="number"] {
 .text-danger {
   color: #b42318 !important;
 }
+
+/* Bootstrap's #0d6efd is just under 4.5:1 on off-white; use the brand blue. */
+.text-primary { color: var(--color-primary) !important; }

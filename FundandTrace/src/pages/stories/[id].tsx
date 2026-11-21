@@ -39,6 +39,10 @@ export default function StoryPage() {
 
           <h1 className="article-title mb-3">{currentStory.title}</h1>
           <p className="article-lead mb-4">{currentStory.subtitle}</p>
+          <p className="illustrative-note mb-4" role="note">
+            This is an illustrative example of how a campaign can use Fund&amp;Trace. It is not a real campaign, and the
+            people and figures are not real.
+          </p>
 
           <div className="author-meta d-flex flex-wrap align-items-center justify-content-between pt-3 border-top border-bottom py-3">
             <div className="d-flex align-items-center mb-2 mb-sm-0">
@@ -160,7 +164,7 @@ export default function StoryPage() {
 
                     <div className="audit-note mt-3 pt-3 border-top">
                       <span className="lock-icon">🔒</span>
-                      <span>Disbursed via Fund&Trace Multi-Signature Escrow with geo-tagged receipts.</span>
+                      <span>Example figures, for illustration only.</span>
                     </div>
                   </div>
                 )}
@@ -307,6 +311,15 @@ const Wrapper = styled.main`
         width: 100%;
         max-height: 520px;
         object-fit: cover;
+      }
+
+      .illustrative-note {
+        padding: 12px 16px;
+        border-radius: 6px;
+        background: #fff4e0;
+        color: #6b3a00;
+        font-size: 14.5px;
+        line-height: 1.55;
       }
 
       .escrow-badge {

@@ -9,7 +9,8 @@ const cspDirectives = [
   // Payment SDKs load their own scripts: Stripe.js (@stripe/stripe-js loads
   // https://js.stripe.com/v3), Flutterwave inline checkout and Paystack inline.
   // Without these, the donate/campaign pages throw "Failed to load Stripe.js".
-  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://checkout.flutterwave.com https://js.paystack.co https://www.googletagmanager.com https://www.google-analytics.com",
+  // `next dev` (React Refresh) evaluates code with eval(); production never does.
+  "script-src 'self' 'unsafe-inline'" + (process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'") + " https://js.stripe.com https://checkout.flutterwave.com https://js.paystack.co https://www.googletagmanager.com https://www.google-analytics.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
   // Campaign images come from Cloudinary; avatars may point at any https origin.
   "img-src 'self' data: blob: https:",

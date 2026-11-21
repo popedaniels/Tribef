@@ -3,6 +3,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "../../styles/bootstrap4-compat.css";
 import "../../styles/index.css";
 import "../../styles/polish.css";
+import "../../styles/design-system.css";
 import { Provider, useSelector } from "react-redux";
 import store from "../../store/index";
 import Toast from "../components/Toast/Toast";

@@ -5,7 +5,7 @@ const defaultStories = [
   {
     image: "/images/stories/medical_hope.jpg",
     heading: "Baby Tariro's Successful Heart Surgery",
-    role: "Pediatric Health Appeal • 100% Verified",
+    role: "Pediatric health appeal · Illustrative example",
     raised: "$14,000",
     story:
       "“Fund&Trace gave our donors absolute confidence with direct hospital settlements for my daughter’s surgery. Supporters who usually hesitate to give online donated immediately because hospital billing invoices were verified in real-time.”",
@@ -14,7 +14,7 @@ const defaultStories = [
   {
     image: "/images/stories/water_story.jpg",
     heading: "Mukono Primary Solar Water Well",
-    role: "Community Infrastructure • Verified",
+    role: "Community infrastructure · Illustrative example",
     raised: "$12,000",
     story:
       "“Breaking our solar pump installation into trackable phases made our local campaign go viral. Donors loved receiving automated statements and water purity test laboratory reports directly in their inbox.”",
@@ -23,7 +23,7 @@ const defaultStories = [
   {
     image: "/images/stories/tech_girls.jpg",
     heading: "Lagos STEM & Cloud Coding Lab",
-    role: "Education Non-Profit • Milestone Audited",
+    role: "Education non-profit · Illustrative example",
     raised: "$18,500",
     story:
       "“The 0% platform fee and automated periodic statement feature saved us thousands of dollars and hundreds of hours of manual donor reporting. Fund&Trace is the new gold standard for honest crowdfunding.”",
@@ -89,13 +89,13 @@ export default function Stories({ stories = defaultStories }) {
     >
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
-          <span className={styles.tag}>Real Impact, Proven Proof</span>
+          <span className={styles.tag}>Example stories</span>
           <h2>
-            Stories from Our <span>Transparent Community</span>
+            What a campaign <span>can look like</span>
           </h2>
           <p>
-            Real creators and donors sharing how verifiable milestone disbursements helped change
-            lives without fear of mismanagement.
+            Illustrative examples, not real campaigns: how escrow, receipts and a public ledger work
+            together for different kinds of causes.
           </p>
         </div>
 
@@ -110,7 +110,7 @@ export default function Stories({ stories = defaultStories }) {
           <div className={styles.storyLeft}>
             <div className={styles.verifiedStoryPill}>
               <img src="/images/icons/blueCheck.svg" alt="verified" width="14" height="14" />
-              <span>Verified Milestone Success</span>
+              <span>Illustrative example</span>
             </div>
 
             <div className={styles.sliderViewport}>
@@ -185,7 +185,7 @@ export default function Stories({ stories = defaultStories }) {
               </div>
 
               <div className={styles.raisedBadge}>
-                <span>Audited Total</span>
+                <span>Example total</span>
                 <strong>{stories[activeIndex]?.raised || "$14,000"} Raised</strong>
               </div>
             </div>

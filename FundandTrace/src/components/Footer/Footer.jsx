@@ -16,13 +16,13 @@ export default function Footer() {
 
             </Link>
             <p className={styles.brandMission}>
-              The milestone-verified crowdfunding platform that eliminates platform fees and brings radical transparency to global social giving.
+              Crowdfunding with escrow, published receipts and a public ledger anyone can verify. No platform fee.
             </p>
             <div className={styles.trustBadge}>
               <span className={styles.shieldIcon}>🛡️</span>
               <div>
-                <strong>100% Escrow Verified</strong>
-                <p className="mb-0">Zero platform commissions on all medical &amp; disaster causes.</p>
+                <strong>Escrow on every campaign</strong>
+                <p className="mb-0">Money is released in reviewed stages, never as a lump sum.</p>
               </div>
             </div>
           </div>

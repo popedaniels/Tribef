@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { getApiBaseUrl } from "../../utils/api";
 import styles from "./trust.module.scss";
+import { formatMoney } from "../helperFunctions/helperFunctions";
 
 type Entry = {
   campaignId: string;
@@ -60,13 +61,7 @@ export async function verifyChainInBrowser(entries: Entry[]) {
   return { valid: true, head: prev };
 }
 
-const money = (n: number, currency: string) => {
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: currency || "GBP" }).format(n);
-  } catch {
-    return `${currency} ${n.toFixed(2)}`;
-  }
-};
+const money = (n: number, currency: string) => `${n > 0 ? "+" : ""}${formatMoney(n, currency)}`;
 
 export default function PublicLedger({ campaignId }: { campaignId?: string }) {
   const [entries, setEntries] = useState<Entry[] | null>(null);
@@ -105,7 +100,7 @@ export default function PublicLedger({ campaignId }: { campaignId?: string }) {
             showing. Check it yourself — the verification runs in your browser.
           </p>
         </div>
-        <button type="button" className="btn-brand-primary" onClick={verify} disabled={!entries?.length || checking}>
+        <button type="button" className="ft-btn ft-btn--secondary" onClick={verify} disabled={!entries?.length || checking}>
           {checking ? "Verifying…" : "Verify ledger"}
         </button>
       </div>
@@ -140,10 +135,10 @@ export default function PublicLedger({ campaignId }: { campaignId?: string }) {
               {entries.map((e) => (
                 <tr key={e.seq}>
                   <td>{e.seq}</td>
-                  <td>{new Date(e.at).toLocaleDateString()}</td>
+                  <td>{new Date(e.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</td>
                   <td>
                     {LABELS[e.type]}
-                    {e.memo && e.memo !== LABELS[e.type] ? <span className={styles.muted}> · {e.memo}</span> : null}
+                    {e.memo && !LABELS[e.type]?.toLowerCase().includes(e.memo.toLowerCase()) ? <span className={styles.muted}> · {e.memo}</span> : null}
                   </td>
                   <td className={`${styles.num} ${e.amount < 0 ? styles.out : styles.in}`}>{money(e.amount, e.currency)}</td>
                   <td>

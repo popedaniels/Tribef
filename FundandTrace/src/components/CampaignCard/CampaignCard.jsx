@@ -1,20 +1,14 @@
 import Link from "next/link";
 import React from "react";
-import { addCommaToNumber } from "../helperFunctions/helperFunctions";
+import { formatMoney } from "../helperFunctions/helperFunctions";
 import styles from "./CampaignCard.module.scss";
 
 export default function CampaignCard({ campaign }) {
   const amountRaised = Number(campaign?.funding?.amountRaised) || 0;
-  const amountExpected = Number(campaign?.funding?.amountExpected) || 1;
-  const percentage = Math.min(Math.round((amountRaised / amountExpected) * 100), 100);
-  const currencySymbol =
-    campaign?.funding?.currency === "USD"
-      ? "$"
-      : campaign?.funding?.currency === "GBP"
-      ? "£"
-      : campaign?.funding?.currency === "EUR"
-      ? "€"
-      : "₦";
+  const amountExpected = Number(campaign?.funding?.amountExpected) || 0;
+  const percentage = amountExpected > 0 ? Math.min(Math.round((amountRaised / amountExpected) * 100), 100) : 0;
+  const currency = campaign?.funding?.currency;
+  const frozen = Boolean(campaign?.disputeGovernance?.isLocked);
 
   const imageSrc =
     campaign?.basicInformation?.campaignImage ||
@@ -45,10 +39,11 @@ export default function CampaignCard({ campaign }) {
           />
           <div className={styles.badgeOverlay}>
             <span className={styles.categoryBadge}>{category}</span>
-            <span className={styles.escrowBadge}>
-              <span className="live-pulse-dot" style={{ width: 6, height: 6, marginRight: 5, backgroundColor: "#ffffff" }}></span>
-              Verified Escrow
-            </span>
+            {frozen ? (
+              <span className={`${styles.escrowBadge} ${styles.pausedBadge}`}>Paused for review</span>
+            ) : (
+              <span className={styles.escrowBadge}>Held in escrow</span>
+            )}
           </div>
         </div>
 
@@ -77,24 +72,20 @@ export default function CampaignCard({ campaign }) {
           <div className={styles.fundingSection}>
             <div className={styles.progressHeader}>
               <span className={styles.amountRaised}>
-                {currencySymbol}{addCommaToNumber(amountRaised)}
+                {formatMoney(amountRaised, currency)}
               </span>
               <span className={styles.percentText}>{percentage}% funded</span>
             </div>
 
-            {/* Glowing Progress Bar */}
-            <div className={styles.progressTrack}>
-              <div
-                className={styles.progressBar}
-                style={{ width: `${percentage}%` }}
-              ></div>
+            <div className="ft-progress" role="progressbar" aria-label="Funding progress" aria-valuenow={percentage} aria-valuemin={0} aria-valuemax={100}>
+              <span style={{ width: `${percentage}%` }} />
             </div>
 
             <div className={styles.progressFooter}>
               <span className={styles.targetAmount}>
-                Target: {currencySymbol}{addCommaToNumber(amountExpected)}
+                of {formatMoney(amountExpected, currency)}
               </span>
-              <span className={styles.escrowTag}>0% Platform Fee</span>
+              <span className={styles.escrowTag}>0% platform fee</span>
             </div>
           </div>
         </div>

@@ -50,29 +50,30 @@ export default function FundraisingStories() {
         {/* Hero Banner */}
         <section className="stories-hero">
           <div className="custom-container hero-inner">
-            <span className="hero-eyebrow">Impact Chronicles & News</span>
-            <h1 className="hero-title">Real Lives Changed, 100% Verified</h1>
+            <span className="hero-eyebrow">Stories &amp; news</span>
+            <h1 className="hero-title">What giving with a public ledger looks like</h1>
             <p className="hero-subtitle">
-              Explore authentic donor-funded transformations, verified milestone audits, platform news, and upcoming community workshops.
+              Example stories showing how campaigns use escrow, receipts and the public ledger, plus the latest product news.
+            </p>
+            <p className="illustrative-note" role="note">
+              <strong>About these stories:</strong> they are illustrative examples, not real campaigns, and their figures
+              are not real results. Real stories will appear here, with links to their public ledgers, as campaigns
+              complete.
             </p>
 
             {/* Quick Stats Bar */}
             <div className="stats-row d-flex flex-wrap align-items-center justify-content-center">
               <div className="stat-pill">
-                <span className="icon">🛡️</span>
-                <strong>100% Verified Escrow</strong>
+                <strong>Escrow on every campaign</strong>
               </div>
               <div className="stat-pill">
-                <span className="icon">💧</span>
-                <strong>14,000+ Clean Water Beneficiaries</strong>
+                <strong>Receipts after every payout</strong>
               </div>
               <div className="stat-pill">
-                <span className="icon">🏥</span>
-                <strong>Direct Hospital Settlement</strong>
+                <strong>Public, verifiable ledger</strong>
               </div>
               <div className="stat-pill">
-                <span className="icon">⚡</span>
-                <strong>Zero Platform Fees on Medical</strong>
+                <strong>0% platform fee</strong>
               </div>
             </div>
           </div>
@@ -83,8 +84,8 @@ export default function FundraisingStories() {
           {(view === "All" || view === "Stories") && !searchQuery && featuredStory && (
             <div className="featured-section mb-5">
               <div className="d-flex align-items-center justify-content-between mb-3">
-                <h2 className="section-title mb-0">Featured Impact Story</h2>
-                <span className="verified-badge-label">🏆 Top Verified Campaign</span>
+                <h2 className="section-title mb-0">Featured example</h2>
+                <span className="verified-badge-label">Illustrative example</span>
               </div>
 
               <Link
@@ -199,10 +200,10 @@ export default function FundraisingStories() {
               <div className="d-flex align-items-center justify-content-between mb-4">
                 <div>
                   <h2 className="section-title mb-1">
-                    {view === "All" ? "Recent Impact Stories" : "All Impact Stories"}
+                    {view === "All" ? "Example stories" : "All example stories"}
                   </h2>
                   <p className="section-desc mb-0">
-                    Transparent records of projects funded through milestone escrow.
+                    Illustrative examples of how a campaign can use escrow and the public ledger.
                   </p>
                 </div>
                 {view === "All" && (
@@ -225,9 +226,9 @@ export default function FundraisingStories() {
             <section className="mb-5 pt-4 border-top">
               <div className="d-flex align-items-center justify-content-between mb-4">
                 <div>
-                  <h2 className="section-title mb-1">Platform News & Releases</h2>
+                  <h2 className="section-title mb-1">Product news</h2>
                   <p className="section-desc mb-0">
-                    Official updates, governance announcements, and security reports.
+                    What&apos;s new on Fund&amp;Trace.
                   </p>
                 </div>
                 {view === "All" && (
@@ -250,23 +251,30 @@ export default function FundraisingStories() {
             <section className="mb-5 pt-4 border-top">
               <div className="d-flex align-items-center justify-content-between mb-4">
                 <div>
-                  <h2 className="section-title mb-1">Community Events & Workshops</h2>
+                  <h2 className="section-title mb-1">Events</h2>
                   <p className="section-desc mb-0">
-                    Live masterclasses, transparency summits, and direct action drives.
+                    Workshops and community events.
                   </p>
                 </div>
-                {view === "All" && (
+                {view === "All" && eventsList.length > 0 && (
                   <button className="view-all-btn" onClick={() => setView("Events")}>
                     View All Events ({eventsList.length}) →
                   </button>
                 )}
               </div>
 
-              <div className="events-grid">
-                {filteredEvents.map((event) => (
-                  <EventsCard event={event} key={event.id} />
-                ))}
-              </div>
+              {filteredEvents.length ? (
+                <div className="events-grid">
+                  {filteredEvents.map((event) => (
+                    <EventsCard event={event} key={event.id} />
+                  ))}
+                </div>
+              ) : (
+                <div className="ft-empty">
+                  <h3>No events scheduled right now</h3>
+                  <p>When we run workshops or community events, they&apos;ll be listed here.</p>
+                </div>
+              )}
             </section>
           )}
 
@@ -375,6 +383,18 @@ const Wrapper = styled.main`
       font-size: 24px;
       font-weight: 700;
       color: var(--color-text-heading);
+    }
+
+    .illustrative-note {
+      max-width: 720px;
+      margin: 16px auto 0;
+      padding: 12px 16px;
+      border-radius: 6px;
+      background: #fff4e0;
+      color: #6b3a00;
+      font-size: 14px;
+      line-height: 1.55;
+      text-align: left;
     }
 
     .verified-badge-label {

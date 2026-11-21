@@ -141,27 +141,32 @@
 }
 
 .secondaryBtn {
-  background: var(--color-primary);
-  color: #ffffff !important;
+  background: var(--color-surface);
+  color: var(--color-text-heading) !important;
   font-weight: 700;
   font-size: 14.5px;
   height: 44px;
   padding: 0 22px;
   border-radius: 4px;
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--color-border);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 14px rgba(105, 121, 248, 0.3);
   transition: all 0.2s ease;
   text-decoration: none;
 
   &:hover {
-    background: var(--color-primary-hover);
-    box-shadow: 0 6px 18px rgba(105, 121, 248, 0.4);
-    transform: translateY(-1px);
+    border-color: var(--color-primary);
+    color: var(--color-primary) !important;
     text-decoration: none;
+  }
+
+  :global([data-theme="dark"]) &,
+  :global(.dark-theme) & {
+    background: transparent;
+    border-color: #334155;
+    color: #f9fafb !important;
   }
 
   @media screen and (max-width: 575px) {
@@ -288,6 +293,53 @@
       border-color: rgba(255, 255, 255, 0.12) !important;
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4) !important;
       color: #f9fafb !important;
+    }
+
+    @media (max-width: 575px) {
+      position: static;
+      border-radius: 0;
+      border: 0;
+      border-top: 1px solid var(--color-border);
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+
+    .metricTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .exampleTag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .paidTag {
+      font-size: 12px;
+      font-weight: 700;
+      color: #146c43;
+      background: #e7f6ee;
+      border-radius: 999px;
+      padding: 2px 10px;
+    }
+    .metricRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--color-text-heading);
+      strong { font-size: 18px; }
+    }
+    .metricNote {
+      margin: 4px 0 0;
+      font-size: 12.5px;
+      color: var(--color-text-muted);
     }
 
     .liveDot {

@@ -305,6 +305,35 @@ const selectPaymentRail = (countryName) => {
   return "stripe";
 };
 
+/**
+ * Format money for display: "₦12,640,000", "$11,870", "£9.40", "KSh 384,000".
+ * Never returns NaN/undefined — bad input renders as 0 in the given currency.
+ * Whole amounts drop decimals; `compact` gives "₦12.6M" for tight spaces.
+ */
+const formatMoney = (amount, currency = "USD", { compact = false } = {}) => {
+  const num = Number(amount);
+  const value = Number.isFinite(num) ? num : 0;
+  const code = String(currency || "USD").toUpperCase().trim();
+  const symbol = CURRENCY_SYMBOLS[code] ?? `${code} `;
+  const whole = Number.isInteger(value) || Math.abs(value) >= 1000;
+  const formatted = new Intl.NumberFormat("en-US", compact
+    ? { notation: "compact", maximumFractionDigits: 1 }
+    : { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(Math.abs(value));
+  return `${value < 0 ? "−" : ""}${symbol}${formatted}`;
+};
+
+/** Short relative time: "just now", "5m ago", "3h ago", "2d ago", or a date. */
+const timeAgo = (date, now = Date.now()) => {
+  const t = new Date(date).getTime();
+  if (!Number.isFinite(t)) return "";
+  const s = Math.max(0, Math.round((now - t) / 1000));
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 30 * 86400) return `${Math.floor(s / 86400)}d ago`;
+  return new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+
 const grabErrorMessage = (error) => {
   const message = error?.response?.data?.error;
   return message;
@@ -326,6 +355,8 @@ export {
   getProcessorFeeEstimate,
   getPresetDonationAmounts,
   addCommaToNumber,
+  formatMoney,
+  timeAgo,
   selectPaymentRail,
   grabErrorMessage,
   grabErrorStatus,

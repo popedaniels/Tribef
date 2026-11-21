@@ -1,42 +1,28 @@
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
-import styles from "./donatePage.module.scss";
-import Footer from "../../components/Footer/Footer";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
+import type { GetServerSidePropsContext } from "next";
+import type { Stripe } from "@stripe/stripe-js";
 
-import { toast } from "../../../store/slices/ToastSlice";
-import Spinner from "../../components/composed/spinner/Spinner";
-import { loadStripe } from "@stripe/stripe-js";
 import Layout from "../../components/Layout";
-import styled from "styled-components";
-import { useAppDispatch } from "./../../../store/hooks";
-const stripePromise = loadStripe(process.env.STRIPEPUBLIC || "");
+import Navbar from "../../components/Navbar/Navbar";
+import Footer from "../../components/Footer/Footer";
+import FrozenBanner from "../../components/trust/FrozenBanner";
+import { toast } from "../../../store/slices/ToastSlice";
+import { useAppDispatch } from "../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
+import { getAllCountries, getCountries } from "../../components/helperFunctions/locationFunctions";
 import {
-  getCountries,
-  getAllCountries,
-} from "../../components/helperFunctions/locationFunctions";
-import {
-  addCommaToNumber,
+  formatMoney,
   getCurrency,
   getDaysRemaining,
   getDualCurrencyEstimate,
-  getProcessorFeeEstimate,
   getPresetDonationAmounts,
   selectPaymentRail,
 } from "../../components/helperFunctions/helperFunctions";
-import { Campaign } from "../../types/campaign";
-import type { GetServerSidePropsContext } from "next";
-import { getApiBaseUrl } from "../../utils/api";
-import FrozenBanner from "../../components/trust/FrozenBanner";
-
-interface Country {
-  name: string;
-}
-
-interface GeoLocationInfo {
-  country_name?: string;
-}
+import type { Campaign } from "../../types/campaign";
+import styles from "../../components/campaignPage/DonatePage.module.scss";
 
 interface DonatePageProps {
   campaign: Campaign | null;
@@ -46,1070 +32,464 @@ interface DonatePageProps {
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
-    const apiUrl = getApiBaseUrl();
-    const campaigndata = await axios.get(
-      `${apiUrl}/api/campaigns/campaign/${campaignId}`,
-      { timeout: 3000 }
-    );
-    const campaign = campaigndata?.data?.data || null;
-
-    return {
-      props: {
-        campaign,
-        campaignId,
-      },
-    };
-  } catch (error) {
-    return {
-      props: {
-        campaign: null,
-        campaignId,
-      },
-    };
+    const res = await axios.get(`${getApiBaseUrl()}/api/campaigns/campaign/${campaignId}`, { timeout: 3000 });
+    return { props: { campaign: res?.data?.data || null, campaignId } };
+  } catch {
+    return { props: { campaign: null, campaignId } };
   }
 }
 
+// Stripe.js is loaded on demand (and only once) so a blocked or offline
+// js.stripe.com never breaks the page for donors paying another way.
+let stripePromise: Promise<Stripe | null> | null = null;
+const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = import("@stripe/stripe-js")
+      .then(({ loadStripe }) => loadStripe(process.env.STRIPEPUBLIC || ""))
+      .catch(() => {
+        stripePromise = null;
+        return null;
+      });
+  }
+  return stripePromise;
+};
+
+type Rail = "stripe" | "flutterwave" | "paystack";
+
+// Which gateway can take which currency (mirrors the backend checks).
+const RAILS: { id: Rail; name: string; detail: string; currencies: string[] }[] = [
+  { id: "paystack", name: "Paystack", detail: "Card, bank transfer, USSD", currencies: ["NGN", "GHS", "ZAR", "KES", "USD"] },
+  { id: "flutterwave", name: "Flutterwave", detail: "Card, bank transfer, USSD, M-Pesa, mobile money", currencies: ["NGN", "GHS", "KES", "UGX", "TZS", "RWF", "ZAR", "USD", "GBP", "EUR"] },
+  { id: "stripe", name: "Card", detail: "Visa, Mastercard, Amex, Apple Pay, Google Pay", currencies: ["GBP", "USD", "NGN"] },
+];
+
+const TIP_OPTIONS = [0, 5, 7.5, 10];
+const FALLBACK_IMAGE = "/images/stories/water_story.jpg";
+const EMAIL_RE = /^\S+@\S+\.\S+$/;
+
+type Field = "amount" | "firstName" | "lastName" | "email" | "country" | "terms";
+
 export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [currency, setCurrency] = useState(campaign?.funding?.currency || "USD");
-  const [tip, setTip] = useState(Number(7.5) / 100);
-  const [amount, setAmount] = useState(0);
-  // const [tipInput, setTipInput] = useState();
-  const [others, setOthers] = useState(false);
-  const [anonymous, setAnonymous] = useState(false);
-  const [zip, setZip] = useState("");
-  const [email, setEmail] = useState("");
-  const [country, setCountry] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [terms, setTerms] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [paymentRail, setPaymentRail] = useState<"stripe" | "flutterwave" | "paystack">("stripe");
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { status } = router.query;
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [showCountries, setShowCountries] = useState(false);
-  const [allCountries, setAllCountries] = useState<Country[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState("");
-  const [countryData, setCountryData] = useState<GeoLocationInfo>({});
+  // Donations are always taken in the campaign's currency (the API enforces it).
+  const currency = String(campaign?.funding?.currency || "USD").toUpperCase();
+  const availableRails = RAILS.filter((r) => r.currencies.includes(currency));
 
-  const getInitialCountryData = async () => {
-    try {
-      const cData = await getCountries();
-      const detectedCountry = cData?.country_name || "Nigeria";
-      setCountry(detectedCountry);
-      setCountryData(cData);
-      
-      // Smart location routing: default to Flutterwave for African corridors,
-      // Paystack for Nigeria/Ghana/Kenya, Stripe for international
-      const isNigeria = detectedCountry === "Nigeria";
-      const isAfrican = ["Nigeria", "Ghana", "Kenya", "South Africa", "Uganda", "Rwanda", "Tanzania", "Egypt"].includes(detectedCountry);
-      if (isNigeria) {
-        setPaymentRail("paystack");
-      } else if (isAfrican) {
-        setPaymentRail("flutterwave");
-      } else {
-        setPaymentRail("stripe");
-      }
-    } catch (error) {
-    }
-  };
+  const [amount, setAmount] = useState<number>(0);
+  const [amountText, setAmountText] = useState("");
+  const [tipPct, setTipPct] = useState<number | "custom">(7.5);
+  const [customTip, setCustomTip] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [anonymous, setAnonymous] = useState(false);
+  const [country, setCountry] = useState("");
+  const [zip, setZip] = useState("");
+  const [countries, setCountries] = useState<{ name: string }[]>([]);
+  const [rail, setRail] = useState<Rail>(availableRails[0]?.id || "stripe");
+  const [terms, setTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [refundDays, setRefundDays] = useState<number | null>(null);
+  const fieldRefs = useRef<Partial<Record<Field, HTMLElement | null>>>({});
 
-  useEffect(() => {
-    getInitialCountryData();
-  }, []);
-
-  const handleGetAllCountries = useCallback(async () => {
-    try {
-      const data = await getAllCountries();
-      setCountries(data);
-      setAllCountries(data);
-    } catch (error) {
-    }
-  }, []);
-
-  const handleCountrySearch = useCallback(() => {
-    setCountries(
-      allCountries?.filter((c) =>
-        c?.name?.toLowerCase().includes(selectedCountry?.toLowerCase())
-      )
-    );
-  }, [allCountries, selectedCountry]);
-
-  useEffect(() => {
-    handleGetAllCountries();
-  }, [handleGetAllCountries]);
-
-  useEffect(() => {
-    handleCountrySearch();
-  }, [handleCountrySearch]);
-
-  // When country is manually chosen, auto-recommend best payment gateway
-  const handleSelectCountry = (countryName: string) => {
-    setCountry(countryName);
-    setShowCountries(false);
-    setPaymentRail(selectPaymentRail(countryName));
-  };
-
-  // Share/referral attribution (?ref=CODE on campaign links).
-  const referralCode =
-    typeof router.query.ref === "string" ? router.query.ref.slice(0, 64) : "";
-
-  const payWithStripe = async () => {
-    if (tip >= 0 && amount > 0 && zip && email && country && terms) {
-      setLoading(true);
-      const payment = {
-        tx_ref: "Fundandtrace" + Date.now(),
-        amount: others ? tip + amount : amount + amount * tip,
-        currency: currency,
-
-        payment_options: "card",
-        meta: {
-          paymentMethod: "Stripe",
-          paymentOption: "card",
-          zipCode: zip,
-          country: country,
-          campaignId: router.query.id,
-          tip: others ? tip : amount * tip,
-          amount: others ? tip + amount : amount + amount * tip,
-          anonymous: anonymous,
-          referralCode: referralCode,
-        },
-        customer: {
-          email: email,
-          name: `${firstName} ${lastName}`,
-        },
-        customizations: {
-          title: `${campaign?.basicInformation?.campaignTitle} Payments`,
-          description: `Fundandtrace Donation for ${campaign?.basicInformation?.campaignTitle}`,
-          logo: campaign?.basicInformation?.campaignImage,
-        },
-      };
-
-      const stripe = await stripePromise;
-      if (!stripe) {
-        setLoading(false);
-        dispatch(toast(true, "Payment service is unavailable.", "error"));
-        return;
-      }
-
-      try {
-        const response = await axios.post(
-          getApiBaseUrl() +
-            "/api/donations/createStripeSession/" +
-            campaignId,
-          payment
-        );
-
-        const result = await stripe.redirectToCheckout({
-          sessionId: response?.data?.id,
-        });
-        setLoading(false);
-        if (result.error) {
-          dispatch(toast(true, result.error.message || "Payment redirect error", "error"));
-        }
-      } catch (err) {
-        setLoading(false);
-        dispatch(toast(true, err?.response?.data?.error || "Error initiating checkout", "error"));
-      }
-    } else {
-      dispatch(toast(true, "Please fill out all required fields and accept terms.", "error"));
-    }
-  };
-
-  const payWithFlutterwave = async () => {
-    if (tip >= 0 && amount > 0 && zip && email && country && terms) {
-      setLoading(true);
-      const payment = {
-        tx_ref: "Fundandtrace" + Date.now(),
-        amount: others ? tip + amount : amount + amount * tip,
-        currency: currency,
-        redirect_url:
-          getApiBaseUrl() +
-          "/api/donations/flutterwave/" +
-          campaign?._id,
-        payment_options: "card,ussd,banktransfer,mobilemoneyghana,mpesa",
-        meta: {
-          paymentMethod: "Flutterwave",
-          paymentOption: "card",
-          zipCode: zip,
-          country: country,
-          campaignId: router.query.id,
-          tip: others ? tip : amount * tip,
-          amount: others ? tip + amount : amount + amount * tip,
-          anonymous: anonymous,
-          referralCode: referralCode,
-        },
-        customer: {
-          email: email,
-          name: `${firstName} ${lastName}`,
-        },
-        customizations: {
-          title: `${campaign?.basicInformation?.campaignTitle} Payments`,
-          description: `Fundandtrace Donation for ${campaign?.basicInformation?.campaignTitle}`,
-          logo: campaign?.basicInformation?.campaignImage,
-        },
-      };
-
-      try {
-        const link = await axios.post(
-          getApiBaseUrl() + "/api/donations/initialize",
-          {
-            payment: payment,
-          }
-        );
-
-        if (link && link.data) {
-          window.location.href = link.data;
-        } else {
-          setLoading(false);
-          dispatch(toast(true, "Unable to initialize Flutterwave checkout", "error"));
-        }
-      } catch (err) {
-        setLoading(false);
-        dispatch(toast(true, err?.response?.data?.error || "Error initializing payment", "error"));
-      }
-    } else {
-      dispatch(toast(true, "Please fill out all required fields and accept terms.", "error"));
-    }
-  };
-
-  const payWithPaystack = async () => {
-    if (tip >= 0 && amount > 0 && zip && email && country && terms) {
-      setLoading(true);
-      const totalAmount = others ? tip + amount : amount + amount * tip;
-      const payment = {
-        tx_ref: "FundandtracePS" + Date.now(),
-        amount: totalAmount,
-        currency: currency,
-        meta: {
-          paymentMethod: "Paystack",
-          paymentOption: "card",
-          zipCode: zip,
-          country: country,
-          campaignId: router.query.id,
-          tip: others ? tip : amount * tip,
-          amount: others ? tip + amount : amount + amount * tip,
-          anonymous: anonymous,
-          referralCode: referralCode,
-        },
-        customer: {
-          email: email,
-          name: `${firstName} ${lastName}`,
-        },
-        customizations: {
-          title: `${campaign?.basicInformation?.campaignTitle} Payments`,
-          description: `Fundandtrace Donation for ${campaign?.basicInformation?.campaignTitle}`,
-          logo: campaign?.basicInformation?.campaignImage,
-        },
-      };
-
-      try {
-        const response = await axios.post(
-          getApiBaseUrl() +
-            "/api/donations/initializePaystack/" +
-            campaign?._id,
-          payment
-        );
-
-        if (response?.data?.authorizationUrl) {
-          window.location.href = response.data.authorizationUrl;
-        } else {
-          setLoading(false);
-          dispatch(toast(true, "Unable to initialize Paystack checkout", "error"));
-        }
-      } catch (err) {
-        setLoading(false);
-        dispatch(toast(true, err?.response?.data?.error || "Error initializing payment", "error"));
-      }
-    } else {
-      dispatch(toast(true, "Please fill out all required fields and accept terms.", "error"));
-    }
-  };
-
-  // Location-Aware Submit Routing
-  const submit = async () => {
-    if (paymentRail === "flutterwave") {
-      await payWithFlutterwave();
-    } else if (paymentRail === "paystack") {
-      await payWithPaystack();
-    } else {
-      await payWithStripe();
-    }
-  };
-
-  useEffect(() => {
-    if (status == "failed") {
-      dispatch(toast(true, "Transaction Failed, please Try again", "error"));
-    }
-  }, [status, dispatch]);
-
-  const presetAmounts = getPresetDonationAmounts(currency);
-  const feeEstimate = getProcessorFeeEstimate(amount, currency, paymentRail);
-  const dualEstimate = getDualCurrencyEstimate(
-    amount,
-    currency,
-    currency === "GBP" ? "NGN" : currency === "NGN" ? "GBP" : "USD"
+  const chooseRailFor = useCallback(
+    (countryName: string) => {
+      const preferred = selectPaymentRail(countryName) as Rail;
+      setRail(availableRails.some((r) => r.id === preferred) ? preferred : availableRails[0]?.id || "stripe");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currency]
   );
-  const progressString = (
-    ((campaign?.funding?.amountRaised || 0) /
-      (campaign?.funding?.amountExpected || 1)) *
-    100
-  ).toFixed(1);
 
-  // Dispute freeze: the API refuses new donations (423); explain instead of
-  // letting the donor fill in a form that can't be submitted.
-  if (campaign?.disputeGovernance?.isLocked) {
+  useEffect(() => {
+    getAllCountries().then((list) => setCountries(list || [])).catch(() => setCountries([]));
+    getCountries()
+      .then((geo) => {
+        if (geo?.country_name) {
+          setCountry((c) => c || geo.country_name);
+          chooseRailFor(geo.country_name);
+        }
+      })
+      .catch(() => {});
+  }, [chooseRailFor]);
+
+  useEffect(() => {
+    axios
+      .get(`${getApiBaseUrl()}/api/donations/refund-policy`, { timeout: 5000 })
+      .then((r) => setRefundDays(r.data?.data?.enabled ? Number(r.data.data.windowDays) || null : null))
+      .catch(() => setRefundDays(null));
+  }, []);
+
+  useEffect(() => {
+    if (router.query.status === "failed") {
+      dispatch(toast(true, "Your payment didn't go through, and you haven't been charged. Please try again.", "error"));
+    }
+  }, [router.query.status, dispatch]);
+
+  const tip = useMemo(() => {
+    if (tipPct === "custom") {
+      const t = Number(customTip);
+      return Number.isFinite(t) && t > 0 ? Math.round(t * 100) / 100 : 0;
+    }
+    return Math.round(amount * tipPct) / 100;
+  }, [tipPct, customTip, amount]);
+  const total = Math.round((amount + tip) * 100) / 100;
+
+  const errors = useMemo(() => {
+    const e: Partial<Record<Field, string>> = {};
+    if (!(amount > 0)) e.amount = "Choose or enter an amount.";
+    if (!firstName.trim()) e.firstName = "Enter your first name.";
+    if (!lastName.trim()) e.lastName = "Enter your last name.";
+    if (!EMAIL_RE.test(email.trim())) e.email = "Enter a valid email so we can send your receipt.";
+    if (!country) e.country = "Choose your country.";
+    if (!terms) e.terms = "Please accept the terms to continue.";
+    return e;
+  }, [amount, firstName, lastName, email, country, terms]);
+  const show = (f: Field) => (submitted ? errors[f] : undefined);
+
+  if (!campaign) {
     return (
-      <Layout title={`Donations paused | ${campaign?.basicInformation?.campaignTitle}`} description="Donations to this campaign are paused while it is reviewed.">
-        <div className={styles.container}>
-          <div className={styles.donatePage__blueBg}>
-            <div className="custom-container py-5" style={{ maxWidth: 720 }}>
-              <p className="mb-3 text-blue">DONATE</p>
-              <h1 className="text-heading mb-3" style={{ fontSize: 28 }}>
-                Donations to {campaign?.basicInformation?.campaignTitle} are paused
-              </h1>
-              <FrozenBanner lockReason={campaign?.disputeGovernance?.lockReason} />
-              <div className="d-flex flex-wrap" style={{ gap: 12 }}>
-                <Link href={`/campaign/${campaign?._id}/tracker`} className="btn-brand-primary">
-                  See where the money went
-                </Link>
-                <Link href="/Categories" className="btn-secondary-action">
-                  Explore other campaigns
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
+      <Layout title="Campaign unavailable" description="This campaign could not be loaded.">
+        <Navbar />
+        <main className={styles.unavailable}>
+          <h1>We couldn&apos;t load this campaign</h1>
+          <p>It may have ended, or the link may be wrong. You haven&apos;t been charged.</p>
+          <Link href="/Categories" className="ft-btn ft-btn--primary">
+            Browse campaigns
+          </Link>
+        </main>
       </Layout>
     );
   }
 
+  const title = campaign.basicInformation?.campaignTitle || "this campaign";
+  const raised = Number(campaign.funding?.amountRaised) || 0;
+  const goal = Number(campaign.funding?.amountExpected) || 0;
+  const pct = goal > 0 ? Math.min(100, Math.round((100 * raised) / goal)) : 0;
+  const presets = getPresetDonationAmounts(currency);
+  const intlCurrency = currency === "GBP" ? "USD" : "GBP";
+  const est = amount > 0 ? getDualCurrencyEstimate(amount, currency, intlCurrency) : null;
+  const approx = est ? formatMoney(Math.round(Number(String(est.amount).replace(/,/g, ""))), est.currency) : null;
+
+  if (campaign.disputeGovernance?.isLocked) {
+    return (
+      <Layout title={`Donations paused · ${title}`} description="Donations to this campaign are paused while it is reviewed.">
+        <Navbar />
+        <main className={styles.unavailable}>
+          <h1>Donations to {title} are paused</h1>
+          <div style={{ maxWidth: 640, width: "100%", textAlign: "left" }}>
+            <FrozenBanner lockReason={campaign.disputeGovernance?.lockReason} />
+          </div>
+          <div className="d-flex flex-wrap justify-content-center" style={{ gap: 12 }}>
+            <Link href={`/campaign/${campaign._id}/tracker`} className="ft-btn ft-btn--primary">
+              See where the money went
+            </Link>
+            <Link href="/Categories" className="ft-btn ft-btn--secondary">
+              Explore other campaigns
+            </Link>
+          </div>
+        </main>
+      </Layout>
+    );
+  }
+
+  const referralCode = typeof router.query.ref === "string" ? router.query.ref.slice(0, 64) : "";
+
+  const buildPayment = () => ({
+    tx_ref: `Fundandtrace${rail === "paystack" ? "PS" : ""}${Date.now()}`,
+    amount: total,
+    currency,
+    payment_options: rail === "flutterwave" ? "card,ussd,banktransfer,mobilemoneyghana,mpesa" : "card",
+    redirect_url: rail === "flutterwave" ? `${getApiBaseUrl()}/api/donations/flutterwave/${campaign._id}` : undefined,
+    meta: {
+      paymentMethod: rail === "stripe" ? "Stripe" : rail === "paystack" ? "Paystack" : "Flutterwave",
+      paymentOption: "card",
+      zipCode: zip.trim(),
+      country,
+      campaignId: campaign._id,
+      tip,
+      amount: total,
+      anonymous,
+      referralCode,
+    },
+    customer: { email: email.trim(), name: `${firstName.trim()} ${lastName.trim()}` },
+    customizations: {
+      title: `${title} donation`,
+      description: `Fund&Trace donation to ${title}`,
+      logo: campaign.basicInformation?.campaignImage,
+    },
+  });
+
+  const fail = (err: unknown, fallback: string) => {
+    const e = err as { response?: { data?: { error?: string } } };
+    setLoading(false);
+    dispatch(toast(true, e?.response?.data?.error || fallback, "error"));
+  };
+
+  const submit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    setSubmitted(true);
+    const firstInvalid = (Object.keys(errors) as Field[])[0];
+    if (firstInvalid) {
+      fieldRefs.current[firstInvalid]?.focus();
+      return;
+    }
+    setLoading(true);
+    const payment = buildPayment();
+    try {
+      if (rail === "stripe") {
+        const stripe = await getStripe();
+        if (!stripe) return fail(null, "Card payments can't load right now. Try another payment method or try again in a moment.");
+        const res = await axios.post(`${getApiBaseUrl()}/api/donations/createStripeSession/${campaignId}`, payment);
+        const result = await stripe.redirectToCheckout({ sessionId: res?.data?.id });
+        if (result.error) fail(null, result.error.message || "We couldn't open the card payment page.");
+      } else if (rail === "paystack") {
+        const res = await axios.post(`${getApiBaseUrl()}/api/donations/initializePaystack/${campaign._id}`, payment);
+        if (res?.data?.authorizationUrl) window.location.href = res.data.authorizationUrl;
+        else fail(null, "We couldn't open Paystack. Please try again.");
+      } else {
+        const res = await axios.post(`${getApiBaseUrl()}/api/donations/initialize`, { payment });
+        if (res?.data) window.location.href = res.data;
+        else fail(null, "We couldn't open Flutterwave. Please try again.");
+      }
+    } catch (err) {
+      fail(err, "We couldn't start your payment. You haven't been charged. Please try again.");
+    }
+  };
+
+  const ref = (f: Field) => (el: HTMLElement | null) => {
+    fieldRefs.current[f] = el;
+  };
+
   return (
-    <Layout
-      ogImage={`${campaign?.basicInformation?.campaignImage}`}
-      title={`Donation | ${campaign?.basicInformation?.campaignTitle}`}
-      description={`Donate to ${campaign?.basicInformation?.campaignTitle}`}
-    >
-      <div className={styles.container}>
-        <div className={styles.donatePage__blueBg}>
-          <div className="custom-container">
-            <div
-              className="d-flex align-items-center mb-5 py-1"
-              onClick={() => router.push(`/campaign/${campaign?._id}`)}
-              style={{
-                cursor: "pointer",
-                width: "max-content",
-                borderRadius: 4,
-              }}
-              role="button"
-            >
-              <img
-                src="/images/icons/blueLeft.svg"
-                width="18px"
-                height="15px"
-                alt="back"
-              />
-              <p className="mb-0 ml-2" style={{ color: "var(--color-primary)" }}>
-                Back
-              </p>
-            </div>
-            <p className="mb-5 text-blue">DONATE</p>
-            <h3 className="text-heading mb-5">
-              You’re donating to {campaign?.basicInformation?.campaignTitle}
-            </h3>
-            <div className="d-flex mb-3 flex-column flex-lg-row justify-content-between mt-4">
-              <div
-                className={[styles.input, "d-flex flex-column"].join(" ")}
-                style={{ width: "47%" }}
-              >
-                <label htmlFor="firstName" className="text-medium mb-4 d-block">
-                  First Name <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  onChange={(e) => setFirstName(e.target.value)}
-                  value={firstName}
-                  name="firstName"
-                  id="firstName"
-                />
-              </div>
-              <div
-                className={[styles.input, "d-flex flex-column"].join(" ")}
-                style={{ width: "47%" }}
-              >
-                <label htmlFor="lastName" className="text-medium mb-4 d-block">
-                  Last Name <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="lastName"
-                  id="lastName"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-              </div>
-            </div>
-            <div
-              className={[styles.input, "d-flex flex-column mb-5 w-100"].join(
-                " "
-              )}
-            >
-              <label htmlFor="donorEmail" className="text-medium mb-4 d-block">
-                Email Address <span className="text-danger">*</span>
-              </label>
-              <input
-                id="donorEmail"
-                autoComplete="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="mb-5">
-              <input
-                type="checkbox"
-                name="anonymous"
-                id="anonymous"
-                className="mr-3 mt-1"
-                checked={anonymous}
-                onChange={() => setAnonymous(!anonymous)}
-              />
-              <label htmlFor="anonymous">Hide your name (anonymous)</label>
-            </div>
-            <div className="d-flex mb-5 justify-content-between mt-4">
-              <div className="d-flex flex-column " style={{ width: "47%" }}>
-                <h2 className="text-medium mb-4">Country</h2>
-                <Select className="d-flex align-items-center justify-content-between name">
-                  <button
-                    onClick={() => setShowCountries(!showCountries)}
-                    className="w-100 d-flex align-items-center justify-content-between"
-                    style={{
-                      border: "none",
-                      minWidth: "100%",
-                      borderStyle: "none",
-                      boxShadow: "none",
-                      outline: "none",
-                      background: "white",
-                      height: "48px",
-                      padding: 0,
-                    }}
-                  >
-                    <p
-                      className="mb-0 value"
-                      style={{
-                        fontWeight: !country ? 300 : "",
-                        opacity: !country ? 0.9 : 1,
-                        fontSize: !country ? 14 : 16,
-                      }}
-                    >
-                      {country ? country : "Country"}
-                    </p>
-                    <img
-                      src="/images/icons/dropdown.svg"
-                      width={13}
-                      height={8}
-                      className="pt-0 ml-2"
-                     alt="" />
-                  </button>
+    <Layout title={`Donate · ${title}`} description={`Donate to ${title}`} ogImage={campaign.basicInformation?.campaignImage}>
+      <Navbar />
+      <main className={styles.page}>
+        <div className={styles.container}>
+          <Link href={`/campaign/${campaign._id}`} className={styles.back}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+            Back to campaign
+          </Link>
 
-                  {showCountries && (
-                    <div
-                      onClick={() => setShowCountries(false)}
-                      className="overlay"
-                    ></div>
-                  )}
-                  {showCountries && (
-                    <div className="dropdown bg-white">
-                      <input
-                        type="search"
-                        autoFocus={true}
-                        placeholder="Search"
-                        autoComplete="new-password"
-                        value={selectedCountry}
-                        onChange={(e) => setSelectedCountry(e.target.value)}
-                        style={{
-                          position: "sticky",
-                          top: 0,
-                          width: "100%",
-                          border: "none",
-                          outline: "none",
-                          background: "#E5E5E5",
-                        }}
-                        className="py-1 px-2"
-                      />
-                      <p
-                        className="options py-3 mb-0 px-2"
-                        onClick={() => {
-                          setShowCountries(false);
-                          setCountry("");
-                        }}
-                        role="button"
-                      >
-                        Country
-                      </p>
-                      {countries.map((c, i) => (
-                        <p
-                          className="options mb-0 px-2 py-3"
-                          key={i}
-                          onClick={() => handleSelectCountry(c?.name)}
-                          role="button"
-                        >
-                          {c?.name}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </Select>
-              </div>
-              <div className="d-flex flex-column " style={{ width: "47%" }}>
-                <label htmlFor="donorZip" className="text-medium mb-4 d-block">
-                  Zip/Postal Code
-                </label>
-                <input
-                  id="donorZip"
-                  autoComplete="postal-code"
-                  type="text"
-                  onChange={(e) => setZip(e.target.value)}
-                  value={zip}
-                />
-              </div>
-            </div>
-
-            {/* Smart Location-Based Payment Gateway Selector */}
-            <div className="mb-4">
-              <div className="d-flex align-items-center justify-content-between mb-3">
-                <h3 className="text-medium-heading mb-0">Select Payment Rail</h3>
-                {country && (
-                  <span className="badge px-3 py-2" style={{ borderRadius: 999, fontSize: 12, background: "#eef0fd", color: "#2f3a99" }}>
-                    📍 Location: {country}
-                  </span>
-                )}
-              </div>
-              <div className="d-flex flex-column flex-md-row gap-3 justify-content-between mb-4">
-                <div
-                  onClick={() => setPaymentRail("stripe")}
-                  className={`p-3 border rounded d-flex flex-column justify-content-between cursor-pointer ${
-                    paymentRail === "stripe" ? "border-primary bg-light" : "border-secondary"
-                  }`}
-                  style={{
-                    flex: 1,
-                    minHeight: "90px",
-                    cursor: "pointer",
-                    borderWidth: paymentRail === "stripe" ? "2px" : "1px",
-                    borderColor: paymentRail === "stripe" ? "var(--color-primary)" : "#E2E8F0",
-                    background: paymentRail === "stripe" ? "var(--color-primary-light, #F0F3FF)" : "#FFFFFF",
-                    borderRadius: "8px",
-                  }}
-                  role="button"
-                >
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <strong style={{ color: "#1E293B" }}>💳 Stripe International</strong>
-                    {paymentRail === "stripe" && <span style={{ color: "var(--color-primary)" }}>✓ Active</span>}
-                  </div>
-                  <p className="mb-0 text-small text-muted">
-                    Apple Pay, Google Pay, Visa & Mastercard (GBP, USD, EUR)
-                  </p>
-                </div>
-
-                <div
-                  onClick={() => setPaymentRail("flutterwave")}
-                  className={`p-3 border rounded d-flex flex-column justify-content-between cursor-pointer mt-3 mt-md-0 ml-md-3 ${
-                    paymentRail === "flutterwave" ? "border-primary bg-light" : "border-secondary"
-                  }`}
-                  style={{
-                    flex: 1,
-                    minHeight: "90px",
-                    cursor: "pointer",
-                    borderWidth: paymentRail === "flutterwave" ? "2px" : "1px",
-                    borderColor: paymentRail === "flutterwave" ? "var(--color-primary)" : "#E2E8F0",
-                    background: paymentRail === "flutterwave" ? "var(--color-primary-light, #F0F3FF)" : "#FFFFFF",
-                    borderRadius: "8px",
-                  }}
-                  role="button"
-                >
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <strong style={{ color: "#1E293B" }}>🏦 Flutterwave Pan-African</strong>
-                    {paymentRail === "flutterwave" && <span style={{ color: "var(--color-primary)" }}>✓ Active</span>}
-                  </div>
-                  <p className="mb-0 text-small text-muted">
-                    Direct Bank Transfer, USSD, M-Pesa & Mobile Money (NGN, KES, GHS)
-                  </p>
-                </div>
-
-                <div
-                  onClick={() => setPaymentRail("paystack")}
-                  className={`p-3 border rounded d-flex flex-column justify-content-between cursor-pointer mt-3 mt-md-0 ml-md-3 ${
-                    paymentRail === "paystack" ? "border-primary bg-light" : "border-secondary"
-                  }`}
-                  style={{
-                    flex: 1,
-                    minHeight: "90px",
-                    cursor: "pointer",
-                    borderWidth: paymentRail === "paystack" ? "2px" : "1px",
-                    borderColor: paymentRail === "paystack" ? "var(--color-primary)" : "#E2E8F0",
-                    background: paymentRail === "paystack" ? "var(--color-primary-light, #F0F3FF)" : "#FFFFFF",
-                    borderRadius: "8px",
-                  }}
-                  role="button"
-                >
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <strong style={{ color: "#1E293B" }}>🟢 Paystack Nigeria</strong>
-                    {paymentRail === "paystack" && <span style={{ color: "var(--color-primary)" }}>✓ Active</span>}
-                  </div>
-                  <p className="mb-0 text-small text-muted">
-                    Bank Transfer, Card, USSD & QR Pay (NGN, GHS, ZAR, KES)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* UK Gift Aid Tax Relief Disclosure */}
-            {country === "United Kingdom" && (
-              <div
-                className="p-3 mb-4 d-flex align-items-center"
-                style={{
-                  background: "#F0FDF4",
-                  border: "1px solid #BBF7D0",
-                  borderRadius: "8px",
-                }}
-              >
-                <span style={{ fontSize: "20px", marginRight: "12px" }}>🇬🇧</span>
+          <div className={styles.layout}>
+            <form className={styles.form} onSubmit={submit} noValidate aria-labelledby="donate-title">
+              <header className={styles.header}>
+                <img src={campaign.basicInformation?.campaignImage || FALLBACK_IMAGE} alt="" className={styles.mobileThumb} />
                 <div>
-                  <strong style={{ color: "#166534", fontSize: "14px" }}>UK Gift Aid Eligible</strong>
-                  <p className="mb-0 text-small" style={{ color: "#15803D" }}>
-                    Boost your donation value by 25% with UK Gift Aid at 0% platform fee deduction.
-                  </p>
+                  <span className="ft-eyebrow">Donate</span>
+                  <h1 id="donate-title">{title}</h1>
                 </div>
-              </div>
-            )}
+              </header>
 
-            <div className="d-flex align-items-center mb-4">
-              <img src="/images/icons/lock.svg" height="21px" alt="" />
-              <p className="text-small ml-3 mb-0">
-                100% Escrow Protected: Funds held in custody until milestone review.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.donatePage__summary}>
-          <h3 className="mb-4 text-medium-heading">Donation Summary</h3>
-          <p className="text-small mb-2">Select or Enter Your Contribution</p>
-
-          {/* Quick Preset Buttons */}
-          <div className="d-flex flex-wrap gap-2 mb-3">
-            {presetAmounts.map((presetVal) => (
-              <button
-                type="button"
-                key={presetVal}
-                onClick={() => setAmount(presetVal)}
-                className={`btn btn-sm mr-2 mb-2 ${
-                  amount === presetVal ? "btn-primary" : "btn-outline-secondary"
-                }`}
-                style={{
-                  borderRadius: "6px",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  padding: "6px 14px",
-                  borderWidth: "1px",
-                }}
-              >
-                {getCurrency(currency)}{addCommaToNumber(presetVal)}
-              </button>
-            ))}
-          </div>
-
-          <div className={styles.money}>
-            <div
-              className="d-flex align-items-center justify-content-center font-weight-bold"
-              style={{
-                height: "50px",
-                padding: "5px 15px",
-                background: "#fafafa",
-                fontSize: "18px",
-              }}
-            >
-              {getCurrency(currency)}
-            </div>
-            <input
-              type="number"
-              className="money-input"
-              style={{ borderStyle: "none", fontSize: "18px", fontWeight: "bold" }}
-              value={amount || ""}
-              placeholder="0"
-              onChange={(e) => setAmount(Number(e.target.value))}
-            />
-            <div style={{ position: "relative" }}>
-              <div
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="d-flex align-items-center justify-content-center"
-                style={{
-                  height: "50px",
-                  padding: "5px 10px",
-                  width: "110px",
-                  background: "#F2F2F2",
-                  borderLeft: "0.5px solid #C4C4C4",
-                  borderRadius: "0px 4px 4px 0px",
-                  cursor: "pointer",
-                }}
-                role="button"
-              >
-                <p className="mb-0 mr-2 font-weight-bold">{currency}</p>
-                <img
-                  src="/images/icons/dropdown.svg"
-                  width={13}
-                  height={8}
-                  className="pt-0"
-                  alt=""
-                />
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  top: "110%",
-                  right: 0,
-                  display: showDropdown ? "block" : "none",
-                  width: "140px",
-                  zIndex: 50,
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-                  background: "white",
-                  borderRadius: "4px",
-                }}
-              >
-                <ul className={styles.currency_drop} style={{ margin: 0, padding: "8px 0", listStyle: "none" }}>
-                  {["USD", "GBP", "EUR", "NGN", "KES", "GHS"].map((currItem) => (
-                    <li
-                      key={currItem}
-                      className="px-3 py-2 cursor-pointer hover-bg-light"
-                      style={{ cursor: "pointer", fontWeight: currency === currItem ? 700 : 400 }}
+              {/* 1. Amount */}
+              <fieldset className={styles.section}>
+                <legend>Your donation</legend>
+                <div className={styles.presets} role="group" aria-label="Suggested amounts">
+                  {presets.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className="ft-pill"
+                      aria-pressed={amount === p && amountText === String(p)}
                       onClick={() => {
-                        setCurrency(currItem);
-                        setShowDropdown(false);
+                        setAmount(p);
+                        setAmountText(String(p));
                       }}
                     >
-                      {getCurrency(currItem)} {currItem}
-                    </li>
+                      {formatMoney(p, currency)}
+                    </button>
                   ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Dual Currency Purchasing Power Preview */}
-          {dualEstimate && amount > 0 && (
-            <div
-              className="p-2 mt-2 mb-3 text-muted text-small d-flex align-items-center justify-content-between"
-              style={{ background: "#F8FAFC", borderRadius: "6px", border: "1px dashed #CBD5E1" }}
-            >
-              <span>🌍 Estimated purchasing power:</span>
-              <strong style={{ color: "#334155" }}>
-                ≈ {dualEstimate.symbol}{dualEstimate.amount} {dualEstimate.currency}
-              </strong>
-            </div>
-          )}
-
-          <div style={{ marginBottom: 30 }}>
-            <h3 className="mb-2 mt-4 text-medium-heading">Support Fund&Trace (Optional Tip)</h3>
-            <p className="text-small mb-3 text-muted">
-              Fund&Trace charges <strong>0% platform fees</strong> to organizers. We operate entirely through voluntary donor tips:
-            </p>
-            <div className="d-flex align-items-center">
-              <label htmlFor="tips" className="sr-only">
-                Optional tip to Fund&amp;Trace
-              </label>
-              <select
-                name="tips"
-                id="tips"
-                style={{ width: 150, height: "42px", borderRadius: "6px" }}
-                className={styles.select}
-                onChange={(e) => {
-                  if (e.target.value === "others") {
-                    setOthers(true);
-                    setTip(0);
-                  } else {
-                    setTip(Number(e.target.value) / 100);
-                    setOthers(false);
-                  }
-                }}
-              >
-                <option value="7.5">7.5%</option>
-                <option value="10">10%</option>
-                <option value="12.5">12.5%</option>
-                <option value="20">20%</option>
-                <option value="0">No Tip (0%)</option>
-                <option value="others">Custom Amount</option>
-              </select>
-              {others && (
-                <div className="ml-3 d-flex align-items-center">
-                  <span className="font-weight-bold">{getCurrency(currency)}</span>
+                </div>
+                <label htmlFor="amount" className={styles.label}>
+                  Or enter an amount
+                </label>
+                <div className={`${styles.amountField} ${show("amount") ? styles.invalid : ""}`}>
+                  <span aria-hidden="true">{getCurrency(currency).trim()}</span>
                   <input
-                    className="ml-1"
-                    type="number"
-                    autoFocus
-                    min="0"
+                    id="amount"
+                    ref={ref("amount")}
+                    inputMode="decimal"
+                    autoComplete="off"
                     placeholder="0"
-                    onChange={(e) => setTip(Number(e.target.value))}
-                    style={{
-                      width: 120,
-                      border: "none",
-                      outline: "none",
-                      borderBottom: "2px solid var(--color-primary)",
-                      height: 36,
-                      background: "transparent",
-                      fontSize: "16px",
-                      fontWeight: "bold",
+                    value={amountText}
+                    aria-invalid={Boolean(show("amount"))}
+                    aria-describedby="amount-help"
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/[^\d.]/g, "");
+                      setAmountText(v);
+                      const n = Number(v);
+                      setAmount(Number.isFinite(n) ? n : 0);
                     }}
                   />
+                  <span className={styles.code}>{currency}</span>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.line}></div>
-
-          {/* Itemized Fee Transparency Breakdown */}
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <p className="mb-0 text-small">Donation Subtotal</p>
-            <p className="font-weight-bold mb-0 text-black">
-              {getCurrency(currency)}{addCommaToNumber(amount || 0)}
-            </p>
-          </div>
-
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <div className="d-flex align-items-center">
-              <p className="mb-0 text-small mr-2">Platform Fee</p>
-              <span className="badge badge-success" style={{ fontSize: "11px", borderRadius: 4, background: "#047857", color: "#fff" }}>
-                0% FREE
-              </span>
-            </div>
-            <p className="font-weight-bold mb-0 text-success">
-              {getCurrency(currency)}0.00
-            </p>
-          </div>
-
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <p className="mb-0 text-small">Optional Tip</p>
-            <p className="font-weight-bold mb-0 text-black">
-              {getCurrency(currency)}
-              {addCommaToNumber(others ? tip : tip ? Number((amount * tip).toFixed(2)) : 0)}
-            </p>
-          </div>
-
-          <div className="d-flex justify-content-between align-items-center mb-4 pt-3 border-top">
-            <p className="font-weight-bold mb-0 text-black" style={{ fontSize: "18px" }}>Total Charged</p>
-            <p className="font-weight-bold mb-0 text-primary" style={{ fontSize: "20px", color: "var(--color-primary)" }}>
-              {getCurrency(currency)}
-              {addCommaToNumber(
-                Number(((amount || 0) + (others ? tip : tip ? amount * tip : 0)).toFixed(2))
-              )}
-            </p>
-          </div>
-
-          <div className="mb-4 d-flex align-items-start">
-            <input
-              type="checkbox"
-              name="policy"
-              id="policy"
-              checked={terms}
-              className="mr-3 mt-1"
-              onChange={(e) => setTerms(!terms)}
-              style={{ width: "18px", height: "18px" }}
-            />
-            <label htmlFor="policy" className={`mb-0 ${!terms ? "text-danger" : "text-muted"}`} style={{ fontSize: "13px" }}>
-              I agree to the Terms of Service, Privacy Policy, and milestone escrow terms.
-            </label>
-          </div>
-
-          <button
-            className="btn btn-brand-primary text-white w-100 mb-4"
-            style={{
-              height: "50px",
-              fontSize: "16px",
-              fontWeight: 700,
-              background: "var(--color-primary)",
-              borderRadius: "6px",
-            }}
-            onClick={submit}
-            disabled={loading}
-          >
-            {loading ? (
-              <Spinner type="TailSpin" width={25} height={25} color={"white"} />
-            ) : (
-              <p className="mb-0 text-white">
-                Donate {getCurrency(currency)}
-                {addCommaToNumber(
-                  Number(((amount || 0) + (others ? tip : tip ? amount * tip : 0)).toFixed(2))
-                )} Now
-              </p>
-            )}
-          </button>
-
-          <div
-            className={[styles.card, "d-flex w-100 flex-column mt-5 pt-5"].join(
-              " "
-            )}
-          >
-            <img
-              className={styles.card_img}
-              src={campaign?.basicInformation?.campaignImage}
-              alt="campaignPic"
-              width="100%"
-              height="200px"
-            />
-            <div className="py-4">
-              <div className="d-flex align-items-center">
-                <img
-                  src="/images/icons/location.svg"
-                  alt="location-icon"
-                  width="13px"
-                  height="16px"
-                  className="mr-2"
-                />
-                <h3 className="text-blue mb-0">
-                  {campaign?.basicInformation?.locationState},{" "}
-                  {campaign?.basicInformation?.locationCountry}
-                </h3>
-              </div>
-              <div className="mt-4">
-                <h3 className="text-medium mb-3">
-                  {campaign?.basicInformation?.campaignTitle}
-                </h3>
-
-                <p
-                  className="mb-2 text-capitalize"
-                  style={{
-                    fontWeight: "normal",
-                    fontSize: "14px",
-                    color: "#565d6d",
-                  }}
-                >
-                  {campaign?.category}
+                <p id="amount-help" className={show("amount") ? styles.error : styles.help}>
+                  {show("amount") || (approx ? `About ${approx}. Donations are taken in ${currency}, the campaign's currency.` : `Donations are taken in ${currency}, the campaign's currency.`)}
                 </p>
-                <div className="d-flex align-items-baseline">
-                  <h3 className="text-heading mr-2">
-                    {campaign?.funding?.currency == "USD"
-                      ? "$"
-                      : campaign?.funding?.currency == "GBP"
-                      ? "£"
-                      : "₦"}
-                    {addCommaToNumber(campaign?.funding?.amountRaised)}
-                  </h3>
-                  <p
-                    className="mb-0"
-                    style={{ fontWeight: "300", color: "#5f6672" }}
-                  >
-                    raised of{" "}
-                    {campaign?.funding?.currency == "USD"
-                      ? "$"
-                      : campaign?.funding?.currency == "GBP"
-                      ? "£"
-                      : "₦"}
-                    {addCommaToNumber(campaign?.funding?.amountExpected)}
+              </fieldset>
+
+              {/* 2. Details */}
+              <fieldset className={styles.section}>
+                <legend>Your details</legend>
+                <div className={styles.row}>
+                  <div>
+                    <label htmlFor="firstName" className={styles.label}>First name</label>
+                    <input id="firstName" ref={ref("firstName")} className="form-control" autoComplete="given-name" value={firstName} aria-invalid={Boolean(show("firstName"))} onChange={(e) => setFirstName(e.target.value)} />
+                    {show("firstName") && <p className={styles.error}>{show("firstName")}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="lastName" className={styles.label}>Last name</label>
+                    <input id="lastName" ref={ref("lastName")} className="form-control" autoComplete="family-name" value={lastName} aria-invalid={Boolean(show("lastName"))} onChange={(e) => setLastName(e.target.value)} />
+                    {show("lastName") && <p className={styles.error}>{show("lastName")}</p>}
+                  </div>
+                </div>
+                <label htmlFor="email" className={styles.label}>Email</label>
+                <input id="email" ref={ref("email")} type="email" className="form-control" autoComplete="email" value={email} aria-invalid={Boolean(show("email"))} aria-describedby="email-help" onChange={(e) => setEmail(e.target.value)} />
+                <p id="email-help" className={show("email") ? styles.error : styles.help}>
+                  {show("email") || "We'll email your receipt and updates on how the money is spent."}
+                </p>
+                <div className={styles.row}>
+                  <div>
+                    <label htmlFor="country" className={styles.label}>Country</label>
+                    <select
+                      id="country"
+                      ref={ref("country")}
+                      className="form-control"
+                      autoComplete="country-name"
+                      value={country}
+                      aria-invalid={Boolean(show("country"))}
+                      onChange={(e) => {
+                        setCountry(e.target.value);
+                        chooseRailFor(e.target.value);
+                      }}
+                    >
+                      <option value="">Select…</option>
+                      {country && !countries.some((c) => c.name === country) && <option value={country}>{country}</option>}
+                      {countries.map((c) => (
+                        <option key={c.name} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+                    {show("country") && <p className={styles.error}>{show("country")}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="zip" className={styles.label}>
+                      Postcode <span className="ft-muted">(optional)</span>
+                    </label>
+                    <input id="zip" className="form-control" autoComplete="postal-code" value={zip} onChange={(e) => setZip(e.target.value)} />
+                  </div>
+                </div>
+                <label className={styles.check}>
+                  <input type="checkbox" checked={anonymous} onChange={() => setAnonymous(!anonymous)} />
+                  <span>Don&apos;t show my name publicly</span>
+                </label>
+              </fieldset>
+
+              {/* 3. Payment */}
+              <fieldset className={styles.section}>
+                <legend>How would you like to pay?</legend>
+                <div className={styles.rails}>
+                  {availableRails.map((r) => (
+                    <label key={r.id} className={`${styles.rail} ${rail === r.id ? styles.railOn : ""}`}>
+                      <input type="radio" name="rail" value={r.id} checked={rail === r.id} onChange={() => setRail(r.id)} />
+                      <span>
+                        <strong>{r.name}</strong>
+                        <span>{r.detail}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className={styles.help}>You&apos;ll finish paying on {rail === "stripe" ? "Stripe's" : rail === "paystack" ? "Paystack's" : "Flutterwave's"} secure page. We never see your card details.</p>
+              </fieldset>
+
+              {/* 4. Tip */}
+              <fieldset className={styles.section}>
+                <legend>Support Fund&amp;Trace <span className="ft-muted">(optional)</span></legend>
+                <p className={styles.help} style={{ marginTop: 0 }}>
+                  We charge organisers nothing. Tips from donors keep the platform running. Your donation to the campaign is the same either way.
+                </p>
+                <div className={styles.presets} role="group" aria-label="Tip">
+                  {TIP_OPTIONS.map((t) => (
+                    <button key={t} type="button" className="ft-pill" aria-pressed={tipPct === t} onClick={() => setTipPct(t)}>
+                      {t === 0 ? "No tip" : `${t}%`}
+                    </button>
+                  ))}
+                  <button type="button" className="ft-pill" aria-pressed={tipPct === "custom"} onClick={() => setTipPct("custom")}>
+                    Other
+                  </button>
+                </div>
+                {tipPct === "custom" && (
+                  <div className={styles.customTip}>
+                    <label htmlFor="customTip" className={styles.label}>Tip amount ({currency})</label>
+                    <input id="customTip" inputMode="decimal" className="form-control" value={customTip} onChange={(e) => setCustomTip(e.target.value.replace(/[^\d.]/g, ""))} />
+                  </div>
+                )}
+              </fieldset>
+
+              {/* Summary (also shown in the sidebar on desktop) */}
+              <div className={styles.section}>
+                <dl className={styles.breakdown}>
+                  <div><dt>Donation to campaign</dt><dd>{formatMoney(amount, currency)}</dd></div>
+                  <div><dt>Tip to Fund&amp;Trace</dt><dd>{formatMoney(tip, currency)}</dd></div>
+                  <div><dt>Platform fee</dt><dd className={styles.free}>{formatMoney(0, currency)}</dd></div>
+                  <div className={styles.total}><dt>Total</dt><dd>{formatMoney(total, currency)}</dd></div>
+                </dl>
+                <label className={`${styles.check} ${show("terms") ? styles.checkInvalid : ""}`}>
+                  <input type="checkbox" ref={ref("terms") as (el: HTMLInputElement | null) => void} checked={terms} aria-invalid={Boolean(show("terms"))} onChange={() => setTerms(!terms)} />
+                  <span>
+                    I agree to the <Link href="/terms" target="_blank">Terms</Link> and <Link href="/privacy" target="_blank">Privacy Policy</Link>.
+                  </span>
+                </label>
+                {show("terms") && <p className={styles.error}>{show("terms")}</p>}
+
+                {submitted && Object.keys(errors).length > 0 && (
+                  <p className={styles.errorSummary} role="alert">
+                    Please fix {Object.keys(errors).length === 1 ? "1 thing" : `${Object.keys(errors).length} things`} above before you continue.
                   </p>
-                </div>
-                <div className={["progress mb-3", styles.progress].join(" ")}>
-                  <div
-                    className={[styles.progressbar, "progress-bar "].join(" ")}
-                    role="progressbar"
-                    aria-label="Funding progress"
-                    style={{ width: progressString + "%" }}
-                    aria-valuenow={Number(progressString)}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                  ></div>
-                </div>
-                <div className="d-flex align-items-center">
-                  <img
-                    src="/images/icons/time.svg"
-                    alt="time"
-                    width="17.5px"
-                    height="17.5px"
-                    className="mr-2"
-                  />
-                  <p className="mb-0" style={{ color: "#565d6d" }}>
-                    {getDaysRemaining(campaign)} days left
+                )}
+
+                <button type="submit" className="ft-btn ft-btn--primary ft-btn--lg ft-btn--block" disabled={loading} aria-busy={loading}>
+                  {loading ? "Opening secure payment…" : amount > 0 ? `Donate ${formatMoney(total, currency)}` : "Donate"}
+                </button>
+                <p className={styles.secure}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                  Held in escrow and released in reviewed stages.
+                  {refundDays ? ` You can refund it within ${refundDays} days while it's still in escrow.` : ""}
+                </p>
+              </div>
+            </form>
+
+            <aside className={styles.aside} aria-label="Campaign you're supporting">
+              <div className={styles.campaignCard}>
+                <img src={campaign.basicInformation?.campaignImage || FALLBACK_IMAGE} alt="" />
+                <div className={styles.campaignBody}>
+                  <h2>{title}</h2>
+                  {campaign.organizer && <p className="ft-muted">Organised by {campaign.organizer}</p>}
+                  <p className={styles.raised}>
+                    <strong>{formatMoney(raised, currency)}</strong> raised of {formatMoney(goal, currency)}
+                  </p>
+                  <div className="ft-progress" role="progressbar" aria-label="Funding progress" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                    <span style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="ft-muted" style={{ marginTop: 8, fontSize: 13.5 }}>
+                    {pct}% funded · {Math.max(0, Number(getDaysRemaining(campaign)) || 0)} days left
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
-          <p className="mb-2">Organizer</p>
-          <div className="d-flex align-items-center mb-5">
-            <img
-              src="/images/icons/profile.svg"
-              width={24}
-              height={24}
-             alt="" />
-            <p className="ml-4 mb-0 mr-4" style={{ fontWeight: 400 }}>
-              {campaign?.organizer}
-            </p>
+              <ul className={styles.promises}>
+                <li>Your money is held in escrow, not paid straight to the organiser.</li>
+                <li>Each payout is reviewed, and receipts are published on the tracker.</li>
+                <li>Every payment is on a public ledger you can verify yourself.</li>
+              </ul>
+              <Link href={`/campaign/${campaign._id}/tracker`} className="ft-btn ft-btn--link">
+                See where the money has gone so far →
+              </Link>
+            </aside>
           </div>
         </div>
-      </div>
+      </main>
       <Footer />
     </Layout>
   );
 }
-
-const Select = styled.div`
-  width: 100%;
-  background: #ffffff;
-  border: none;
-  box-shadow: 0px 2px 2px rgba(50, 50, 71, 0.06);
-  box-sizing: border-box;
-  height: 46px;
-  padding: 5px 15px;
-  &:disabled {
-    color: #5f6672;
-  }
-  position: relative;
-  .value{
-    overflow: hidden;
-    whitespace: nowrap;
-    max-height: 100%;
-  }
-  .options{
-    @media screen and (max-width: 767px) {
-      border-top: 1px solid #E5E5E5
-    }
-    background: transparent;
-    &:hover {
-      background: #E5E5E5;
-    }
-  }
-  .dropdown{
-    position: absolute;
-    top: 110%;
-     box-shadow: -2px 4px 48px rgba(50, 50, 71, 0.05),
-    2px 10px 24px rgba(50, 50, 71, 0.05);
-    z-index: 1000000000;
-    cursor: pointer;
-    width: max-content;
-    max-height: 300px;
-    overflow-y: scroll;
-    left: 0;
-    @media screen and (max-width: 767px) {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      width: 90%;
-      border-radius: 4px;
-      max-width: 430px;
-      max-height: 400px;
-      transform: translate(-50%, -50%)
-    }
-  }
-  .overlay{
-    width: 100vw;
-    height:100vh;
-    position:fixed;
-    z-index 1000000;
-    left: 0;
-    top: 0;
-    @media screen and (max-width: 767px) {
-      background: rgba(0,0,0,0.5)
-    }
-  }
-`;

@@ -7,6 +7,9 @@ export default function MobileBottomDock() {
   const router = useRouter();
   const currentPath = router.pathname;
 
+  // Pages with their own sticky action bar (Donate, payment steps) or admin.
+  if (/^\/(campaign\/\[id\]$|donate\/|donated\/|admin)/.test(currentPath)) return null;
+
   const navItems = [
     {
       label: "Explore",
@@ -49,8 +52,9 @@ export default function MobileBottomDock() {
       ),
     },
     {
-      label: "Tracker",
-      path: "/campaign/6228221c5690b201dc93ec3e/tracker",
+      // Was a hard-coded link to one specific campaign's tracker.
+      label: "Search",
+      path: "/search",
       icon: (active: boolean) => (
         <svg
           width="20"
@@ -62,8 +66,8 @@ export default function MobileBottomDock() {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          <path d="m9 12 2 2 4-4" />
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
         </svg>
       ),
     },
@@ -123,7 +127,7 @@ export default function MobileBottomDock() {
               ? currentPath.includes("StartACampaign")
               : item.path === "/dashboard"
               ? currentPath.startsWith("/dashboard")
-              : currentPath.includes("tracker");
+              : currentPath.startsWith(item.path);
 
           return (
             <Link href={item.path} key={item.label} passHref legacyBehavior>

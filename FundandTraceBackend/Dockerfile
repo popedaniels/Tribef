@@ -1,14 +1,13 @@
 # Production Multi-Stage Dockerfile for Fund&Trace Backend (Express API)
 
 # Stage 1: Build & Dependencies
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /opt/app
 COPY package.json package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci --only=production; \
-    else npm install --production; fi
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Stage 2: Production Runner
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /opt/app
 
 ENV NODE_ENV=production
@@ -27,7 +26,11 @@ USER app
 
 EXPOSE 5000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/health || exit 1
+# Liveness only: /live does not depend on MongoDB, so a database blip doesn't
+# make the orchestrator kill healthy containers. Route traffic on /ready.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/live || exit 1
 
+# server.js handles SIGTERM: drains in-flight requests, then exits.
+STOPSIGNAL SIGTERM
 CMD ["node", "server.js"]

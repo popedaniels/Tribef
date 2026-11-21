@@ -243,13 +243,15 @@ exports.paystackWebhook = async (req, res) => {
       return res.status(503).json({ status: 503, error: "Paystack is not configured" });
     }
 
-    // Verify webhook signature using HMAC SHA512
-    const hash = crypto
-      .createHmac("sha512", paystackSecret())
-      .update(JSON.stringify(req.body))
-      .digest("hex");
+    // Verify the HMAC-SHA512 signature over the RAW request body (captured in
+    // server.js). Re-serialising the parsed JSON can differ byte-for-byte from
+    // what Paystack signed (unicode escapes, number formats), which would
+    // reject genuine payment events.
+    const raw = req.rawBody || Buffer.from(JSON.stringify(req.body));
+    const hash = crypto.createHmac("sha512", paystackSecret()).update(raw).digest("hex");
+    const provided = String(req.headers["x-paystack-signature"] || "");
 
-    if (hash !== req.headers["x-paystack-signature"]) {
+    if (provided.length !== hash.length || !crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(hash))) {
       return res.status(401).json({ status: 401, error: "Invalid webhook signature" });
     }
 

@@ -1,0 +1,25 @@
+name: Ledger watchdog
+
+# Independently re-verifies the latest published ledger anchor against the
+# live API every day (docs/LEDGER_ANCHORING.md). Runs on GitHub's machines, not
+# ours, so it's a check by a third party. A failure means a ledger chain broke
+# or history changed after it was anchored: treat it as an incident.
+on:
+  schedule:
+    - cron: "37 3 * * *" # after the 01:00 UTC anchor job
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: ${{ vars.PRODUCTION_API_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Verify latest anchor against the live ledgers
+        run: node FundandTraceBackend/scripts/verify-anchor.js --api "${{ vars.PRODUCTION_API_URL }}"

@@ -14,6 +14,20 @@ let anonymousLimiterSeq = 0;
 //
 // passOnStoreError keeps the API available if Redis is briefly unreachable —
 // a missed throttle is preferable to a full outage.
+// Payment-provider webhooks are signed and come from a handful of provider
+// IPs; rate-limiting them per IP would drop real payments on a busy day
+// (and providers only retry for a limited time).
+const WEBHOOK_PATHS = new Set([
+  "/api/donations/stripe-webhook",
+  "/api/donations/flutterwave-webhook",
+  "/api/donations/paystack-webhook",
+  "/api/identity/webhook",
+  "/api/stripeConnect/webhook",
+]);
+exports.WEBHOOK_PATHS = WEBHOOK_PATHS;
+const isWebhook = (req) => WEBHOOK_PATHS.has(String(req.originalUrl || req.url || "").split("?")[0]);
+exports.isWebhook = isWebhook;
+
 exports.rateLimiter = (options = {}) => {
   const windowMs = options.windowMs ?? 15 * 60 * 1000;
   const max = options.max ?? 100;
@@ -26,6 +40,7 @@ exports.rateLimiter = (options = {}) => {
     standardHeaders: "draft-6",
     legacyHeaders: false,
     passOnStoreError: true,
+    skip: (req) => isWebhook(req),
     handler: (req, res) => {
       res.status(429).json({
         success: false,
@@ -112,6 +127,9 @@ exports.csrfOriginGuard = (allowedOrigins) => {
 
 // Remove operator keys from mutation payloads before they reach Mongo queries.
 exports.sanitizeInput = (req, res, next) => {
+  // Webhook bodies are verified against the provider's signature and must
+  // reach the handler exactly as sent.
+  if (isWebhook(req)) return next();
   if (
     ["POST", "PUT", "PATCH"].includes(req.method) &&
     req.body &&

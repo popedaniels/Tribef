@@ -115,3 +115,65 @@ exports.uploadReceipt = async (req, res) => {
     return res.status(500).json({ status: 500, error: "Server error." });
   }
 };
+
+// ── Daily anchors (services/anchoring.js) ──────────────────────────────────
+const { LedgerAnchor } = require("../models/ledgerAnchorModel");
+const anchoring = require("../services/anchoring");
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+exports.listAnchors = async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbDown(res);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 30, 1), 365);
+    const anchors = await LedgerAnchor.find().sort({ date: -1 }).limit(limit).select("-leaves").lean().maxTimeMS(3000);
+    res.set("Cache-Control", "public, max-age=300");
+    return res.status(200).json({ data: anchors.map(anchoring.publicAnchor) });
+  } catch (error) {
+    logger.error({ err: error }, "listAnchors failed");
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};
+
+// GET /anchors/:date            → anchor with all leaves (enough to recompute the root)
+// GET /anchors/:date?format=txt → the exact published message
+// GET /anchors/:date?format=ots → OpenTimestamps proof for that message
+exports.getAnchor = async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbDown(res);
+    const { date } = req.params;
+    if (date !== "latest" && !DATE_RE.test(date)) return res.status(400).json({ status: 400, error: "Use a date like 2026-11-22." });
+    const anchor =
+      date === "latest"
+        ? await LedgerAnchor.findOne().sort({ date: -1 }).lean().maxTimeMS(3000)
+        : await LedgerAnchor.findOne({ date }).lean().maxTimeMS(3000);
+    if (!anchor) return res.status(404).json({ status: 404, error: "No anchor for that date." });
+
+    res.set("Cache-Control", "public, max-age=300");
+    if (req.query.format === "txt") return res.type("text/plain").send(anchor.message);
+    if (req.query.format === "ots") {
+      const ots = (anchor.publications || []).find((p) => p.target === "opentimestamps" && p.proof);
+      if (!ots) return res.status(404).json({ status: 404, error: "No OpenTimestamps proof for this anchor." });
+      res.set("Content-Disposition", `attachment; filename="${anchor.date}.txt.ots"`);
+      return res.type("application/octet-stream").send(Buffer.from(ots.proof, "base64"));
+    }
+    return res.status(200).json({ data: { ...anchoring.publicAnchor(anchor), leaves: anchor.leaves } });
+  } catch (error) {
+    logger.error({ err: error }, "getAnchor failed");
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};
+
+exports.anchorProof = async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return dbDown(res);
+    const date = req.query.date ? String(req.query.date) : undefined;
+    if (date && !DATE_RE.test(date)) return res.status(400).json({ status: 400, error: "Use a date like 2026-11-22." });
+    const proof = await anchoring.proofFor(req.params.campaignId, date);
+    if (!proof) return res.status(404).json({ status: 404, error: "No anchors published yet." });
+    res.set("Cache-Control", "public, max-age=300");
+    return res.status(200).json({ data: proof });
+  } catch (error) {
+    logger.error({ err: error }, "anchorProof failed");
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};

@@ -9,6 +9,8 @@ const { requireAuth, requireCampaignOwner } = require("../utility/auth");
 router.param("id", objectIdParam("ID"));
 
 router.get("/", fundingRequestController.getAllFundingRequests);
+// Before "/:id" so "me" isn't parsed as an id.
+router.get("/me/todos", requireAuth, fundingRequestController.myTodos);
 router.get(
   "/singleFundingRequest/:id",
   fundingRequestController.getSingleFundingRequest

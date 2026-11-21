@@ -33,6 +33,7 @@ router.get(
   "/fundingRequest/:id",
   adminFundingRequestController.getSingleFundingRequests
 );
+router.get("/fundingRequest/:id/review", adminFundingRequestController.reviewFundingRequest);
 router.patch(
   "/fundingRequest/approve/:id",
   adminFundingRequestController.approveFundingRequest
@@ -65,6 +66,11 @@ router.get(
 // Dispute resolution (unlock or pro-rata refund of the remaining escrow).
 const adminDisputes = require("../controller/adminDisputes");
 router.get("/disputes/frozen", adminDisputes.listFrozenCampaigns);
+
+// Operations: daily integrity checks, ledger anchors, scheduled job history.
+const adminOps = require("../controller/adminOps");
+router.get("/ops/status", adminOps.status);
+router.post("/ops/integrity/run", adminOps.runIntegrity);
 router.post("/disputes/:id/resolve", adminDisputes.resolveDispute);
 
 // Admin audit trail.

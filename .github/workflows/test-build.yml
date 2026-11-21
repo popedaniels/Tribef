@@ -37,6 +37,8 @@ jobs:
           cache: npm
           cache-dependency-path: FundandTraceBackend/package-lock.json
       - run: npm ci
+      - name: Dependency audit (production deps, high+)
+        run: npm audit --omit=dev --audit-level=high
       - name: Syntax check
         run: npm run lint
       - name: Unit tests (with coverage floor)
@@ -63,6 +65,8 @@ jobs:
           cache: npm
           cache-dependency-path: FundandTrace/package-lock.json
       - run: npm ci
+      - name: Dependency audit (production deps, high+)
+        run: npm audit --omit=dev --audit-level=high
       - name: Unit tests
         run: npm test -- --ci
       - name: Production build

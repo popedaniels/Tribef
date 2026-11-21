@@ -278,3 +278,57 @@ exports.declineFundingRequest = async (req, res, next) => {
     return res.status(500).json({ status: 500, error: "Server error." });
   }
 };
+
+// GET /api/admin/fundingRequest/:id/review — the checklist a reviewer needs
+// before approving (services/payoutReview.js).
+exports.reviewFundingRequest = async (req, res) => {
+  try {
+    if (!req.auth) return res.status(401).json({ status: 401, error: "Unauthorized" });
+    const fr = await FundingRequests.findById(req.params.id).lean().maxTimeMS(3000);
+    if (!fr) return res.status(404).json({ status: 404, error: "Funding request not found" });
+    const campaign = await Campaign.findById(fr.campaignId)
+      .select("basicInformation.campaignTitle organizer organizerId funding disputeGovernance stripeConnect")
+      .lean()
+      .maxTimeMS(3000);
+    if (!campaign) return res.status(404).json({ status: 404, error: "Campaign not found" });
+    const { Donations } = require("../models/donationsModel");
+    const { evaluatePayout } = require("../services/payoutReview");
+    const [organizer, history, total, flagged] = await Promise.all([
+      Users.findById(campaign.organizerId || fr.organizerId).select("identityVerification suspended createdAt").lean(),
+      FundingRequests.find({ campaignId: fr.campaignId })
+        .select("_id status amount createdAt disbursement.dateDisbursed disbursement.receipt purposeOfFunding fundingType")
+        .sort({ createdAt: 1 })
+        .lean(),
+      Donations.countDocuments({ campaignId: String(fr.campaignId) }),
+      Donations.countDocuments({ campaignId: String(fr.campaignId), "fraud.flagged": true }),
+    ]);
+    const review = evaluatePayout({ fr, campaign, organizer, history, donations: { total, flagged } });
+    return res.status(200).json({
+      data: {
+        ...review,
+        campaign: {
+          _id: campaign._id,
+          title: campaign.basicInformation?.campaignTitle,
+          organizer: campaign.organizer,
+          currency: campaign.funding?.currency,
+          raised: campaign.funding?.amountRaised,
+          available: campaign.funding?.availableBalance,
+          goal: campaign.funding?.amountExpected,
+        },
+        history: history.map((h) => ({
+          _id: h._id,
+          status: h.status,
+          amount: h.amount,
+          createdAt: h.createdAt,
+          paidAt: h.disbursement?.dateDisbursed || null,
+          hasReceipt: Boolean(h.disbursement?.receipt),
+          purpose: String(h.purposeOfFunding || "").slice(0, 140),
+          current: String(h._id) === String(fr._id),
+        })),
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error }, "reviewFundingRequest failed");
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};

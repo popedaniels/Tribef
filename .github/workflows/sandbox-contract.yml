@@ -1,0 +1,36 @@
+name: Provider sandbox contract
+
+# Runs the app's payment code against the real Stripe / Paystack / Flutterwave
+# TEST-mode APIs (FundandTraceBackend/scripts/sandbox-e2e.js). Needs test keys
+# as repository secrets; the script refuses live keys.
+on:
+  schedule:
+    - cron: "17 6 * * 1" # weekly, Monday
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FundandTraceBackend
+    env:
+      NODE_ENV: test
+      STRIPESECRET: ${{ secrets.SANDBOX_STRIPE_SECRET }}
+      PAYSTACK_SECRET: ${{ secrets.SANDBOX_PAYSTACK_SECRET }}
+      FLUTTERWAVE: ${{ secrets.SANDBOX_FLUTTERWAVE_SECRET }}
+      SECURITY_KEY: ${{ secrets.SANDBOX_SECURITY_KEY }}
+      INIT_VECTOR: ${{ secrets.SANDBOX_INIT_VECTOR }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: FundandTraceBackend/package-lock.json
+      - run: npm ci
+      - name: Contract checks (Nigeria)
+        run: node scripts/sandbox-e2e.js contract --country NG ${{ vars.SANDBOX_NG_BANK_CODE && format('--bank-code {0} --account {1}', vars.SANDBOX_NG_BANK_CODE, vars.SANDBOX_NG_ACCOUNT) || '' }}

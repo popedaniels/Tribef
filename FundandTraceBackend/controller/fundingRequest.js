@@ -300,3 +300,23 @@ exports.trackingFunction = async (req, res, next) => {
     return res.status(500).json({ status: 500, error: "Server error." });
   }
 };
+
+// GET /api/fundingRequests/me/todos — what the signed-in organiser should do next.
+exports.myTodos = async (req, res) => {
+  try {
+    const { Users } = require("../models/users");
+    const { Campaign } = require("../models/campaignModel");
+    const { organiserTodos } = require("../services/organiserTodos");
+    const userId = require("../utility/auth").getAuthUserId(req.auth);
+    if (!userId) return res.status(401).json({ status: 401, error: "Unauthorized" });
+    const [user, campaigns, fundingRequests] = await Promise.all([
+      Users.findById(userId).select("identityVerification").lean(),
+      Campaign.find({ organizerId: userId }).select("basicInformation.campaignTitle launched funding.amountRaised funding.bankCode funding.accountNumber stripeConnect disputeGovernance.isLocked updates.datePosted createdAt").lean(),
+      FundingRequests.find({ organizerId: userId }).select("campaignId status amount currency fundingType declineReason createdAt updatedAt disbursement.dateDisbursed disbursement.receipt disbursement.providerStatus").lean(),
+    ]);
+    return res.status(200).json({ data: organiserTodos({ user, campaigns, fundingRequests }) });
+  } catch (error) {
+    logger.error({ err: error }, "myTodos failed");
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};

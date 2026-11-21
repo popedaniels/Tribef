@@ -364,6 +364,11 @@
 
 *Code:* `controller/donations/payout.js` · tests in `tests/unit/payout.test.js`
 
+### E-7 Know what to do next ✅ (S)
+- My dashboard lists what needs my attention, most urgent first: receipts due or overdue, identity check, missing payout details, failed bank transfers, declined requests with the reason, frozen campaigns, drafts to launch, campaigns with no update in 30 days. Each has a button that goes straight to the fix.
+
+*Code:* `services/organiserTodos.js` · `OrganiserTodos.tsx`
+
 ### F-5 Require KYC before payout ✅ (M)
 - **Given** the organiser's identity status is not `verified`, **when** an admin approves a payout to the organiser, **then** it is refused with **403** `kyc_required`. Payouts straight to a third party/vendor are exempt. Admins can verify manually. (`REQUIRE_KYC_FOR_PAYOUT`)
 
@@ -401,6 +406,15 @@
 - The tracker lists the entries and a **Verify ledger** button recomputes the chain **in my browser**; any edited, removed or reordered entry is reported with its position.
 - The raw ledger and a server-side check are public at `/api/ledger/:id` and `/verify`.
 
+### G-6 Know the platform can't rewrite history ✅ (M)
+**As** a journalist or auditor **I want** the ledger committed somewhere the operator can't edit **so that** even Fund&Trace can't quietly change past records.
+- Every day the head of every campaign's ledger is combined into a Merkle root and published to a public GitHub repo and OpenTimestamps (Bitcoin). The anchors chain to each other.
+- **Verify ledger** on the tracker also checks the campaign's inclusion proof against the published root and confirms the anchored entry is unchanged.
+- `scripts/verify-anchor.js` re-checks an anchor against the live API using only public data; a GitHub Action runs it daily.
+- The job refuses to anchor if any chain fails verification.
+
+*Docs:* `docs/LEDGER_ANCHORING.md`
+
 ### G-5 Judge trust at a glance ✅ (M)
 - Each campaign shows a 0–100 **Transparency Score** with a grade, computed only from verifiable facts: identity verified (25), proof uploaded (25), proof on time (15), disputes (15), share paid directly to suppliers (10), recent updates (10). "How it's calculated" shows every factor and its reason.
 
@@ -421,6 +435,13 @@
 - While locked: no new funding requests (F-1), no approvals (F-3) and no payouts (F-4). Previously the lock was recorded but nothing enforced it.
 
 *Code:* `POST /api/campaigns/:id/dispute` · `controller/campaign.js#fileDispute`
+
+### H-4 Review a payout with a checklist ✅ (M)
+**As** an admin reviewer **I want** every check that matters on one screen **so that** every payout gets the same scrutiny.
+- The review page shows a verdict (**Ready**, **Needs a closer look**, **Don't approve yet**) and the checks behind it: escrow covers the amount, campaign not frozen, identity verified (or paid straight to a third party), a payout route exists for the currency, a supporting document is attached, earlier payouts have receipts, no duplicate request, size relative to funds raised, share of donations flagged by fraud checks, organiser account age.
+- Approving a **blocked** request needs an explicit acknowledgement, which the audit log records.
+
+*Code:* `services/payoutReview.js` · `PayoutReviewChecklist.tsx`
 
 ### H-3 Resolve a dispute ✅ (M)
 **As** Ada **I want to** unlock a campaign or trigger pro-rata refunds **so that** a dispute ends cleanly.

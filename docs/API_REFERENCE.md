@@ -211,3 +211,28 @@ Password reset and change also revoke existing sessions; change keeps the curren
 ### Status codes used
 
 `400` invalid input · `401` not signed in / session revoked · `403` not allowed (incl. `code: "kyc_required"`) · `404` not found · `409` conflict or already processed · `422` business rule · `423` campaign frozen (`code: "campaign_frozen"`) · `502` payment provider rejected · `503` dependency unavailable.
+
+## 🔐 Ledger anchors, operations and review (added November 2026)
+
+| Method & path | Auth | Purpose |
+| --- | --- | --- |
+| `GET /api/ledger/anchors?limit=30` | public | Recent daily anchors: date, Merkle root, digest, previous digest, where published |
+| `GET /api/ledger/anchors/:date` (`latest` allowed) | public | One anchor with every leaf `{campaignId, seq, head}` |
+| `GET /api/ledger/anchors/:date?format=txt` | public | The exact statement that was published (its SHA-256 is the digest) |
+| `GET /api/ledger/anchors/:date?format=ots` | public | OpenTimestamps proof for that statement |
+| `GET /api/ledger/:campaignId/proof?date=` | public | Inclusion proof: `{included, anchor, leaf, leafHash, path:[{hash, side}]}` |
+| `GET /api/admin/ops/status` | admin | Last 14 integrity checks and anchors, last 30 scheduled job runs |
+| `POST /api/admin/ops/integrity/run` | admin | Run the integrity check now and return the full report (no alert sent) |
+| `GET /api/admin/fundingRequest/:id/review` | admin | Review checklist: `{verdict: ready|review|blocked, checks[], campaign, history[]}` |
+| `GET /api/fundingRequests/me/todos` | organiser | What the signed-in organiser should do next, most urgent first |
+
+Every response now carries an `X-Request-Id` header (an upstream id is kept if
+it's 8–64 word characters). 500 responses include `requestId` in the body.
+
+Payment-provider webhooks are exempt from rate limiting. Paystack and
+Flutterwave signatures are checked against the raw request body.
+
+Checkout endpoints (`createStripeSession`, `initializePaystack`, `initialize`,
+`recurring`) return **400 `currency_mismatch`** when the requested currency
+isn't the campaign's. `amount` is always the **total charged** (donation + tip);
+the campaign is credited `amount − meta.tip`.

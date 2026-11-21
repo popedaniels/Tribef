@@ -6,6 +6,8 @@ const {
   logger,
   stripe,
   creditCampaign,
+  checkoutCurrency,
+  currencyMismatch,
   sendDonationMailSafely,
 } = require("./shared");
 const { Subscription } = require("../../models/subscriptionModel");
@@ -33,7 +35,9 @@ exports.createStripeSession = async (req, res) => {
 
     const amount = Number(req.body.amount);
     const tip = Number(req.body.meta?.tip || 0);
-    const currency = String(req.body.currency || campaign.funding.currency || "gbp").toLowerCase();
+    const charged = checkoutCurrency(campaign, req.body.currency);
+    if (!charged) return currencyMismatch(res, campaign);
+    const currency = charged.toLowerCase();
     if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }

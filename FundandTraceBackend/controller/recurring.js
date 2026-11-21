@@ -7,7 +7,7 @@ const { Subscription } = require("../models/subscriptionModel");
 const { addActivity } = require("../services/activityLog");
 const logger = require("../utility/logger");
 const { getClientIp, assessDonation } = require("../utility/fraud");
-const { stripe } = require("./donations/shared");
+const { stripe, checkoutCurrency, currencyMismatch } = require("./donations/shared");
 
 const SUPPORTED_CURRENCIES = ["gbp", "usd", "ngn"];
 
@@ -32,7 +32,9 @@ exports.createSubscriptionSession = async (req, res) => {
 
     const amount = Number(req.body.amount);
     const tip = Number(req.body.meta?.tip || 0);
-    const currency = String(req.body.currency || campaign.funding.currency || "gbp").toLowerCase();
+    const charged = checkoutCurrency(campaign, req.body.currency);
+    if (!charged) return currencyMismatch(res, campaign);
+    const currency = charged.toLowerCase();
     if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }

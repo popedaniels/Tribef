@@ -9,6 +9,8 @@ const {
   addActivity,
   logger,
   creditCampaign,
+  checkoutCurrency,
+  currencyMismatch,
   sendDonationMailSafely,
 } = require("./shared");
 const { getClientIp, assessDonation, geoMismatchScore } = require("../../utility/fraud");
@@ -49,6 +51,18 @@ exports.initializePayment = async (req, res, next) => {
     if (campaign.disputeGovernance?.isLocked) {
       return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
     }
+
+    const currency = checkoutCurrency(campaign, payment.currency);
+    if (!currency) return currencyMismatch(res, campaign);
+    payment.currency = currency;
+
+    // Same contract as Stripe/Paystack: `amount` is the TOTAL charged and the
+    // campaign receives `amount - tip`. meta.amount always mirrors the total.
+    const tip = Number(payment.meta?.tip || 0);
+    if (!Number.isFinite(tip) || tip < 0 || tip >= amount) {
+      return res.status(400).json({ status: 400, error: "Invalid tip amount" });
+    }
+    payment.meta = { ...(payment.meta || {}), amount: String(amount), tip: String(tip) };
 
     // Fraud snapshot rides through gateway metadata to the recorder.
     const fraud = await assessDonation({
@@ -266,13 +280,19 @@ exports.flutterwaveWebhook = async (req, res) => {
       return res.status(400).json({ status: 400, error: "Transaction verification failed" });
     }
 
+    // meta.amount is the total charged (see initializePayment); the campaign
+    // receives total - tip. Previously this read meta.amount as the donation,
+    // so every tipped donation failed here (and disagreed with the redirect).
     const totalCharged = Number(tx.amount || 0);
-    const donatedAmount = Number(metadata.amount || 0);
     const tip = Number(metadata.tip || 0);
+    const metaTotal = Number(metadata.amount || 0);
+    const donatedAmount = Math.round((metaTotal - tip) * 100) / 100;
     if (
       !Number.isFinite(donatedAmount) ||
+      !Number.isFinite(tip) ||
+      tip < 0 ||
       donatedAmount <= 0 ||
-      Math.abs(totalCharged - (donatedAmount + tip)) > 1
+      Math.abs(totalCharged - metaTotal) > 1
     ) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }

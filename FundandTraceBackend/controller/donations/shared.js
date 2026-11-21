@@ -13,10 +13,46 @@ const stripe = process.env.STRIPESECRET
 
 const { appendEntry } = require("../../services/ledger");
 
+const normCurrency = (c) => String(c || "").trim().toUpperCase();
+
+// Donations are taken only in the campaign's own currency. Balances are plain
+// numbers in that currency, so a ₦50,000 payment into a GBP campaign would
+// otherwise be booked as £50,000 of escrow. Returns the currency to charge, or
+// null when the donor asked for a different one.
+const checkoutCurrency = (campaign, requested) => {
+  const own = normCurrency(campaign?.funding?.currency);
+  const asked = normCurrency(requested);
+  if (!own) return asked || null;
+  if (asked && asked !== own) return null;
+  return own;
+};
+
+const currencyMismatch = (res, campaign) =>
+  res.status(400).json({
+    status: 400,
+    code: "currency_mismatch",
+    error: `This campaign accepts donations in ${normCurrency(campaign?.funding?.currency)} only.`,
+  });
+
 // Atomic campaign credit — never read-modify-write, so concurrent webhooks
 // and callbacks cannot lose updates. `ref` is the gateway reference; it keys
 // the public ledger entry so a replayed webhook can't double-record.
+//
+// Defence in depth for the checkout guard: if the gateway reports a currency
+// different from the campaign's, nothing is credited and the mismatch is
+// logged for manual refund — never booked at face value.
 const creditCampaign = async (campaignId, amount, ref = {}) => {
+  if (ref.currency) {
+    const camp = await Campaign.findById(campaignId).select("funding.currency").lean();
+    const own = normCurrency(camp?.funding?.currency);
+    if (own && normCurrency(ref.currency) !== own) {
+      logger.error(
+        { campaignId, amount, paid: normCurrency(ref.currency), campaignCurrency: own, refId: ref.refId },
+        "Donation currency does not match campaign currency — NOT credited; refund manually"
+      );
+      return { acknowledged: false, currencyMismatch: true };
+    }
+  }
   const result = await Campaign.updateOne(
     { _id: campaignId },
     { $inc: { "funding.amountRaised": amount, "funding.availableBalance": amount } }
@@ -26,7 +62,7 @@ const creditCampaign = async (campaignId, amount, ref = {}) => {
       campaignId,
       type: "credit",
       amount,
-      currency: ref.currency,
+      currency: normCurrency(ref.currency) || undefined,
       refId: ref.refId,
       memo: ref.memo || "Donation",
     });
@@ -54,5 +90,7 @@ module.exports = {
   addActivity,
   logger,
   creditCampaign,
+  checkoutCurrency,
+  currencyMismatch,
   sendDonationMailSafely,
 };

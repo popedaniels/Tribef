@@ -9,6 +9,8 @@ const {
   addActivity,
   logger,
   creditCampaign,
+  checkoutCurrency,
+  currencyMismatch,
   sendDonationMailSafely,
 } = require("./shared");
 const { getClientIp, assessDonation } = require("../../utility/fraud");
@@ -49,13 +51,16 @@ exports.initializePaystackPayment = async (req, res) => {
       return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
     }
 
+    // Contract shared by every gateway: `amount` is the TOTAL the donor pays
+    // (donation + optional tip); the campaign is credited `amount - tip`.
     const amount = Number(req.body.amount);
     const tip = Number(req.body.meta?.tip || 0);
-    const currency = String(req.body.currency || campaign.funding.currency || "NGN").toUpperCase();
+    const currency = checkoutCurrency(campaign, req.body.currency);
+    if (!currency) return currencyMismatch(res, campaign);
     if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }
-    if (!Number.isFinite(tip) || tip < 0 || tip > amount) {
+    if (!Number.isFinite(tip) || tip < 0 || tip >= amount) {
       return res.status(400).json({ status: 400, error: "Invalid tip amount" });
     }
     if (!PAYSTACK_CURRENCIES.includes(currency)) {
@@ -66,7 +71,8 @@ exports.initializePaystackPayment = async (req, res) => {
     }
 
     const txRef = req.body.tx_ref || `fundandtrace-ps-${Date.now()}`;
-    const totalAmount = Math.round((amount + tip) * 100); // Paystack expects smallest currency unit
+    const donation = Math.round((amount - tip) * 100) / 100;
+    const totalAmount = Math.round(amount * 100); // Paystack expects smallest currency unit
     const callbackUrl = `${process.env.BACKENDURL || "http://localhost:5000"}/api/donations/paystack/${req.params.id}`;
 
     // Fraud snapshot rides through transaction metadata to the recorder.
@@ -88,7 +94,7 @@ exports.initializePaystackPayment = async (req, res) => {
           campaignId: req.params.id,
           donorEmail: req.body.customer?.email,
           donorName: req.body.customer?.name,
-          amount: String(amount),
+          amount: String(donation), // what the campaign receives
           tip: String(tip),
           paymentMethod: "paystack",
           paymentOption: "card",
@@ -213,7 +219,7 @@ exports.paymentPaystack = async (req, res) => {
 
       await creditCampaign(campaign._id, donatedAmount, {
         refId: `paystack:${reference}`,
-        currency: campaign.funding?.currency,
+        currency: txData.currency,
       });
       notifyTargetReachedIfNeeded(campaign._id);
     }

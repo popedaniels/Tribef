@@ -29,7 +29,7 @@ export default function Footer() {
 
           {/* Nav Columns */}
           <div className={styles.navCol}>
-            <h4 className={styles.colTitle}>EXPLORE</h4>
+            <h2 className={styles.colTitle}>EXPLORE</h2>
             <ul className={styles.navList}>
               <li><Link href="/Categories">All Categories</Link></li>
               <li><Link href="/workings">How It Works</Link></li>
@@ -40,7 +40,7 @@ export default function Footer() {
           </div>
 
           <div className={styles.navCol}>
-            <h4 className={styles.colTitle}>CAUSES</h4>
+            <h2 className={styles.colTitle}>CAUSES</h2>
             <ul className={styles.navList}>
               <li><Link href="/category/medical">Medical &amp; Surgery</Link></li>
               <li><Link href="/category/emergency">Disaster Relief</Link></li>
@@ -51,7 +51,7 @@ export default function Footer() {
           </div>
 
           <div className={styles.navCol}>
-            <h4 className={styles.colTitle}>COMPANY</h4>
+            <h2 className={styles.colTitle}>COMPANY</h2>
             <ul className={styles.navList}>
               <li><Link href="/aboutUs">About Fund&amp;Trace</Link></li>
               <li><Link href="/fundraising-stories">Impact Chronicles</Link></li>

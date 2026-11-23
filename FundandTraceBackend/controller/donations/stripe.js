@@ -146,13 +146,13 @@ exports.stripeCheckoutWebhook = async (req, res) => {
   let event;
   try {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    if (!stripe) {
-      return res.status(503).json({ status: 503, error: "Stripe is not configured" });
-    }
     if (!webhookSecret) {
       return res.status(503).json({ status: 503, error: "Stripe webhook is not configured" });
     }
-    event = stripe.webhooks.constructEvent(
+    // Signature checks need only the webhook secret, not an API key: use the
+    // library's static verifier so a missing/rotated STRIPESECRET can't make
+    // Stripe's retries fail with 503 and drop paid donations.
+    event = require("stripe").webhooks.constructEvent(
       req.body,
       req.headers["stripe-signature"],
       webhookSecret

@@ -243,7 +243,7 @@ export default function Workings() {
                   onClick={() => toggleFaq(index)}
                 >
                   <div className="faqQuestion">
-                    <h4>{faq.question}</h4>
+                    <h3>{faq.question}</h3>
                     <span className="faqIcon">{openFaq === index ? "−" : "+"}</span>
                   </div>
                   <AnimatePresence>
@@ -685,7 +685,7 @@ const FaqSection = styled.section`
       justify-content: space-between;
       gap: 16px;
 
-      h4 {
+      h3 {
         font-size: 17px;
         font-weight: 700;
         color: var(--color-text-heading);

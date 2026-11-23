@@ -134,13 +134,14 @@ exports.createConnectAccount = async (req, res) => {
 exports.connectWebhook = async (req, res) => {
   try {
     const webhookSecret = getWebhookSecret();
-    if (!stripe || !webhookSecret) {
+    // Verifying a webhook needs only its signing secret (no API key).
+    if (!webhookSecret) {
       return res.status(503).json({ status: 503, error: "Stripe Connect webhook is not configured" });
     }
 
     let event;
     try {
-      event = stripe.webhooks.constructEvent(
+      event = require("stripe").webhooks.constructEvent(
         req.body,
         req.headers["stripe-signature"],
         webhookSecret

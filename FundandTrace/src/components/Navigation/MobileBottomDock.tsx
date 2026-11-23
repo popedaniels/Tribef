@@ -140,7 +140,8 @@ export default function MobileBottomDock() {
                   height: "100%",
                   borderRadius: 999,
                   position: "relative",
-                  color: isActive ? "var(--color-primary, #6979F8)" : "#64748B",
+                  // #475569 keeps 4.5:1+ even over tinted content behind the translucent dock.
+                  color: isActive ? "var(--color-primary, #6979F8)" : "#475569",
                   transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                 }}
               >
@@ -154,7 +155,7 @@ export default function MobileBottomDock() {
                 </div>
                 <span
                   style={{
-                    fontSize: 10.5,
+                    fontSize: 11,
                     fontWeight: isActive ? 700 : 500,
                     marginTop: 2,
                     letterSpacing: "-0.01em",

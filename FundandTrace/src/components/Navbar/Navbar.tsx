@@ -109,6 +109,9 @@ const Navbar = ({ white = false }) => {
             onClick={() => setShowmenu(true)}
             color={white ? "white" : undefined}
             role="button"
+            tabIndex={0}
+            aria-label="Open menu"
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setShowmenu(true)}
           >
             <div className="bars bar1"></div>
             <div className="bars bar2"></div>
@@ -119,7 +122,7 @@ const Navbar = ({ white = false }) => {
             passHref
             onClick={showModal ? () => setShowModal(false) : undefined}
             className="d-block d-lg-none"
-            role="button">
+            aria-label="Fund&Trace home">
 
             <Image
               src={white ? "/images/draftImage.png" : "/images/logo.png"}
@@ -183,113 +186,74 @@ const Navbar = ({ white = false }) => {
                 priority
               />
               <ul>
-                <Link href="/" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                <li>
+                  <Link href="/" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     Home
-                  </li>
-
-                </Link>
-                <Link href="/search" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/search" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     Search
-                  </li>
-
-                </Link>
-                <Link href="/workings" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/workings" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     How It Works
-                  </li>
-
-                </Link>
-                <Link href="/Categories" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/Categories" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     Explore
-                  </li>
-
-                </Link>
-                <Link href="/contact" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     Contact
-                  </li>
-
-                </Link>
+                  </Link>
+                </li>
                 {!authenticated ? (
                   <>
-                    <Link href="/SignUp/SignIn" passHref style={{ textDecoration: "none" }}>
-
-                      <li
-                        onClick={() => setShowmenu(false)}
-                        className={styles.signInBtn}
-                        role="button"
-                      >
+                    <li className={styles.signInBtn}>
+                      <Link href="/SignUp/SignIn" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                         Sign in
-                      </li>
-
-                    </Link>
-                    <Link
-                      href={authenticated ? "/StartACampaign" : "/SignUp"}
-                      passHref
-                      style={{ textDecoration: "none" }}>
-
-                      <li
-                        onClick={() => setShowmenu(false)}
-                        className={styles.signUpBtn}
-                        role="button"
-                      >
+                      </Link>
+                    </li>
+                    <li className={styles.signUpBtn}>
+                      <Link href={authenticated ? "/StartACampaign" : "/SignUp"} style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                         Start a campaign
-                      </li>
-
-                    </Link>
+                      </Link>
+                    </li>
                   </>
                 ) : (
                   <>
-                    <li
-                      onClick={() => {
-                        dispatch(logout());
-                        setShowmenu(false);
-                      }}
-                      role="button"
-                      className={styles.signInBtn}
-                    >
-                      Sign Out
+                    <li className={styles.signInBtn}>
+                      <button
+                        type="button"
+                        className="ft-plain"
+                        style={{ width: "100%", textAlign: "center" }}
+                        onClick={() => {
+                          dispatch(logout());
+                          setShowmenu(false);
+                        }}
+                      >
+                        Sign Out
+                      </button>
                     </li>
-                    <Link
-                      href={authenticated ? "/StartACampaign" : "/SignUp"}
-                      passHref
-                      style={{ textDecoration: "none" }}>
-
-                      <li
-                        onClick={() => setShowmenu(false)}
-                        className={styles.signUpBtn}
-                      >
+                    <li className={styles.signUpBtn}>
+                      <Link href={authenticated ? "/StartACampaign" : "/SignUp"} style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                         Start a campaign
-                      </li>
-
-                    </Link>
-                    <Link
-                      href={authenticated ? "/dashboard" : "/SignUp/SignIn"}
-                      passHref
-                      style={{ textDecoration: "none" }}>
-
-                      <li
-                        onClick={() => setShowmenu(false)}
-                        className={styles.signUpBtn}
-                        role="button"
-                      >
+                      </Link>
+                    </li>
+                    <li className={styles.signUpBtn}>
+                      <Link href={authenticated ? "/dashboard" : "/SignUp/SignIn"} style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                         Go to dashboard
-                      </li>
-
-                    </Link>
+                      </Link>
+                    </li>
                   </>
                 )}
-                <div className="mt-4 d-flex justify-content-center w-100">
+                <li className="mt-4 d-flex justify-content-center w-100">
                   <ThemeToggle />
-                </div>
+                </li>
               </ul>
             </div>
           </div>
@@ -552,8 +516,10 @@ const Navbar = ({ white = false }) => {
                       <li>Settings</li>
                     </Link>
 
-                    <li role="button" onClick={() => dispatch(logout())}>
-                      Logout
+                    <li>
+                      <button type="button" className="ft-plain" onClick={() => dispatch(logout())}>
+                        Logout
+                      </button>
                     </li>
                   </ul>
                 </div>
@@ -592,7 +558,7 @@ const Navbar = ({ white = false }) => {
             <Link
               href="/"
               passHref
-              role="button"
+              aria-label="Fund&Trace home"
               onClick={showModal ? () => setShowModal(false) : undefined}>
 
               {
@@ -610,6 +576,9 @@ const Navbar = ({ white = false }) => {
           <Menu
             className="d-block d-lg-none"
             role="button"
+            tabIndex={0}
+            aria-label="Open menu"
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setShowmenu(true)}
             onClick={() => setShowmenu(true)}
           >
             <div className="bars bar1"></div>
@@ -621,7 +590,7 @@ const Navbar = ({ white = false }) => {
             passHref
             onClick={showModal ? () => setShowModal(false) : undefined}
             className="d-block d-lg-none"
-            role="button">
+            aria-label="Fund&Trace home">
 
             <Image src="/images/logo.png" alt="logo" width={63} height={48} priority />
 
@@ -667,65 +636,43 @@ const Navbar = ({ white = false }) => {
                 priority
               />
               <ul>
-                <Link href="/" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                <li>
+                  <Link href="/" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     Home
-                  </li>
-
-                </Link>
-                <Link href="/search" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/search" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     Search
-                  </li>
-
-                </Link>
-                <Link href="/workings" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/workings" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     How It Works
-                  </li>
-
-                </Link>
-                <Link href="/Categories" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/Categories" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     Explore
-                  </li>
-
-                </Link>
-                <Link href="/contact" passHref style={{ textDecoration: "none" }}>
-
-                  <li onClick={() => setShowmenu(false)} role="button">
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                     Contact
-                  </li>
-
-                </Link>
+                  </Link>
+                </li>
                 {!authenticated ? (
                   <>
-                    <Link href="/SignUp/SignIn" passHref style={{ textDecoration: "none" }}>
-
-                      <li
-                        onClick={() => setShowmenu(false)}
-                        className={styles.signInBtn}
-                        role="button"
-                      >
+                    <li className={styles.signInBtn}>
+                      <Link href="/SignUp/SignIn" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                         Sign in
-                      </li>
-
-                    </Link>
-                    <Link href="/SignUp" passHref style={{ textDecoration: "none" }}>
-
-                      <li
-                        onClick={() => setShowmenu(false)}
-                        className={styles.signUpBtn}
-                        role="button"
-                      >
+                      </Link>
+                    </li>
+                    <li className={styles.signUpBtn}>
+                      <Link href="/SignUp" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
                         Sign Up
-                      </li>
-
-                    </Link>{" "}
+                      </Link>
+                    </li>{" "}
                   </>
                 ) : (
                   <li

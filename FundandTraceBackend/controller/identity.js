@@ -125,7 +125,12 @@ exports.identityWebhook = async (req, res) => {
     }
 
     const signature = req.headers["stripe-signature"];
-    const event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
+    let event;
+    try {
+      event = require("stripe").webhooks.constructEvent(req.body, signature, webhookSecret);
+    } catch (err) {
+      return res.status(400).json({ status: 400, error: "Invalid webhook signature" });
+    }
 
     if (event.type === "identity.verification_session.verified") {
       const session = event.data.object;

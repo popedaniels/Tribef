@@ -136,7 +136,7 @@
 
 - **Given** I start verification, **then** a Stripe Identity session opens (ID document and selfie).
 - **When** Stripe confirms the result by signed webhook, **then** my status becomes `verified`; I can see the status in my dashboard.
-- **Given** `REQUIRE_KYC_TO_LAUNCH=true`, **when** an unverified organiser tries to launch, **then** launch is refused with "Verify your identity before launching a campaign".
+- **Given** `REQUIRE_KYC_TO_LAUNCH` is `submitted` (the default), **when** an organiser who hasn't submitted a live ID check tries to launch, **then** launch is refused (403 `identity_required`) and they are sent to `/dashboard/verify-identity`. With `verified`, launch also waits for approval. See docs/LIVE_EVIDENCE.md.
 
 *Code:* `routes/identity.js` · `controller/startCampaign.js#launch`
 - KYC is **required before any payout to the organiser** (see F-5).

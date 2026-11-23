@@ -78,8 +78,8 @@ export default function PaymentHistoryCard({ fundingRequest, last, admin = false
         {owner && !admin && fr.status === "Approved" && paidAt && (
           <div className={styles.upload}>
             <h3>Proof of spend</h3>
-            <p>Upload the receipt or invoice for this payout. Donors see it on your public tracker, and it raises your Transparency Score.</p>
-            <ReceiptUpload fundingRequestId={fr._id} existingReceipt={fr.disbursement?.receipt} overdue={overdue} />
+            <p>Add the receipt or invoice for this payout. A receipt captured live with your camera is sealed and marked “captured live” for donors; it raises your Transparency Score.</p>
+            <ReceiptUpload fundingRequestId={fr._id} campaignId={fr.campaignId ? String(fr.campaignId) : undefined} existingReceipt={fr.disbursement?.receipt} overdue={overdue} />
           </div>
         )}
 

@@ -20,6 +20,8 @@ const axios = require("axios");
 const { LedgerEntry } = require("../models/ledgerEntryModel");
 const { LedgerAnchor } = require("../models/ledgerAnchorModel");
 const { verifyCampaign, GENESIS } = require("./ledger");
+const { EvidenceRecord } = require("../models/evidenceModel");
+const { EVIDENCE_LEAF_ID, verifyStoredChain } = require("./evidence");
 const logger = require("../utility/logger");
 
 const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
@@ -66,16 +68,17 @@ function verifyProof(leaf, path, root) {
 }
 
 /** The statement that is published; `digest` = SHA-256 of exactly this text. */
-function anchorMessage({ date, root, prevDigest, leafCount }) {
-  return [
-    "Fund&Trace ledger anchor v1",
-    `date: ${date}`,
-    `root: ${root}`,
-    `previous: ${prevDigest}`,
-    `campaigns: ${leafCount}`,
-    "verify: https://github.com/popedaniels/Tribef/blob/main/docs/LEDGER_ANCHORING.md",
-    "",
-  ].join("\n");
+// `evidenceSeq` (sealed live captures, services/evidence.js) is only stated
+// when that chain exists, so earlier anchors keep their exact text.
+function anchorMessage({ date, root, prevDigest, leafCount, evidenceSeq = null }) {
+  const lines = ["Fund&Trace ledger anchor v1", `date: ${date}`, `root: ${root}`, `previous: ${prevDigest}`];
+  if (evidenceSeq) {
+    lines.push(`campaigns: ${leafCount - 1}`, `evidence records: ${evidenceSeq}`);
+  } else {
+    lines.push(`campaigns: ${leafCount}`);
+  }
+  lines.push("verify: https://github.com/popedaniels/Tribef/blob/main/docs/LEDGER_ANCHORING.md", "");
+  return lines.join("\n");
 }
 
 const sortLeaves = (leaves) => leaves.slice().sort((a, b) => (a.campaignId < b.campaignId ? -1 : a.campaignId > b.campaignId ? 1 : 0));
@@ -86,7 +89,10 @@ async function currentHeads() {
     { $sort: { campaignId: 1, seq: -1 } },
     { $group: { _id: "$campaignId", seq: { $first: "$seq" }, head: { $first: "$hash" } } },
   ]);
-  return sortLeaves(rows.map((r) => ({ campaignId: String(r._id), seq: r.seq, head: r.head })));
+  const leaves = rows.map((r) => ({ campaignId: String(r._id), seq: r.seq, head: r.head }));
+  const lastEvidence = await EvidenceRecord.findOne().sort({ seq: -1 }).select("seq hash").lean();
+  if (lastEvidence) leaves.push({ campaignId: EVIDENCE_LEAF_ID, seq: lastEvidence.seq, head: lastEvidence.hash });
+  return sortLeaves(leaves);
 }
 
 // ── Publishers (each optional, configured by env) ─────────────────────────
@@ -145,7 +151,7 @@ async function createAnchor(date, { publishers = PUBLISHERS, http = axios } = {}
   const leaves = await currentHeads();
   const broken = [];
   for (const leaf of leaves) {
-    const v = await verifyCampaign(leaf.campaignId);
+    const v = leaf.campaignId === EVIDENCE_LEAF_ID ? await verifyStoredChain(EvidenceRecord) : await verifyCampaign(leaf.campaignId);
     if (!v.valid || v.headHash !== leaf.head) broken.push({ campaignId: leaf.campaignId, ...v });
   }
   if (broken.length) {
@@ -157,7 +163,8 @@ async function createAnchor(date, { publishers = PUBLISHERS, http = axios } = {}
   const prev = await LedgerAnchor.findOne({ date: { $lt: date } }).sort({ date: -1 }).lean();
   const root = merkleRoot(leaves.map(leafHash));
   const prevDigest = prev ? prev.digest : GENESIS;
-  const message = anchorMessage({ date, root, prevDigest, leafCount: leaves.length });
+  const evidenceLeaf = leaves.find((l) => l.campaignId === EVIDENCE_LEAF_ID);
+  const message = anchorMessage({ date, root, prevDigest, leafCount: leaves.length, evidenceSeq: evidenceLeaf ? evidenceLeaf.seq : null });
   const anchor = await LedgerAnchor.create({
     date,
     root,

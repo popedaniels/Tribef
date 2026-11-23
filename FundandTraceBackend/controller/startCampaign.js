@@ -248,16 +248,15 @@ exports.launch = async (req, res, next) => {
           error: `Complete the following before launching: ${missing.join(", ")}`,
         });
       }
-      // Optional KYC gate (see docs/anti-fraud). Off by default so existing
-      // deployments without Stripe Identity keep working; set
-      // REQUIRE_KYC_TO_LAUNCH=true in production once Identity is live.
-      if (process.env.REQUIRE_KYC_TO_LAUNCH === "true") {
+      // Identity gate for organisers (services/kycGate.js). By default an
+      // organiser must at least have SUBMITTED a live ID check before a
+      // campaign can take money; payouts still need it VERIFIED.
+      const gate = require("../services/kycGate").launchGate();
+      if (gate !== "off") {
         const organizer = await Users.findById(camp.organizerId).select("identityVerification").maxTimeMS(3000);
-        if (organizer?.identityVerification?.status !== "verified") {
-          return res.status(403).json({
-            status: 403,
-            error: "Verify your identity before launching a campaign.",
-          });
+        const { allowed, message } = require("../services/kycGate").canLaunch(organizer?.identityVerification, gate);
+        if (!allowed) {
+          return res.status(403).json({ status: 403, code: "identity_required", error: message });
         }
       }
     }

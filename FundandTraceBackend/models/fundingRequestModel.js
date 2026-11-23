@@ -112,6 +112,8 @@ const fundingRequestSchema = new mongoose.Schema({
     // pending | successful | failed (bank rails settle asynchronously)
     providerStatus: String,
     receiptUploadedAt: Date,
+    // Set when the receipt was captured live in the app (sealed evidence).
+    receiptEvidenceSessionId: String,
   },
 });
 

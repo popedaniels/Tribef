@@ -52,6 +52,7 @@ const FEATURE_SECRETS = [
   "SENTRY_DSN",
   "VAPID_PUBLIC_KEY",
   "VAPID_PRIVATE_KEY",
+  "EVIDENCE_SIGNING_KEY",
 ];
 
 // Values that look like the .env.example placeholders rather than real secrets.

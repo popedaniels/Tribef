@@ -40,6 +40,10 @@ const navLinks = [
     link: "/disputes",
     title: "Disputes",
   },
+  {
+    link: "/identity",
+    title: "Identity checks",
+  },
 ];
 
 interface AdminLayoutProps {

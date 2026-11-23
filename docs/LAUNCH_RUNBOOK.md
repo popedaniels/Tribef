@@ -152,6 +152,16 @@ Do these once, in this order, when deploying the `fix/audit-hardening-ui-polish`
    timeout so payouts in flight finish during a deploy) or the updated
    Kubernetes manifests (30 s grace period, pre-stop pause, PodDisruptionBudget).
    **Use immutable image tags** (git SHA), not `:latest`.
+9. **Live evidence & identity checks** (`docs/LIVE_EVIDENCE.md`). Generate and
+   set `EVIDENCE_SIGNING_KEY` (`node scripts/generate-evidence-key.js`).
+   Without it, capture is refused in production. Then:
+   - Allow 31 MB request bodies on the evidence upload route at the ingress.
+   - Restrict the app's database role to insert + find on `evidencerecords`.
+   - Pass the CDN's visitor-country header through to the API.
+   - Agree the retention period with counsel, then set `ID_MEDIA_RETENTION_DAYS`.
+   - Organisers now need a submitted live ID check to launch
+     (`REQUIRE_KYC_TO_LAUNCH=submitted`). Staff the `/admin/identity` queue
+     before switching it on.
 
 ---
 
@@ -281,6 +291,15 @@ them later is regulated in most places.
   Data Protection Act 2019: lawful basis, retention, cross-border transfers
   (data stored outside Africa), and the public ledger (it shows amounts and
   dates but no donor names; confirm that's acceptable).
+- **Biometric identity data.** Selfie videos and ID photos captured for
+  identity checks are special-category/biometric data (UK GDPR Art. 9, NDPA
+  2023). Questions for counsel:
+  - Which lawful basis and condition apply?
+  - Is a DPIA required?
+  - What should the consent wording on the verification screen say?
+  - How long must ID evidence be kept for AML before it is deleted? This sets
+    `ID_MEDIA_RETENTION_DAYS`.
+  - Is storing it in our database region acceptable for each country?
 - **Tax.** Receipts for tax relief, Gift Aid (UK) if you add it, and whether
   tips are taxable revenue.
 - **Terms of service and privacy policy.** Have both rewritten to match how the

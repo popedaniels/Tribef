@@ -1,5 +1,6 @@
 import React from "react";
 import styled from "styled-components";
+import { apiUrl } from "../../utils/evidence";
 
 export default function UpdateComponent({ update }) {
   return (
@@ -16,8 +17,10 @@ export default function UpdateComponent({ update }) {
         </h2>
       </div>
 
-      <p>{update?.story}</p>
-      {/* <img src="/images/larry.jpg" alt="update Image" /> */}
+      {update?.evidenceSessionId && <span className="ft-chip ft-chip--ok mb-2">⛨ Captured live · sealed</span>}
+      {update?.story && <p>{update.story}</p>}
+      {update?.image && <img src={apiUrl(update.image)} alt={update?.story ? `Update: ${update.story.slice(0, 80)}` : "Update photo"} loading="lazy" />}
+      {update?.video && <video src={apiUrl(update.video)} controls playsInline preload="metadata" />}
     </Wrapper>
   );
 }
@@ -43,10 +46,15 @@ const Wrapper = styled.div`
     color: black;
   }
 
-  img {
-    width: 250px;
-    height: 200px;
+  img,
+  video {
+    display: block;
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 4 / 3;
     object-fit: cover;
+    border-radius: 10px;
     margin-bottom: 20px;
+    background: #0f1419;
   }
 `;

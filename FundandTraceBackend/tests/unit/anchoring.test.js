@@ -1,4 +1,4 @@
-const mockState = { heads: [], verify: {}, anchors: [], created: null };
+const mockState = { heads: [], verify: {}, anchors: [], created: null, evidence: null, evidenceVerify: null };
 
 jest.mock("../../models/ledgerEntryModel", () => ({
   LedgerEntry: { aggregate: jest.fn(async () => mockState.heads.map((h) => ({ _id: h.campaignId, seq: h.seq, head: h.head }))) },
@@ -6,6 +6,13 @@ jest.mock("../../models/ledgerEntryModel", () => ({
 jest.mock("../../services/ledger", () => ({
   GENESIS: "0".repeat(64),
   verifyCampaign: jest.fn(async (id) => mockState.verify[id] || { valid: true, headHash: mockState.heads.find((h) => h.campaignId === id)?.head }),
+}));
+jest.mock("../../models/evidenceModel", () => ({
+  EvidenceRecord: { findOne: jest.fn(() => ({ sort: () => ({ select: () => ({ lean: async () => mockState.evidence }) }) })) },
+}));
+jest.mock("../../services/evidence", () => ({
+  EVIDENCE_LEAF_ID: "evidence",
+  verifyStoredChain: jest.fn(async () => mockState.evidenceVerify || { valid: true, headHash: mockState.evidence?.hash, headSeq: mockState.evidence?.seq }),
 }));
 jest.mock("../../models/ledgerAnchorModel", () => {
   const q = (v) => ({ sort: () => ({ lean: async () => v }), lean: async () => v, then: (r) => r(v) });
@@ -66,6 +73,8 @@ describe("createAnchor", () => {
     mockState.verify = {};
     mockState.anchors = [{ date: "2026-11-20", digest: h("prev-digest") }];
     mockState.created = null;
+    mockState.evidence = null;
+    mockState.evidenceVerify = null;
   });
 
   it("commits to every campaign head, chains to the previous anchor and publishes", async () => {
@@ -93,6 +102,26 @@ describe("createAnchor", () => {
     mockState.verify.c2 = { valid: false, brokenAt: 3, reason: "entry content does not match its hash" };
     await expect(a.createAnchor("2026-11-21", { publishers: [] })).rejects.toThrow(/Refusing to anchor/);
     expect(mockState.created).toBeNull();
+  });
+
+  it("keeps the original message format when there is no evidence chain", async () => {
+    const anchor = await a.createAnchor("2026-11-21", { publishers: [] });
+    expect(anchor.message).toContain("campaigns: 2\n");
+    expect(anchor.message).not.toContain("evidence");
+  });
+
+  it("includes the sealed-evidence chain head as one more leaf", async () => {
+    mockState.evidence = { seq: 7, hash: h("ev-7") };
+    const anchor = await a.createAnchor("2026-11-21", { publishers: [] });
+    expect(anchor.leaves.map((l) => l.campaignId)).toEqual(["c1", "c2", "evidence"]);
+    expect(anchor.leaves[2]).toMatchObject({ seq: 7, head: h("ev-7") });
+    expect(anchor.message).toContain("campaigns: 2\nevidence records: 7");
+  });
+
+  it("refuses to anchor when the evidence chain is broken", async () => {
+    mockState.evidence = { seq: 7, hash: h("ev-7") };
+    mockState.evidenceVerify = { valid: false, brokenAt: 5, reason: "link does not match its hash" };
+    await expect(a.createAnchor("2026-11-21", { publishers: [] })).rejects.toThrow(/Refusing to anchor/);
   });
 
   it("is idempotent per date", async () => {

@@ -15,6 +15,8 @@ const { FundingRequests } = require("../models/fundingRequestModel");
 const { Donations } = require("../models/donationsModel");
 const { LedgerEntry } = require("../models/ledgerEntryModel");
 const { verifyCampaign } = require("./ledger");
+const { EvidenceRecord } = require("../models/evidenceModel");
+const { verifyStoredChain } = require("./evidence");
 const { proofDueDays } = require("./transparency");
 const logger = require("../utility/logger");
 
@@ -76,6 +78,10 @@ async function runIntegrityCheck({ now = new Date(), alert = true } = {}) {
     const v = await verifyCampaign(id);
     if (!v.valid) findings.push({ severity: "critical", code: "ledger_broken", campaignId: id, brokenAt: v.brokenAt, reason: v.reason });
   }
+
+  // 1b. Sealed evidence chain (live captures).
+  const evidenceChain = await verifyStoredChain(EvidenceRecord);
+  if (!evidenceChain.valid) findings.push({ severity: "critical", code: "evidence_chain_broken", brokenAt: evidenceChain.brokenAt, reason: evidenceChain.reason });
 
   // 2. Work in flight (explains temporary balance differences).
   // NB: the payout date lives at disbursement.dateDisbursed (there is no top-level field).

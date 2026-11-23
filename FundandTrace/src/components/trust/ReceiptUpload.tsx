@@ -3,16 +3,20 @@ import axios from "axios";
 import { getApiBaseUrl } from "../../utils/api";
 import { useCloudinaryUpload } from "../../hooks/useCloudinaryUpload";
 import styles from "./trust.module.scss";
+import Link from "next/link";
+import { apiUrl } from "../../utils/evidence";
 
 type Props = {
   fundingRequestId: string;
+  /** When given, offers live capture (sealed, shown to donors as "captured live"). */
+  campaignId?: string;
   existingReceipt?: string;
   overdue?: boolean;
   onUploaded?: (url: string) => void;
 };
 
 /** Organiser adds proof of spend (receipt/invoice) after a payout. */
-export default function ReceiptUpload({ fundingRequestId, existingReceipt, overdue, onUploaded }: Props) {
+export default function ReceiptUpload({ fundingRequestId, campaignId, existingReceipt, overdue, onUploaded }: Props) {
   const { upload, loading } = useCloudinaryUpload("campaignImage", process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME);
   const [receipt, setReceipt] = useState(existingReceipt || "");
   const [error, setError] = useState("");
@@ -53,7 +57,7 @@ export default function ReceiptUpload({ fundingRequestId, existingReceipt, overd
     return (
       <p className={styles.receiptDone}>
         ✓ Proof uploaded ·{" "}
-        <a href={receipt} target="_blank" rel="noopener noreferrer">
+        <a href={apiUrl(receipt)} target="_blank" rel="noopener noreferrer">
           view
         </a>
       </p>
@@ -63,8 +67,13 @@ export default function ReceiptUpload({ fundingRequestId, existingReceipt, overd
   return (
     <div className={styles.receipt}>
       {overdue && <span className={styles.badgeWarn}>Proof overdue</span>}
+      {campaignId && (
+        <Link href={`/dashboard/${campaignId}/evidence?purpose=receipt&fr=${fundingRequestId}`} className="ft-btn ft-btn--primary ft-btn--sm">
+          Capture receipt live (recommended)
+        </Link>
+      )}
       <label htmlFor={inputId} className={styles.receiptButton}>
-        {loading || saving ? "Uploading…" : "Upload receipt or invoice"}
+        {loading || saving ? "Uploading…" : campaignId ? "Or upload a PDF/file" : "Upload receipt or invoice"}
       </label>
       <input
         id={inputId}

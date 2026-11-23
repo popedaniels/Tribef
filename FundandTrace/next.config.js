@@ -13,7 +13,9 @@ const cspDirectives = [
   "script-src 'self' 'unsafe-inline'" + (process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'") + " https://js.stripe.com https://checkout.flutterwave.com https://js.paystack.co https://www.googletagmanager.com https://www.google-analytics.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
   // Campaign images come from Cloudinary; avatars may point at any https origin.
-  "img-src 'self' data: blob: https:",
+  "img-src 'self' data: blob: https: " + (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"),
+  // Live evidence videos are served by the API (and previewed from blob: before upload).
+  "media-src 'self' blob: " + (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"),
   "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
   // Stripe Elements + KYC (m.stripe.network), payment iframes.
   "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://verify.stripe.com https://checkout.paystack.com https://checkout.flutterwave.com https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com",
@@ -34,7 +36,9 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  // Live capture (identity checks, evidence) needs the camera, microphone (to
+  // say the code) and optional location — for this site only, never iframes.
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(self)" },
   {
     key: "Strict-Transport-Security",
     value: "max-age=31536000; includeSubDomains",

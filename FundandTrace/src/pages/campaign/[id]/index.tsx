@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import type { GetServerSidePropsContext } from "next";
 
 import api from "../../../utils/api";
+import { apiUrl } from "../../../utils/evidence";
 import Layout from "../../../components/Layout";
 import Navbar from "../../../components/Navbar/Navbar";
 import Footer from "../../../components/Footer/Footer";
@@ -277,8 +278,14 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                           <time dateTime={String(u.datePosted || "")}>
                             {u.datePosted ? new Date(u.datePosted).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : ""}
                           </time>
+                          {u.evidenceSessionId && (
+                            <Link href={`/campaign/${id}/tracker#evidence`} className={styles.sealedTag}>
+                              ⛨ Captured live · sealed — verify
+                            </Link>
+                          )}
                           <p>{u.story}</p>
-                          {u.image && <img src={u.image} alt="" className={styles.updateImg} />}
+                          {u.image && <img src={apiUrl(u.image)} alt={u.story ? `Update: ${u.story.slice(0, 80)}` : "Campaign update photo"} className={styles.updateImg} loading="lazy" decoding="async" />}
+                          {u.video && <video src={apiUrl(u.video)} controls playsInline preload="metadata" className={styles.updateImg} />}
                         </li>
                       ))}
                     </ol>

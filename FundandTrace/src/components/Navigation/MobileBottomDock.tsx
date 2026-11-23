@@ -7,8 +7,10 @@ export default function MobileBottomDock() {
   const router = useRouter();
   const currentPath = router.pathname;
 
-  // Pages with their own sticky action bar (Donate, payment steps) or admin.
-  if (/^\/(campaign\/\[id\]$|donate\/|donated\/|admin)/.test(currentPath)) return null;
+  // Pages with their own sticky action bar (Donate, payment steps), admin, and
+  // focused camera tasks (identity check, live evidence) where the dock would
+  // cover the viewfinder and the capture buttons.
+  if (/^\/(campaign\/\[id\]$|donate\/|donated\/|admin|capture\/|dashboard\/verify-identity|dashboard\/\[id\]\/evidence)/.test(currentPath)) return null;
 
   const navItems = [
     {

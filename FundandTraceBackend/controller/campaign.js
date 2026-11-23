@@ -211,7 +211,16 @@ exports.addUpdate = async (req, res, next) => {
         message: "Campaign Not found",
       });
     }
-    const update = { ...req.body.update, datePosted: Date.now() };
+    // Whitelist: never copy the body, so evidence fields can't be forged and
+    // the author is the organiser on record, not whatever the client sends.
+    const body = req.body.update || {};
+    const update = {
+      story: String(body.story || "").trim(),
+      image: body.image || "",
+      video: body.video || "",
+      addedBy: campaign.organizer || "Organiser",
+      datePosted: Date.now(),
+    };
     campaign.updates = [...campaign.updates, update];
 
     await campaign.save();

@@ -26,44 +26,47 @@ exports.createVerificationSession = async (req, res) => {
       return res.status(404).json({ status: 404, error: "User not found." });
     }
 
-    let sessionUrl = "";
-    let clientSecret = "";
-    let sessionId = "";
-
-    try {
-      if (stripe) {
-        const session = await stripe.identity.verificationSessions.create({
-          type: "document",
-          metadata: {
-            userId: String(userId),
-            campaignId: campaignId ? String(campaignId) : "",
-          },
-          options: {
-            document: {
-              require_matching_selfie: true,
-            },
-          },
-          return_url: `${process.env.MAINURL || "http://localhost:3000"}/verification?status=complete&session_id={CHECKOUT_SESSION_ID}`,
-        });
-        sessionUrl = session.url;
-        clientSecret = session.client_secret;
-        sessionId = session.id;
-      } else {
-        // Fallback for offline/test environments
-        sessionId = "vs_test_" + Date.now();
-        sessionUrl = `${process.env.MAINURL || "http://localhost:3000"}/verification?session_id=${sessionId}`;
-        clientSecret = "seti_secret_test_" + Date.now();
-      }
-    } catch (stripeErr) {
-      logger.warn({ err: stripeErr }, "Stripe Identity session creation failed, using fallback");
-      sessionId = "vs_fallback_" + Date.now();
-      sessionUrl = `${process.env.MAINURL || "http://localhost:3000"}/verification?session_id=${sessionId}`;
+    if (user.identityVerification?.status === "verified") {
+      return res.status(409).json({ status: 409, error: "Your identity is already verified." });
+    }
+    // Without Stripe Identity there is no automated check: send the organiser
+    // to the in-app flow (live ID + selfie video, reviewed by our team) rather
+    // than marking them "pending" against a session that doesn't exist.
+    if (!stripe) {
+      return res.status(503).json({ status: 503, error: "Automated ID check is unavailable. Use the in-app verification instead.", fallback: "in_app" });
     }
 
+    let session;
+    try {
+      session = await stripe.identity.verificationSessions.create({
+        type: "document",
+        metadata: {
+          userId: String(userId),
+          campaignId: campaignId ? String(campaignId) : "",
+        },
+        options: {
+          document: {
+            require_matching_selfie: true,
+            require_live_capture: true,
+          },
+        },
+        return_url: `${process.env.MAINURL || "http://localhost:3000"}/dashboard/verify-identity?stripe=done`,
+      });
+    } catch (stripeErr) {
+      logger.warn({ err: stripeErr }, "Stripe Identity session creation failed");
+      return res.status(503).json({ status: 503, error: "Automated ID check is unavailable right now. Use the in-app verification instead.", fallback: "in_app" });
+    }
+    const sessionUrl = session.url;
+    const clientSecret = session.client_secret;
+    const sessionId = session.id;
+
     user.identityVerification = {
-      ...user.identityVerification,
+      ...(user.identityVerification?.toObject?.() || user.identityVerification || {}),
       status: "pending",
-      sessionId: sessionId,
+      method: "stripe",
+      sessionId,
+      // Set when Stripe reports the person actually submitted (processing).
+      submittedAt: null,
     };
     await user.save();
 
@@ -131,15 +134,19 @@ exports.identityWebhook = async (req, res) => {
       if (userId) {
         const user = await Users.findById(userId);
         if (user) {
+          // NB: users.verified is the EMAIL-verified flag that gates sign-in;
+          // identity has its own status and must never change it.
           user.identityVerification = {
+            ...(user.identityVerification?.toObject?.() || user.identityVerification || {}),
             status: "verified",
+            method: "stripe",
             sessionId: session.id,
             verifiedAt: new Date(),
-            idDocumentType: session.verified_outputs?.document?.type || "id_card",
-            idCountry: session.verified_outputs?.document?.issuing_country || "US",
+            idDocumentType: session.verified_outputs?.document?.type || session.last_verification_report?.document?.type || null,
+            idCountry: session.verified_outputs?.document?.issuing_country || null,
             facialLivenessMatched: true,
+            rejectionReason: "",
           };
-          user.verified = true;
           await user.save();
         }
       }
@@ -149,7 +156,26 @@ exports.identityWebhook = async (req, res) => {
       if (userId) {
         await Users.findByIdAndUpdate(userId, {
           "identityVerification.status": "requires_input",
+          "identityVerification.rejectionReason": String(session.last_error?.reason || session.last_error?.code || "The ID check couldn't be completed."),
         });
+      }
+    } else if (event.type === "identity.verification_session.processing") {
+      const session = event.data.object;
+      const userId = session.metadata && session.metadata.userId;
+      if (userId) {
+        await Users.findOneAndUpdate(
+          { _id: userId, "identityVerification.status": { $ne: "verified" } },
+          { "identityVerification.status": "pending", "identityVerification.submittedAt": new Date() }
+        );
+      }
+    } else if (event.type === "identity.verification_session.canceled") {
+      const session = event.data.object;
+      const userId = session.metadata && session.metadata.userId;
+      if (userId) {
+        await Users.findOneAndUpdate(
+          { _id: userId, "identityVerification.status": { $ne: "verified" } },
+          { "identityVerification.status": "canceled" }
+        );
       }
     }
 
@@ -178,22 +204,29 @@ exports.adminVerifyUser = async (req, res) => {
       return res.status(404).json({ status: 404, error: "User not found." });
     }
 
+    const note = String(req.body?.note || "").trim().slice(0, 500);
+    if (note.length < 10) {
+      return res.status(422).json({ status: 422, error: "Explain the override (10+ characters): what was checked, and how." });
+    }
+    const prev = user.identityVerification?.toObject?.() || user.identityVerification || {};
     user.identityVerification = {
+      ...prev,
       status: normalizedStatus,
+      method: "admin_override",
       sessionId: "admin_override_" + Date.now(),
-      verifiedAt: new Date(),
-      idDocumentType: "admin_verified",
-      idCountry: user.country || "Global",
-      facialLivenessMatched: true,
+      verifiedAt: normalizedStatus === "verified" ? new Date() : prev.verifiedAt || null,
+      // An override is a human decision, not a liveness check: say so.
+      facialLivenessMatched: false,
+      reviewedBy: `${req.admin.firstName || ""} ${req.admin.lastName || ""}`.trim(),
+      rejectionReason: normalizedStatus === "verified" ? "" : note,
     };
-    user.verified = normalizedStatus === "verified";
 
     user.adminActivities = user.adminActivities || [];
     user.adminActivities.push({
       date: new Date(),
       AdminId: req.admin._id,
       AdminName: `${req.admin.firstName} ${req.admin.lastName}`,
-      action: `Identity verification status updated to ${normalizedStatus}`,
+      action: `Identity verification overridden to ${normalizedStatus}: ${note}`,
     });
 
     await user.save();
@@ -208,3 +241,13 @@ exports.adminVerifyUser = async (req, res) => {
     return res.status(500).json({ status: 500, error: "Server error." });
   }
 };
+
+/**
+ * Which verification routes are available.
+ * GET /api/identity/options
+ */
+exports.options = (req, res) =>
+  res.status(200).json({
+    status: 200,
+    data: { stripe: Boolean(stripe), inApp: true },
+  });

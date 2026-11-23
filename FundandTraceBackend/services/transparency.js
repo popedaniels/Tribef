@@ -29,8 +29,23 @@ function computeTransparencyScore({ campaign, organizer, fundingRequests = [], n
   const add = (key, label, points, max, detail) => factors.push({ key, label, points: Math.round(points), max, detail });
 
   // 1. Identity
-  const kyc = organizer?.identityVerification?.status === "verified";
-  add("identity", "Organiser identity verified", kyc ? 25 : 0, 25, kyc ? "ID and selfie checked" : "Organiser hasn't completed identity verification");
+  const idv = organizer?.identityVerification || {};
+  const kyc = idv.status === "verified";
+  // Say what was actually checked. An admin override is a human decision
+  // without a liveness check, so it earns less than a live ID + video check.
+  const idDetail = {
+    in_app: "ID and live video checked by our team",
+    stripe: "ID and live selfie checked by Stripe Identity",
+    admin_override: "Verified manually by our team (no live video)",
+  };
+  const idPoints = !kyc ? 0 : idv.method === "admin_override" ? 15 : 25;
+  add(
+    "identity",
+    "Organiser identity verified",
+    idPoints,
+    25,
+    kyc ? idDetail[idv.method] || "Identity checked" : idv.status === "pending" && idv.submittedAt ? "Identity check submitted, under review" : "Organiser hasn't completed identity verification"
+  );
 
   // Payouts that actually left escrow (exclude failed bank transfers).
   const disbursed = fundingRequests.filter(

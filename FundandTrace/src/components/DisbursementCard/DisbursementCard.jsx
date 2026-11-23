@@ -1,6 +1,7 @@
 import { useState } from "react";
 import styles from "./DisbursementCard.module.scss";
 import { formatMoney } from "../helperFunctions/helperFunctions";
+import { apiUrl } from "../../utils/evidence";
 
 const PROOF_DUE_DAYS = 14;
 const DAY = 24 * 60 * 60 * 1000;
@@ -47,7 +48,7 @@ export default function DisbursementCard({ disbursement, fundingRequest, last })
         <span className={styles.chips}>
           <span className={`${styles.chip} ${styles[status.tone]}`}>{status.label}</span>
           {d.receipt ? (
-            <span className={`${styles.chip} ${styles.ok}`}>Proof added</span>
+            <span className={`${styles.chip} ${styles.ok}`}>{d.receiptEvidenceSessionId ? "⛨ Proof captured live" : "Proof added"}</span>
           ) : overdue ? (
             <span className={`${styles.chip} ${styles.bad}`}>Proof overdue</span>
           ) : (
@@ -61,7 +62,11 @@ export default function DisbursementCard({ disbursement, fundingRequest, last })
         {fundingRequest?.purposeOfFunding ? (
           <p className={styles.purpose}>{fundingRequest.purposeOfFunding}</p>
         ) : null}
-        {d.receipt ? (
+        {d.receipt && d.receiptEvidenceSessionId ? (
+          <a href="#evidence" className={styles.proofImage}>
+            <img src={apiUrl(d.receipt)} alt="Receipt for this payout, captured live in the app" loading="lazy" />
+          </a>
+        ) : d.receipt ? (
           isPdf(d.receipt) ? (
             <a href={d.receipt} target="_blank" rel="noopener noreferrer" className={styles.proofLink}>
               Open receipt (PDF)

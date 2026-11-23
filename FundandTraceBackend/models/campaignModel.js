@@ -98,6 +98,9 @@ const campaignSchema = new mongoose.Schema({
       image: String,
       video: String,
       addedBy: String,
+      // Live-captured, sealed evidence (services/evidence.js).
+      evidenceSessionId: String,
+      evidenceIds: [String],
     },
   ],
   // Stripe Express Connect — payout account for the campaign organizer.

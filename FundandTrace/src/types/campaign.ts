@@ -63,6 +63,9 @@ export interface CampaignUpdate {
   image?: string;
   video?: string;
   addedBy?: string;
+  /** Set when captured live in the app and sealed (see utils/evidence). */
+  evidenceSessionId?: string;
+  evidenceIds?: string[];
 }
 
 export interface Campaign {

@@ -51,6 +51,30 @@ async function get(path) {
   if (root(sorted.map(leafHash)) !== anchor.root) problems.push("root does not recompute from the listed heads");
 
   for (const leaf of sorted) {
+    if (leaf.campaignId === "evidence") {
+      // Sealed live captures: one chain of links (seq, prevHash, recordHash, hash).
+      let prev = "0".repeat(64);
+      let after = 0;
+      let found = null;
+      let broken = false;
+      while (!broken) {
+        const { links, next } = await get(`/api/evidence/chain?after=${after}&limit=5000`);
+        for (const l of links) {
+          const expect = sha256(`ft-evidence-chain:v1:${l.seq}:${l.prevHash}:${l.recordHash}`);
+          if (l.seq !== after + 1 || l.prevHash !== prev || expect !== l.hash) {
+            problems.push(`evidence chain broken at record #${l.seq}`);
+            broken = true;
+            break;
+          }
+          if (l.seq === leaf.seq) found = l;
+          prev = l.hash;
+          after = l.seq;
+        }
+        if (!next) break;
+      }
+      if (!found || found.hash !== leaf.head) problems.push(`evidence record #${leaf.seq} changed since ${anchor.date}`);
+      continue;
+    }
     const { entries } = await get(`/api/ledger/${leaf.campaignId}?limit=100000`);
     let prev = "0".repeat(64);
     for (const [i, e] of entries.entries()) {

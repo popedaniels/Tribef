@@ -14,16 +14,21 @@ function organiserTodos({ user, campaigns = [], fundingRequests = [], now = new 
   const hasMoney = campaigns.some((c) => Number(c.funding?.amountRaised) > 0);
 
   if (kyc !== "verified" && hasMoney) {
+    // "pending" covers both a submitted check and a Stripe session that was
+    // opened but never finished; only the first is really in review.
+    const inReview = kyc === "pending" && Boolean(user?.identityVerification?.submittedAt);
+    const reason = user?.identityVerification?.rejectionReason;
     add({
       id: "kyc",
       level: kyc === "requires_input" ? "urgent" : "important",
-      title: kyc === "pending" ? "Your identity check is being processed" : "Verify your identity to get paid",
-      detail:
-        kyc === "pending"
-          ? "We'll let you know when it's done. Payouts to you start after that."
-          : "Payouts to you need a quick ID check. Payments made directly to a supplier don't.",
-      href: "/dashboard/settings/verification",
-      action: kyc === "pending" ? null : "Verify now",
+      title: inReview ? "Your identity check is being reviewed" : kyc === "requires_input" ? "Your identity check needs another try" : "Verify your identity to get paid",
+      detail: inReview
+        ? "We'll let you know when it's done. Payouts to you start after that."
+        : kyc === "requires_input" && reason
+        ? reason
+        : "Payouts to you need a quick ID check with your phone camera. Payments made directly to a supplier don't.",
+      href: "/dashboard/verify-identity",
+      action: inReview ? null : kyc === "requires_input" ? "Try again" : "Verify now",
     });
   }
 
@@ -66,8 +71,8 @@ function organiserTodos({ user, campaigns = [], fundingRequests = [], now = new 
         level: daysLeft < 0 ? "urgent" : daysLeft <= 3 ? "important" : "suggested",
         title: daysLeft < 0 ? `Receipt overdue by ${-daysLeft} day${daysLeft === -1 ? "" : "s"}` : `Upload a receipt within ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
         detail: `For the payout of ${fmt(fr.amount)} ${fr.currency || ""}${isThirdParty(fr.fundingType) ? " to your supplier" : ""}. Missing receipts lower your Transparency Score and block your next payout.`,
-        href,
-        action: "Upload receipt",
+        href: `/dashboard/${fr.campaignId}/evidence?purpose=receipt&fr=${fr._id}`,
+        action: "Capture receipt",
       });
     }
     if (fr.disbursement?.providerStatus === "failed" || fr.disbursement?.providerStatus === "reversed") {

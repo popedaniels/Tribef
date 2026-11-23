@@ -152,15 +152,27 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                   Any update is an opportunity for potential donors to inform
                   and participate. On your campaign page, posts will appear.
                 </p>
+                <Link href={`/dashboard/${campaignId}/evidence`} className="ft-btn ft-btn--primary ft-btn--block mb-2">
+                  Add live photo or video
+                </Link>
+                <p className="ft-muted mb-3" style={{ fontSize: 13 }}>
+                  Taken with your camera and sealed, so donors see it&apos;s real and unedited.
+                </p>
                 <form onSubmit={handleSubmit} className="mb-0">
+                  <label htmlFor="update" className="sr-only">
+                    Text update
+                  </label>
                   <textarea
                     name="update"
                     id="update"
                     className="mb-2"
+                    placeholder="Or write a text update"
                     value={updateText}
                     onChange={(e) => setUpdateText(e.target.value)}
                   ></textarea>
-                  <button className="btn ml-auto text-white">Post</button>
+                  <button className="ft-btn ft-btn--secondary ml-auto" disabled={!updateText.trim()}>
+                    Post
+                  </button>
                 </form>
                 {/* <h2 className="text-medium-heading mb-3">Performance</h2>
                 <p className="mb-4">

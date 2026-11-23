@@ -492,7 +492,8 @@ const Wrapper = styled.div`
         padding-right: 15px;
       }
     }
-    button {
+    /* Legacy dashboard buttons. Design-system buttons (.ft-btn*) style themselves. */
+    button:not([class*="ft-btn"]):not(.ft-plain) {
       display: flex;
       flex-direction: row;
       justify-content: center;

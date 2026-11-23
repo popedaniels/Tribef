@@ -35,6 +35,12 @@ const UsersSchema = new mongoose.Schema({
     idDocumentType: { type: String, default: null },
     idCountry: { type: String, default: null },
     facialLivenessMatched: { type: Boolean, default: false },
+    // stripe (Stripe Identity) | in_app (live capture + human review) | admin_override
+    method: { type: String, default: null },
+    submittedAt: { type: Date, default: null },
+    nameOnId: { type: String, default: "" },
+    reviewedBy: { type: String, default: "" },
+    rejectionReason: { type: String, default: "" },
   },
   adminActivities: [
     {

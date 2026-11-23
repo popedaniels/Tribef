@@ -4,6 +4,7 @@ import Navbar from "../../../components/Navbar/Navbar";
 import PaymentHistoryCard from "../../../components/PaymentHistoryCard/PaymentHistoryCard";
 import TransparencyScore from "../../../components/trust/TransparencyScore";
 import PublicLedger from "../../../components/trust/PublicLedger";
+import EvidenceGallery from "../../../components/capture/EvidenceGallery";
 import Layout from "../../../components/Layout";
 import DisbursementCard from "../../../components/DisbursementCard/DisbursementCard";
 import Link from "next/link";
@@ -327,6 +328,9 @@ export default function CampaignTrackerPage({
             </aside>
           </div>
 
+          <div id="evidence">
+            <EvidenceGallery campaignId={campaign._id} />
+          </div>
           <PublicLedger campaignId={campaign._id} />
         </div>
       </main>

@@ -138,3 +138,30 @@ input[type="number"] {
 
 /* Bootstrap's #0d6efd is just under 4.5:1 on off-white; use the brand blue. */
 .text-primary { color: var(--color-primary) !important; }
+
+/* ---- Performance on phones (FT-033) ----
+   Large blurs and backdrop-filter are among the most expensive things a
+   mid-range Android GPU paints, on every scroll frame. On small screens (and
+   for people who ask for less transparency) drop them; the translucent
+   backgrounds underneath stay, made slightly more opaque so text keeps its
+   contrast. */
+@media (max-width: 768px), (prefers-reduced-transparency: reduce) {
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .ambient-glow-orb-indigo,
+  .ambient-glow-orb-emerald {
+    display: none !important;
+  }
+  .glass-panel,
+  .glass-card-elevated {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+  }
+  .dark-theme .glass-panel,
+  .dark-theme .glass-card-elevated {
+    background-color: rgba(17, 24, 39, 0.96) !important;
+  }
+}

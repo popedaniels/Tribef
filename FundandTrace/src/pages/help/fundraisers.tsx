@@ -42,7 +42,7 @@ export default function FundraisersHelp() {
               </li>
               <li style={{ listStyle: "none" }}>
                 <img
-                  src="/images/help/fundraisers1.png"
+                  src="/images/help/fundraisers1.jpg"
                   alt="start a campaign image"
                   style={{ width: "100%", maxWidth: "773px", height: "100%" }}
                   className="my-3"

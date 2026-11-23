@@ -5,6 +5,7 @@ import type { GetServerSidePropsContext } from "next";
 
 import api from "../../../utils/api";
 import { apiUrl } from "../../../utils/evidence";
+import { cdnImage, responsiveImage } from "../../../utils/cloudinary";
 import Layout from "../../../components/Layout";
 import Navbar from "../../../components/Navbar/Navbar";
 import Footer from "../../../components/Footer/Footer";
@@ -224,7 +225,15 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
           <div className={styles.layout}>
             <div className={styles.main}>
               <figure className={styles.hero}>
-                <img src={imgSrc} alt={title} onError={() => setImgSrc(FALLBACK_IMAGE)} />
+                <img
+                  src={cdnImage(imgSrc, 1200)}
+                  {...responsiveImage(imgSrc, [480, 800, 1200], "(max-width: 900px) 100vw, 760px")}
+                  alt={title}
+                  // The hero is the largest paint: fetch it first, never lazily.
+                  fetchPriority="high"
+                  decoding="async"
+                  onError={() => setImgSrc(FALLBACK_IMAGE)}
+                />
               </figure>
 
               {/* Mobile: the money summary sits right under the photo. */}

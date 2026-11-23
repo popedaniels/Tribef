@@ -12,12 +12,15 @@ import FrozenBanner from "../../components/trust/FrozenBanner";
 import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "../../../store/hooks";
 import { getApiBaseUrl } from "../../utils/api";
+import { cdnImage } from "../../utils/cloudinary";
 import { getAllCountries, getCountries } from "../../components/helperFunctions/locationFunctions";
 import {
   formatMoney,
   getCurrency,
   getDaysRemaining,
   getDualCurrencyEstimate,
+  getRatesAsOf,
+  loadLiveRates,
   getPresetDonationAmounts,
   selectPaymentRail,
 } from "../../components/helperFunctions/helperFunctions";
@@ -85,6 +88,9 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
   const [email, setEmail] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [country, setCountry] = useState("");
+  // The donor's own currency (from their detected country), for "about X" only.
+  const [visitorCurrency, setVisitorCurrency] = useState("");
+  const [, setRatesLoaded] = useState(0);
   const [zip, setZip] = useState("");
   const [countries, setCountries] = useState<{ name: string }[]>([]);
   const [rail, setRail] = useState<Rail>(availableRails[0]?.id || "stripe");
@@ -110,9 +116,11 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
         if (geo?.country_name) {
           setCountry((c) => c || geo.country_name);
           chooseRailFor(geo.country_name);
+          if (geo.currency) setVisitorCurrency(geo.currency);
         }
       })
       .catch(() => {});
+    loadLiveRates().then(() => setRatesLoaded((n) => n + 1));
   }, [chooseRailFor]);
 
   useEffect(() => {
@@ -169,8 +177,10 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
   const goal = Number(campaign.funding?.amountExpected) || 0;
   const pct = goal > 0 ? Math.min(100, Math.round((100 * raised) / goal)) : 0;
   const presets = getPresetDonationAmounts(currency);
-  const intlCurrency = currency === "GBP" ? "USD" : "GBP";
-  const est = amount > 0 ? getDualCurrencyEstimate(amount, currency, intlCurrency) : null;
+  // Prefer the donor's own currency; otherwise GBP (or USD for GBP campaigns).
+  const intlCurrency = visitorCurrency && visitorCurrency !== currency ? visitorCurrency : currency === "GBP" ? "USD" : "GBP";
+  const est = amount > 0 ? getDualCurrencyEstimate(amount, currency, intlCurrency) || getDualCurrencyEstimate(amount, currency, currency === "GBP" ? "USD" : "GBP") : null;
+  const rateDate = new Date(getRatesAsOf()).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   const approx = est ? formatMoney(Math.round(Number(String(est.amount).replace(/,/g, ""))), est.currency) : null;
 
   if (campaign.disputeGovernance?.isLocked) {
@@ -276,7 +286,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
           <div className={styles.layout}>
             <form className={styles.form} onSubmit={submit} noValidate aria-labelledby="donate-title">
               <header className={styles.header}>
-                <img src={campaign.basicInformation?.campaignImage || FALLBACK_IMAGE} alt="" className={styles.mobileThumb} />
+                <img src={cdnImage(campaign.basicInformation?.campaignImage || FALLBACK_IMAGE, 160)} alt="" className={styles.mobileThumb} width={80} height={80} decoding="async" />
                 <div>
                   <span className="ft-eyebrow">Donate</span>
                   <h1 id="donate-title">{title}</h1>
@@ -326,7 +336,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   <span className={styles.code}>{currency}</span>
                 </div>
                 <p id="amount-help" className={show("amount") ? styles.error : styles.help}>
-                  {show("amount") || (approx ? `About ${approx}. Donations are taken in ${currency}, the campaign's currency.` : `Donations are taken in ${currency}, the campaign's currency.`)}
+                  {show("amount") || (approx ? `About ${approx} (rate from ${rateDate}). You pay in ${currency}, the campaign's currency; your bank converts it.` : `Donations are taken in ${currency}, the campaign's currency.`)}
                 </p>
               </fieldset>
 
@@ -462,7 +472,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
             <aside className={styles.aside} aria-label="Campaign you're supporting">
               <div className={styles.campaignCard}>
-                <img src={campaign.basicInformation?.campaignImage || FALLBACK_IMAGE} alt="" />
+                <img src={cdnImage(campaign.basicInformation?.campaignImage || FALLBACK_IMAGE, 720)} alt="" loading="lazy" decoding="async" />
                 <div className={styles.campaignBody}>
                   <h2>{title}</h2>
                   {campaign.organizer && <p className="ft-muted">Organised by {campaign.organizer}</p>}

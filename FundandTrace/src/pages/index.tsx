@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import Layout from "../components/Layout";
 import HeroSection from "../components/homepageComponents/heroSection/HeroSection";
 import type { FallbackCampaigns } from "../types/campaigns";
+import { visitorCountry } from "../utils/geo";
 
 // Below-fold sections — dynamically imported to split framer-motion and
 // heavy UI out of the initial bundle. ssr:true preserves SEO while still
@@ -37,13 +38,19 @@ const StartFunding = dynamic(
 export default function Home() {
   const [campaigns, setCampaigns] = useState<FallbackCampaigns>([]);
   const [loading, setLoading] = useState(true);
+  const [localName, setLocalName] = useState("");
   const router = useRouter();
 
   const getAllCampaigns = async () => {
     try {
       const res = await api.get("/api/campaigns");
       if (res?.data?.data && res.data.data.length > 0) {
-        setCampaigns(res.data.data);
+        // Campaigns from the visitor's own country first (stable order otherwise).
+        const here = visitorCountry()?.name?.toLowerCase();
+        const list: FallbackCampaigns = res.data.data;
+        const local = here ? list.filter((c: FallbackCampaigns[number]) => c?.basicInformation?.locationCountry?.toLowerCase() === here) : [];
+        setLocalName(local.length ? visitorCountry()?.name || "" : "");
+        setCampaigns(local.length ? [...local, ...list.filter((c: FallbackCampaigns[number]) => !local.includes(c))] : list);
       }
     } catch (error) {
       setCampaigns([]);
@@ -90,8 +97,8 @@ export default function Home() {
       {/* 2. Real campaigns, early: what people came to see */}
       <TopCampaignSection
         data={campaigns}
-        heading="Campaigns you can support today"
-        tag="Live campaigns"
+        heading={localName ? `Campaigns in ${localName} and beyond` : "Campaigns you can support today"}
+        tag={localName ? `Near you · ${localName}` : "Live campaigns"}
         loading={loading}
       />
 

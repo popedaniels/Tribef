@@ -7,6 +7,47 @@
  * "every <button> is solid blue" rule in index.css.
  */
 
+/* ---------- Metric-matched font fallbacks (no layout shift on font load) ----------
+   While the web fonts download, text uses the phone's own font resized and
+   re-spaced to match them, so nothing moves when they arrive (the hero's
+   big numbers jumped: CLS 0.22). Values computed from the font files
+   (scripts in docs/PERFORMANCE.md). Arial (and the metric-identical
+   Liberation Sans on Linux) covers desktop and iOS; Roboto covers Android. */
+@font-face {
+  font-family: "Poppins Fallback A";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold");
+  font-weight: 800 900;
+  size-adjust: 107.73%; ascent-override: 97.47%; descent-override: 32.49%; line-gap-override: 9.28%;
+}
+@font-face {
+  font-family: "Poppins Fallback A";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold");
+  font-weight: 500 799;
+  size-adjust: 107.05%; ascent-override: 98.09%; descent-override: 32.70%; line-gap-override: 9.34%;
+}
+@font-face {
+  font-family: "Poppins Fallback R";
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 800 900;
+  size-adjust: 113.07%; ascent-override: 92.86%; descent-override: 30.95%; line-gap-override: 8.84%;
+}
+@font-face {
+  font-family: "Poppins Fallback R";
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 500 799;
+  size-adjust: 112.36%; ascent-override: 93.45%; descent-override: 31.15%; line-gap-override: 8.90%;
+}
+@font-face {
+  font-family: "Jakarta Fallback A";
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("LiberationSans-Regular");
+  size-adjust: 105.49%; ascent-override: 98.40%; descent-override: 21.04%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Jakarta Fallback R";
+  src: local("Roboto"), local("Roboto-Regular");
+  size-adjust: 105.90%; ascent-override: 98.02%; descent-override: 20.96%; line-gap-override: 0%;
+}
+
 /* ---------- Unstyled button (link-like, icon, tab) ----------
    Zero specificity so any component class can style on top of it. */
 :where(button.ft-plain) {

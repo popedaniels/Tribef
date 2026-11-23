@@ -96,12 +96,8 @@ describe("helperFunctions (extended)", () => {
       expect(est.amount).toBe("6.5");
     });
 
-    it("falls back to rate 1.0 for unknown currencies", () => {
-      const est = getDualCurrencyEstimate(100, "XYZ", "ABC");
-      expect(est).not.toBeNull();
-      expect(est.currency).toBe("ABC");
-      // both rates fallback to 1.0, so inTarget = 100*1/1 =100
-      expect(est.amount).toBe("100");
+    it("gives no estimate for unknown currencies (treating them as USD showed wildly wrong amounts)", () => {
+      expect(getDualCurrencyEstimate(100, "XYZ", "ABC")).toBeNull();
     });
   });
 

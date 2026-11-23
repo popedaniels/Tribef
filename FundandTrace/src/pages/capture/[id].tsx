@@ -23,9 +23,15 @@ export default function PhoneCapture() {
   useEffect(() => {
     const t = new URLSearchParams(window.location.hash.slice(1)).get("t") || "";
     setToken(t);
-    // Remove the token from the address bar (and from history) once read.
-    if (t) window.history.replaceState(null, "", window.location.pathname);
   }, []);
+
+  // Remove the token from the address bar (and history) once the router has
+  // settled: Next re-applies the original URL, hash included, when it becomes
+  // ready, so clearing it earlier doesn't stick. Keep Next's history state.
+  useEffect(() => {
+    if (!router.isReady || !token || !window.location.hash) return;
+    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+  }, [router.isReady, token]);
 
   useEffect(() => {
     if (!router.isReady || !id || token === null) return;

@@ -21,3 +21,26 @@ const defaults = {
 Object.entries(defaults).forEach(([key, value]) => {
   if (!process.env[key]) process.env[key] = value;
 });
+
+// Connect to MongoDB for the integration tests. server.js deliberately does not
+// connect under NODE_ENV=test, and nothing else did, so in CI every database
+// test was skipped as "pending" even though a Mongo service was running.
+// If no database is reachable (local run without Mongo), tests that need one
+// skip themselves as before.
+const mongoose = require("mongoose");
+exports.mochaHooks = {
+  async beforeAll() {
+    if (mongoose.connection.readyState === 1) return;
+    try {
+      await mongoose.connect(process.env.MONGOURL, { serverSelectionTimeoutMS: 3000 });
+      // eslint-disable-next-line no-console
+      console.log(`[setup] MongoDB connected (${mongoose.connection.name}) — database tests will run`);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.log(`[setup] MongoDB not reachable (${err.message}) — database tests will be skipped`);
+    }
+  },
+  async afterAll() {
+    await mongoose.disconnect().catch(() => {});
+  },
+};

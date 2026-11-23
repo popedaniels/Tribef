@@ -1,3 +1,4 @@
+import { cdnImage, responsiveImage } from "../../utils/cloudinary";
 import Link from "next/link";
 import React from "react";
 import { formatMoney } from "../helperFunctions/helperFunctions";
@@ -30,7 +31,12 @@ export default function CampaignCard({ campaign }) {
         <div className={styles.imageWrapper}>
           <img
             className={styles.cardImg}
-            src={imageSrc}
+            src={cdnImage(imageSrc, 640)}
+            {...responsiveImage(imageSrc, [360, 480, 640, 960], "(max-width: 600px) 92vw, (max-width: 1100px) 45vw, 360px")}
+            loading="lazy"
+            decoding="async"
+            width={640}
+            height={427}
             alt={campaign?.basicInformation?.campaignTitle || "Campaign"}
             onError={(e) => {
               e.target.onerror = null;

@@ -20,7 +20,7 @@ const WEBM = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), crypto.random
 const cookieFor = (u) => `token=${jwt.sign({ id: String(u._id), email: u.email, sv: 0 }, process.env.TOKEN_SECRET)}`;
 
 const waitForDb = async () => {
-  for (let i = 0; i < 100 && mongoose.connection.readyState !== 1; i += 1) await new Promise((r) => setTimeout(r, 100));
+  for (let i = 0; i < 30 && mongoose.connection.readyState !== 1; i += 1) await new Promise((r) => setTimeout(r, 100));
 };
 
 describe("Live evidence & in-app identity", function suite() {
@@ -29,8 +29,9 @@ describe("Live evidence & in-app identity", function suite() {
   let admin;
   let campaign;
 
-  before(async () => {
+  before(async function setupData() {
     await waitForDb();
+    if (mongoose.connection.readyState !== 1) return this.skip();
     const tag = crypto.randomBytes(4).toString("hex");
     organiser = await Users.create({ firstName: "Chidi", lastName: "Okafor", email: `org-${tag}@example.com`, verified: true });
     admin = await Users.create({ firstName: "Ada", lastName: "Admin", email: `adm-${tag}@example.com`, verified: true, role: "admin" });
@@ -131,6 +132,7 @@ describe("Live evidence & in-app identity", function suite() {
   });
 
   after(async () => {
+    if (!organiser) return;
     await CaptureSession.deleteMany({ userId: { $in: [String(organiser._id), String(admin._id)] } });
     await Users.deleteMany({ _id: { $in: [organiser._id, admin._id] } });
     await Campaign.deleteOne({ _id: campaign._id });

@@ -1,4 +1,12 @@
 import React, { useEffect } from "react";
+// Self-hosted fonts (bundled, same origin, latin subsets load on demand via
+// unicode-range). Google Fonts used to be a render-blocking third-party
+// stylesheet asking for 27 variants; these are the ones the design uses.
+import "@fontsource-variable/plus-jakarta-sans/wght.css";
+import "@fontsource/poppins/500.css";
+import "@fontsource/poppins/600.css";
+import "@fontsource/poppins/700.css";
+import "@fontsource/poppins/800.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../../styles/bootstrap4-compat.css";
 import "../../styles/index.css";
@@ -106,16 +114,6 @@ function Content({ Component, pageProps }: ContentProps) {
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=5, minimum-scale=1, viewport-fit=cover, user-scalable=yes"
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
         />
       </Head>
       {process.env.LOCK === "true" && router.pathname !== "/" ? (

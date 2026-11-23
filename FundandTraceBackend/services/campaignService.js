@@ -6,9 +6,13 @@ const { decrypt } = require("../utility/encryption");
 
 const { CAMPAIGN_PUBLIC_PROJECTION } = require("../utility/publicViews");
 
-async function fetchPublicCampaigns({ page = 1, limit = 50 }) {
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+async function fetchPublicCampaigns({ page = 1, limit = 50, country = "" }) {
   const skip = (page - 1) * limit;
   const filter = { launched: true, suspended: false };
+  // "Campaigns in <country>": exact country name, case-insensitive.
+  if (country) filter["basicInformation.locationCountry"] = new RegExp(`^${escapeRegex(country)}$`, "i");
 
   const [campaigns, count] = await Promise.all([
     Campaign.find(filter)

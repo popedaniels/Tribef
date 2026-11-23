@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getApiBaseUrl } from "../../utils/api";
 
 const getTimeDiff = (timestamp) => {
   let currentTime = new Date().getTime();
@@ -133,6 +134,16 @@ const DEFAULT_RATES_TO_USD = {
   CAD: 0.74,
   AUD: 0.65,
   ZAR: 0.055,
+  UGX: 0.00027,
+  TZS: 0.00038,
+  RWF: 0.00072,
+  XOF: 0.0016,
+  XAF: 0.0016,
+  EGP: 0.02,
+  SEK: 0.095,
+  CHF: 1.13,
+  AED: 0.27,
+  INR: 0.012,
 };
 
 const parseEnvRates = () => {
@@ -157,16 +168,26 @@ const APPROX_RATES_TO_USD = { ...DEFAULT_RATES_TO_USD, ...(parseEnvRates() || {}
 
 // Allow runtime live-rate refresh without rebuild (best-effort, no await in sync helpers).
 let liveRatesLoaded = false;
+// Date of the rates in use, shown next to estimates ("rate from 24 Nov").
+let ratesAsOf = "2026-01-15";
+const getRatesAsOf = () => ratesAsOf;
+/** Load live display rates once; resolves when done (or immediately if unavailable). */
+const loadLiveRates = () => {
+  maybeLoadLiveRates();
+  return liveRatesPromise || Promise.resolve();
+};
+let liveRatesPromise = null;
 const maybeLoadLiveRates = () => {
   if (liveRatesLoaded || typeof window === "undefined" || typeof fetch === "undefined") return;
   liveRatesLoaded = true;
-  const endpoint = process.env.NEXT_PUBLIC_FX_RATES_URL;
-  if (!endpoint) return;
-  fetch(endpoint, { cache: "no-store" })
+  // Default: our API's daily rates (GET /api/fx/rates → { data: { ratesToUsd, asOf } }).
+  const endpoint = process.env.NEXT_PUBLIC_FX_RATES_URL || `${getApiBaseUrl()}/api/fx/rates`;
+  liveRatesPromise = fetch(endpoint)
     .then((r) => (r.ok ? r.json() : null))
     .then((data) => {
       if (!data || typeof data !== "object") return;
-      const src = data.rates || data;
+      if (data.data?.asOf) ratesAsOf = data.data.asOf;
+      const src = data.data?.ratesToUsd || data.rates || data;
       for (const [k, v] of Object.entries(src)) {
         const key = String(k).toUpperCase().trim();
         const num = Number(v);
@@ -211,8 +232,10 @@ const getDualCurrencyEstimate = (amount, baseCurrency = "USD", targetCurrency = 
   const target = String(targetCurrency).toUpperCase();
   if (base === target) return null;
 
-  const baseRate = APPROX_RATES_TO_USD[base] || 1.0;
-  const targetRate = APPROX_RATES_TO_USD[target] || 1.0;
+  // Unknown currency → no estimate (it used to be treated as USD, so UGX 50,000 showed as ~$50,000).
+  const baseRate = APPROX_RATES_TO_USD[base];
+  const targetRate = APPROX_RATES_TO_USD[target];
+  if (!baseRate || !targetRate) return null;
 
   // Convert amount from base to USD, then from USD to target
   const inUSD = num * baseRate;
@@ -372,5 +395,7 @@ export {
   selectPaymentRail,
   grabErrorMessage,
   grabErrorStatus,
+  getRatesAsOf,
+  loadLiveRates,
 };
 

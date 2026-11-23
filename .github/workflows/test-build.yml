@@ -71,3 +71,8 @@ jobs:
         run: npm test -- --ci
       - name: Production build
         run: npm run build
+      # Mobile performance budget (FT-033): fails the build if pages get
+      # heavier, shift on load, or drop below the score floor. Pages are
+      # rendered without the API, so this checks the shell, fonts, CSS and JS.
+      - name: Lighthouse budget (mobile)
+        run: npx --yes @lhci/cli@0.16.x autorun --config=./lighthouserc.json

@@ -109,6 +109,7 @@ exports.uploadReceipt = async (req, res) => {
       { _id: fr._id },
       { $set: { "disbursement.receipt": receiptUrl, "disbursement.receiptUploadedAt": new Date() } }
     );
+    await require("../services/donorUpdates").enqueue("receipt", fr._id, fr.campaignId);
     return res.status(200).json({ status: 200, data: { receipt: receiptUrl } });
   } catch (error) {
     logger.error({ err: error }, "uploadReceipt failed");

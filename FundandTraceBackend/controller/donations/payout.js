@@ -9,6 +9,7 @@ const { encrypt } = require("../../utility/encryption");
 const { isThirdParty } = require("../../utility/fundingType");
 const { railFor, sendBankTransfer } = require("../../services/payoutRails");
 const { appendEntry } = require("../../services/ledger");
+const donorUpdates = require("../../services/donorUpdates");
 
 const {
   Campaign,
@@ -235,7 +236,13 @@ exports.stripePayoutWebhook = async (req, res, next) => {
       memo: thirdParty ? "Milestone payout to third party" : "Milestone payout to organiser",
     });
 
-    // 5) Notify whitelisted donors. Best-effort: a mail failure must never
+    // 5) Tell every donor (outbox; the scheduler sends). A bank transfer that
+    //    is still pending is announced when the provider confirms it instead.
+    if (fundingRequest.disbursement.providerStatus === "successful") {
+      await donorUpdates.enqueue("payout", fundingRequest._id, campaignId);
+    }
+
+    // 6) Notify whitelisted donors. Best-effort: a mail failure must never
     //    turn a completed payout into an error response (the approver would
     //    then see a failure for money that already moved).
     try {
@@ -289,11 +296,13 @@ exports.applyTransferOutcome = async ({ reference, status }) => {
   if (!outcome) return { applied: false, reason: `ignored status ${status}` };
 
   if (outcome === "successful") {
-    const r = await FundingRequests.updateOne(
+    const fr = await FundingRequests.findOneAndUpdate(
       { "disbursement.providerReference": reference, "disbursement.providerStatus": "pending" },
-      { $set: { "disbursement.providerStatus": "successful" } }
+      { $set: { "disbursement.providerStatus": "successful" } },
+      { new: true, projection: { _id: 1, campaignId: 1 } }
     );
-    return { applied: Boolean(r.modifiedCount || r.nModified), outcome };
+    if (fr) await donorUpdates.enqueue("payout", fr._id, fr.campaignId);
+    return { applied: Boolean(fr), outcome };
   }
 
   // Failed / reversed: flip pending -> failed exactly once, then refund escrow.

@@ -33,6 +33,7 @@ const PUBLIC = {
   "POST /api/reports/": "public 'report this campaign'",
   "POST /api/pushSubscriptions/": "browser push; account bound only from the session",
   "DELETE /api/pushSubscriptions/": "unsubscribe by the unguessable endpoint URL",
+  "POST /api/email/unsubscribe": "HMAC token over email + scope checked in handler; only ever opts out",
 };
 
 function routes(app) {

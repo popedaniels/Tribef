@@ -68,6 +68,8 @@ jest.mock("../../services/approvedFundingRequest", () => ({
     if (state.mailFails) throw new Error("smtp down");
   }),
 }));
+const mockDonorUpdates = { enqueue: jest.fn(async () => {}) };
+jest.mock("../../services/donorUpdates", () => mockDonorUpdates);
 jest.mock("../../services/fundingSummaryMail", () => ({
   fundingSummaryMailService: jest.fn(async () => undefined),
 }));
@@ -269,9 +271,12 @@ describe("applyTransferOutcome (provider webhook)", () => {
     expect(mockLedger).toHaveLength(0);
   });
 
-  it("marks a successful transfer settled", async () => {
+  it("marks a successful transfer settled and only then queues the donor update", async () => {
+    mockDonorUpdates.enqueue.mockClear();
+    mockFundingRequests.findOneAndUpdate.mockResolvedValueOnce({ _id: REQ_ID, campaignId: CAMPAIGN_ID });
     const result = await applyTransferOutcome({ reference: "ft-payout-x-1", status: "SUCCESSFUL" });
-    expect(result.outcome).toBe("successful");
+    expect(result).toMatchObject({ applied: true, outcome: "successful" });
+    expect(mockDonorUpdates.enqueue).toHaveBeenCalledWith("payout", REQ_ID, CAMPAIGN_ID);
   });
 });
 

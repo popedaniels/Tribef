@@ -178,6 +178,7 @@ app.use("/api/auth/2fa", authLimiter, twoFactor);
 app.use("/api/discovery", apiLimiter, discovery);
 app.use("/api/pushSubscriptions", apiLimiter, pushSubscriptions);
 app.use("/api/ledger", apiLimiter, ledger);
+app.use("/api/email", apiLimiter, require("./routes/email"));
 app.use("/api/payouts", apiLimiter, payouts);
 
 const isDatabaseConnected = () => mongoose.connection.readyState === 1;

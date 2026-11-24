@@ -43,6 +43,11 @@ async function tick(now = new Date()) {
     .drainOutbox()
     .then((r) => r.pending && logger.info(r, "Ledger outbox drained"))
     .catch((err) => logger.error({ err }, "Ledger outbox drain failed"));
+  // Every tick: send queued donor updates (payout made / receipt added).
+  await require("./donorUpdates")
+    .drain()
+    .then((r) => r && !r.idle && logger.info(r, "Donor updates sent"))
+    .catch((err) => logger.error({ err }, "Donor update drain failed"));
   const hour = Number(process.env.DAILY_JOBS_HOUR_UTC ?? 1);
   if (now.getUTCHours() < hour) return [];
   const day = utcDate(now);

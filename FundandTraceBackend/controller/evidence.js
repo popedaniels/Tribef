@@ -264,6 +264,8 @@ exports.submitSession = async (req, res) => {
           },
         }
       );
+      const fr = await FundingRequests.findById(session.fundingRequestId).select("campaignId").lean();
+      if (fr) await require("../services/donorUpdates").enqueue("receipt", fr._id, fr.campaignId);
     } else {
       const camp = await Campaign.findById(session.campaignId).select("organizer").lean();
       await Campaign.updateOne(

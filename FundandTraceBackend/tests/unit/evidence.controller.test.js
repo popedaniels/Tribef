@@ -5,6 +5,8 @@ const mockDb = { sessions: new Map(), records: [], users: new Map(), campaigns: 
 const mockOid = () => require("crypto").randomBytes(12).toString("hex");
 
 jest.mock("../../services/activityLog", () => ({ recordAdminAction: jest.fn() }));
+const mockEnqueue = jest.fn(async () => {});
+jest.mock("../../services/donorUpdates", () => ({ enqueue: mockEnqueue }));
 jest.mock("../../utility/auth", () => ({
   getAuthUserId: (d) => d && d.id,
   authenticate: jest.fn(async () => mockDb.auth),
@@ -191,6 +193,7 @@ describe("campaign evidence", () => {
     await call(ctrl.submitSession, { params: { id: s.id }, headers: { "x-capture-token": s.captureToken } });
     expect(mockDb.frs.get(FR).set["disbursement.receipt"]).toBe(`/api/evidence/records/${mockDb.records[0]._id}/media`);
     expect(mockDb.frs.get(FR).set["disbursement.receiptEvidenceSessionId"]).toBe(s.id);
+    expect(mockEnqueue).toHaveBeenCalledWith("receipt", FR, CAMPAIGN);
   });
 });
 

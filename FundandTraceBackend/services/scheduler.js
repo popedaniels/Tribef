@@ -43,6 +43,11 @@ async function tick(now = new Date()) {
     .drainOutbox()
     .then((r) => r.pending && logger.info(r, "Ledger outbox drained"))
     .catch((err) => logger.error({ err }, "Ledger outbox drain failed"));
+  // Every tick: retry emails the provider couldn't take earlier.
+  await require("./mailing")
+    .drainMailOutbox()
+    .then((r) => (r.sent || r.failed) && logger.info(r, "Mail outbox drained"))
+    .catch((err) => logger.error({ err }, "Mail outbox drain failed"));
   // Every tick: send queued donor updates (payout made / receipt added).
   await require("./donorUpdates")
     .drain()

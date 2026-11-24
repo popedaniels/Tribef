@@ -82,6 +82,12 @@ router.put("/charities/:id/gift-aid", giving.setCharityGiftAid);
 router.get("/gift-aid/export", giving.giftAidExport);
 router.get("/metrics", giving.adminMetrics);
 
+// Gateway reconciliation reports (controller/adminReconciliation.js).
+const reconciliation = require("../controller/adminReconciliation");
+router.get("/reconciliation", reconciliation.list);
+router.post("/reconciliation/run", reconciliation.run);
+router.post("/reconciliation/:id/resolve", reconciliation.resolve);
+
 // Verified vendor network (controller/vendors.js).
 const vendors = require("../controller/vendors");
 router.get("/vendors", vendors.adminList);

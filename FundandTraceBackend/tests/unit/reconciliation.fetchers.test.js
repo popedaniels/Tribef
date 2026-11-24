@@ -34,7 +34,7 @@ describe("Reconciliation — fetchStripe mapping", () => {
       },
     };
     const txs = await fetchStripe(0, fakeClient);
-    expect(txs).toEqual([{ id: "pi_123", ref: "ref-abc", amount: 25, currency: "gbp" }]);
+    expect(txs).toEqual([{ id: "pi_123", ref: "ref-abc", amount: 25, currency: "GBP", at: expect.any(Date) }]);
     expect(fakeClient.balanceTransactions.list).toHaveBeenCalledWith(
       expect.objectContaining({ expand: ["data.source"] })
     );
@@ -110,5 +110,20 @@ describe("Reconciliation — fetchPaystack stop condition", () => {
       { idKey: "paymentId", refKey: "transactionRef" }
     );
     expect(result.missingInDb).toHaveLength(0);
+  });
+});
+
+describe("Reconciliation — Stripe uses the charge's own currency", () => {
+  it("reports an NGN charge in NGN, not the GBP settlement amount", async () => {
+    const client = {
+      balanceTransactions: {
+        list: jest.fn().mockResolvedValue({
+          has_more: false,
+          data: [{ type: "charge", status: "succeeded", amount: 525, currency: "gbp", created: 1, source: { object: "charge", payment_intent: "pi_ng", amount: 1025381, currency: "ngn", created: 1 } }],
+        }),
+      },
+    };
+    const txs = await fetchStripe(0, client);
+    expect(txs[0]).toMatchObject({ id: "pi_ng", amount: 10253.81, currency: "NGN" });
   });
 });

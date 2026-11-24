@@ -56,6 +56,10 @@ const navLinks = [
     link: "/metrics",
     title: "Metrics",
   },
+  {
+    link: "/reconciliation",
+    title: "Reconciliation",
+  },
 ];
 
 interface AdminLayoutProps {

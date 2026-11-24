@@ -26,8 +26,12 @@ function dailyJobs() {
   ];
   // Live FX check: fresh rates, sane moves; alerts via ALERT_WEBHOOK_URL.
   jobs.push(["fx-check", () => require("./fx").dailyCheck()]);
-  if (process.env.RECONCILE_DAILY === "true") {
-    jobs.push(["gateway-reconciliation", () => require("./reconciliation").runReconciliation({ days: 1 })]);
+  // Gateway reconciliation: on by default in production (set
+  // RECONCILE_DAILY=false to stop it). A 2-day window overlaps yesterday's run
+  // so anything near the edge is checked once it has settled.
+  const reconcile = process.env.RECONCILE_DAILY === "true" || (process.env.NODE_ENV === "production" && process.env.RECONCILE_DAILY !== "false");
+  if (reconcile) {
+    jobs.push(["gateway-reconciliation", () => require("./reconciliation").runReconciliation({ days: 2 })]);
   }
   return jobs;
 }

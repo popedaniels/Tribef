@@ -377,7 +377,7 @@ export default function FeesPage() {
                   <p>2.6% (individual)</p>
                 </td>
                 <td style={{minWidth: 160}}>
-                <input type="checkbox" checked readOnly aria-label="Included" tabIndex={-1} style={{ height: "20px", minWidth: "20px" }} />
+                <span role="img" aria-label="Included" style={{ color: "#047857", fontWeight: 800, fontSize: 18 }}>✓</span>
                 </td>
               </tr>
               <tr>
@@ -396,7 +396,7 @@ export default function FeesPage() {
                   <p>4.9% (Standard project)</p>
                 </td>
                 <td style={{minWidth: 160}}>
-                  <input type="checkbox" checked readOnly aria-label="Included" tabIndex={-1} style={{ height: "20px", minWidth: "20px" }} />
+                  <span role="img" aria-label="Included" style={{ color: "#047857", fontWeight: 800, fontSize: 18 }}>✓</span>
                 </td>
               </tr>
               <tr>

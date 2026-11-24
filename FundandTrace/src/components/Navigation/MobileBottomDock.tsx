@@ -155,7 +155,7 @@ export default function MobileBottomDock() {
                 </div>
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: isActive ? 700 : 500,
                     marginTop: 2,
                     letterSpacing: "-0.01em",

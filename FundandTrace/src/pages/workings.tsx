@@ -686,7 +686,7 @@ const FaqSection = styled.section`
       gap: 16px;
 
       h3 {
-        font-size: 17px;
+        font-size: 17px !important; /* global mobile h3 sizing is !important */
         font-weight: 700;
         color: var(--color-text-heading);
         margin: 0;

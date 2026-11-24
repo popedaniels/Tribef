@@ -34,14 +34,15 @@ export default function DonationsModal({
           <h2 className="text-medium-heading mb-0">
             Donations({donations?.length})
           </h2>
-          <p
+          <button
+            type="button"
             onClick={onModalClose}
-            className="mb-0"
-            style={{ fontWeight: 500, cursor: "pointer" }}
-            role="button"
+            className="ft-plain"
+            aria-label="Close"
+            style={{ fontWeight: 500, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}
           >
-            X
-          </p>
+            ×
+          </button>
         </div>
         <div className="w-100">
           {donations?.length ? (
@@ -91,10 +92,8 @@ export default function DonationsModal({
             }}
             className="bg-white py-3 w-100"
           >
-            <Link href={`/donate/${campaignId}`} passHref>
-
-              <button className="btn deleteBtn w-100">Donate Now</button>
-
+            <Link href={`/donate/${campaignId}`} className="ft-btn ft-btn--primary ft-btn--block">
+              Donate Now
             </Link>
           </div>
         </div>

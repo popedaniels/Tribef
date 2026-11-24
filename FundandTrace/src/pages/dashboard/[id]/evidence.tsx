@@ -42,6 +42,9 @@ export default function CampaignEvidence() {
   };
 
   const isReceipt = purpose === "receipt";
+  // The layout builds its menu links from the id; wait for the router so they
+  // never render as /dashboard//… (static page: query is empty on first paint).
+  if (!router.isReady || !campaignId) return <div className="ft-skeleton" style={{ height: "100vh" }} aria-busy="true" />;
   return (
     <CampaignDashboardLayout active={1} campaignId={campaignId} page={isReceipt ? "Proof of spend" : "Live evidence"}>
       <main className="custom mx-auto py-4" style={{ maxWidth: 720 }}>

@@ -32,7 +32,8 @@
   font-weight: 600;
   color: var(--color-text-muted);
   text-decoration: none;
-  margin-bottom: 20px;
+  min-height: 44px;
+  margin: -11px 0 9px;
   &:hover { color: var(--color-primary); }
 }
 

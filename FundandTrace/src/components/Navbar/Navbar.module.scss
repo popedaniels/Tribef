@@ -366,6 +366,13 @@
         font-weight: 600;
         color: var(--color-text-heading);
         border-radius: 4px;
+        /* The whole row is the tap target, not just the words. */
+        > a,
+        > button {
+          display: block;
+          margin: -12px -16px;
+          padding: 12px 16px;
+        }
 
         &:hover {
           background: #f0f3ff;

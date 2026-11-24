@@ -254,3 +254,10 @@
 .dark-theme .ft-skeleton { background: linear-gradient(90deg, #1f2937 25%, #273244 37%, #1f2937 63%); background-size: 400% 100%; }
 [data-theme="dark"] .ft-chip--neutral,
 .dark-theme .ft-chip--neutral { background: #1f2937; color: #cbd5e1; }
+
+/* On touch screens a link-style button still gets a finger-sized target.
+   Kept last so it wins over the base button sizes above. */
+@media (pointer: coarse), (max-width: 768px) {
+  .ft-btn--link,
+  .ft-btn--quiet { min-height: 44px; }
+}

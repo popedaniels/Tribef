@@ -134,10 +134,13 @@ export default function SignIn() {
                 }}
                 style={{
                   position: "absolute",
-                  width: "20px",
-                  height: 20,
-                  right: 14,
-                  top: 10,
+                  width: 44,
+                  height: 44,
+                  padding: 12,
+                  boxSizing: "border-box",
+                  right: 2,
+                  top: -2,
+                  cursor: "pointer",
                 }}
                 onClick={() => setShowPassword(!showPassword)}
               >

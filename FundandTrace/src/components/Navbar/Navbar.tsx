@@ -169,14 +169,15 @@ const Navbar = ({ white = false }) => {
               ].join(" ")}
               style={{ position: "relative" }}
             >
-              <div
-                style={{ position: "absolute", right: 23, top: 25 }}
+              <button
+                type="button"
+                style={{ position: "absolute", right: 8, top: 10, width: 44, height: 44, fontSize: 22, lineHeight: 1 }}
                 onClick={() => setShowmenu(false)}
-                className="font-weight-medium"
-                role="button"
+                className="ft-plain font-weight-medium"
+                aria-label="Close menu"
               >
-                X
-              </div>
+                ×
+              </button>
               <Image
                 src="/images/logo.png"
                 alt="logo"
@@ -619,14 +620,15 @@ const Navbar = ({ white = false }) => {
               ].join(" ")}
               style={{ position: "relative" }}
             >
-              <div
-                style={{ position: "absolute", right: 23, top: 25 }}
+              <button
+                type="button"
+                style={{ position: "absolute", right: 8, top: 10, width: 44, height: 44, fontSize: 22, lineHeight: 1 }}
                 onClick={() => setShowmenu(false)}
-                className="font-weight-bold"
-                role="button"
+                className="ft-plain font-weight-bold"
+                aria-label="Close menu"
               >
-                X
-              </div>
+                ×
+              </button>
               <Image
                 src="/images/logo.png"
                 alt="logo"
@@ -931,6 +933,10 @@ const Navbar = ({ white = false }) => {
 };
 
 const Menu = styled.div`
+  /* 44x44 touch target around the 18px icon, without moving it. */
+  padding: 14px 13px;
+  margin: -14px -13px;
+  cursor: pointer;
   .bars {
     width: 18px;
     margin-bottom: 5px;

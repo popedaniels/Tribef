@@ -196,12 +196,19 @@ export default function DashboardLayout({
             } align-items-center justify-content-between py-3 custom-container d-lg-none`}
             style={showFixed ? fixed : { transition: "all 0.5s ease" }}
           >
-            <div onClick={() => setShowMenu(true)} role="button">
+            <div
+              onClick={() => setShowMenu(true)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setShowMenu(true)}
+              role="button"
+              tabIndex={0}
+              aria-label="Open menu"
+              style={{ padding: "14px 13px", margin: "-14px -13px", cursor: "pointer" }}
+            >
               <img
                 src="/images/icons/mobileMenu.svg"
                 width="18px"
                 height="16px"
-                alt="menuIcon"
+                alt=""
               />
             </div>
             <Link

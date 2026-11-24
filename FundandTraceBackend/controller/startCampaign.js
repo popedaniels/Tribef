@@ -3,6 +3,7 @@ const { Campaign } = require("../models/campaignModel");
 const { Users } = require("../models/users");
 const { addActivity } = require("../services/activityLog");
 const { buildOrganizerUpdate } = require("../utility/campaignEdits");
+const { notifyBankChange } = require("../services/bankChange");
 const logger = require("../utility/logger");
 
 exports.save = async (req, res, next) => {
@@ -22,13 +23,14 @@ exports.save = async (req, res, next) => {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
     // Whitelist organiser-editable fields (see utility/campaignEdits.js).
-    const { set, errors } = buildOrganizerUpdate(saveCampaign, existing);
+    const { set, errors, bankChanged } = buildOrganizerUpdate(saveCampaign, existing);
     if (errors.length) {
       return res.status(422).json({ status: 422, error: errors.join("; ") });
     }
     if (Object.keys(set).length) {
       await Campaign.updateOne({ _id: id }, { $set: set }, { runValidators: true }).maxTimeMS(3000);
     }
+    if (bankChanged) notifyBankChange(id);
     return res.status(201).json({
       success: true,
       message: "Saved successfully",
@@ -178,11 +180,12 @@ exports.funding = async (req, res, next) => {
     // Only goal, currency and payout details are editable. The old code
     // replaced the whole sub-document, so a client could set its own
     // amountRaised / availableBalance (escrow bypass).
-    const { set, errors } = buildOrganizerUpdate({ funding }, camp);
+    const { set, errors, bankChanged } = buildOrganizerUpdate({ funding }, camp);
     if (errors.length) {
       return res.status(422).json({ status: 422, error: errors.join("; ") });
     }
     const campaign = await Campaign.findByIdAndUpdate(id, { $set: set }, { new: true, runValidators: true }).maxTimeMS(3000);
+    if (bankChanged) notifyBankChange(id);
     return res.status(201).json({
       success: true,
       message: "Saved successfully",

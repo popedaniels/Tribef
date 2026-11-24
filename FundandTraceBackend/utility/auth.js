@@ -1,3 +1,4 @@
+const { adminMfaRequired } = require("./adminMfa");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { Users } = require("../models/users");
@@ -85,6 +86,16 @@ const requireAdmin = async (req, res, next) => {
         success: false,
         status: 403,
         error: "Admin access required",
+      });
+    }
+
+    // Enforced admin 2FA: only sessions that passed the TOTP challenge.
+    if (adminMfaRequired() && decoded.mfa !== true) {
+      return res.status(403).json({
+        success: false,
+        status: 403,
+        code: "ADMIN_2FA_REQUIRED",
+        error: "Sign in again with your authenticator code",
       });
     }
 

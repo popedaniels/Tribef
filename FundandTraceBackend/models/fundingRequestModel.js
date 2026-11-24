@@ -8,8 +8,12 @@ const fundingRequestSchema = new mongoose.Schema({
   currency: { type: String },
   amount: { type: Number, default: 0 },
   purposeOfFunding: { type: String, default: "" },
+  // Provider name lookup on the destination account at approval time
+  // (controller/adminFundingRequests.js): resolvedName, expected, matched, override.
+  bankNameCheck: { type: mongoose.Schema.Types.Mixed, default: null },
   proofOfFunding: { type: String, default: "" },
-  thirdPartyAccountNumber: { type: Number },
+  // String: Nigerian (NUBAN) and other account numbers can start with 0.
+  thirdPartyAccountNumber: { type: String },
   thirdPartyAccountName: { type: String },
   thirdPartyBankName: { type: String },
   thirdPartyNameOfRef: { type: String },

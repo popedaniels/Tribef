@@ -64,21 +64,15 @@ export const adminLogin = (email, password) => async (dispatch) => {
         password,
       }
     );
-    console.log(res);
-    res &&
-      dispatch(
-        adminAuthStateActions.setAdminProfile(res?.data?.data?.userProfile)
-      );
-    res && dispatch(adminAuthStateActions.setJWT(res?.data?.data?.jwt));
-
-    res && dispatch(adminAuthStateActions.adminLoginSuccess(true));
-    res && dispatch(adminAuthStateActions.setAdminLoggingIn(false));
-    res && dispatch(toast(true, "Sign In successful", "success"));
-    if (res) {
-      return true;
-    } else {
-      return false;
+    dispatch(adminAuthStateActions.setAdminLoggingIn(false));
+    // Password OK but a second step is needed: the page asks for the
+    // authenticator code (or sets 2FA up first) and then calls
+    // adminCompleteLogin with the session it gets back.
+    if (res?.data?.twoFactorRequired || res?.data?.twoFactorSetupRequired) {
+      return res.data;
     }
+    dispatch(adminCompleteLogin(res?.data?.data));
+    return true;
   } catch (error) {
     dispatch(toast(true, error?.response?.data?.error, "error"));
     dispatch(adminAuthStateActions.setAdminLoggingIn(false));
@@ -90,6 +84,13 @@ export const adminLogin = (email, password) => async (dispatch) => {
     );
     return false;
   }
+};
+
+export const adminCompleteLogin = (data) => (dispatch) => {
+  dispatch(adminAuthStateActions.setAdminProfile(data?.userProfile));
+  dispatch(adminAuthStateActions.setJWT(data?.jwt));
+  dispatch(adminAuthStateActions.adminLoginSuccess(true));
+  dispatch(toast(true, "Sign In successful", "success"));
 };
 
 export const adminLogout = () => async (dispatch) => {

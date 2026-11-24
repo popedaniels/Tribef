@@ -23,3 +23,6 @@ FundandTraceBackend/.env
 FundandTraceBackend/.env.*
 !FundandTraceBackend/.env.example
 drill-reports/
+
+# Stray Python wheels from local tooling
+*.whl

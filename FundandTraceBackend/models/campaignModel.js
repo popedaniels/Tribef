@@ -70,6 +70,9 @@ const campaignSchema = new mongoose.Schema({
     accountNumber: { type: String, default: "" },
     // Bank/branch code for African bank payouts (Flutterwave/Paystack). Not secret.
     bankCode: { type: String, default: "" },
+    // Set whenever an organiser changes their payout bank account; bank
+    // payouts wait BANK_CHANGE_COOLDOWN_HOURS after it (account-takeover defence).
+    bankChangedAt: { type: Date, default: null },
     availableBalance: { type: Number, default: 0 },
     refunded: { type: Boolean, default: false },
   },

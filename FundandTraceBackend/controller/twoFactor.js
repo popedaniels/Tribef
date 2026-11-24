@@ -13,6 +13,7 @@ const {
   challengePayload,
   isChallengePayload,
   CHALLENGE_TTL_SECONDS,
+  adminMfaRequired,
 } = require("../utility/twoFactor");
 const { safeProfile, safeJwtProfile } = require("../utility/safeProfile");
 
@@ -100,6 +101,9 @@ exports.disable = async (req, res) => {
     if (!user.twoFactor || !user.twoFactor.enabled) {
       return res.status(409).json({ status: 409, error: "Two-factor authentication is not enabled" });
     }
+    if (user.role === "admin" && adminMfaRequired()) {
+      return res.status(409).json({ status: 409, error: "Admins must keep two-factor authentication on" });
+    }
 
     const secret = decrypt(user.twoFactor.secret);
     if (!(await verifyTotp(secret, req.body.token))) {
@@ -177,7 +181,7 @@ function issueSessionResponse(res, userProfile, scope) {
   // never be embedded in a token.
   const token = jwt.sign(
     scope === "admin"
-      ? { profile: safeJwtProfile(userProfile), sv: Number(userProfile.sessionVersion || 0) }
+      ? { profile: safeJwtProfile(userProfile), sv: Number(userProfile.sessionVersion || 0), mfa: true }
       : { email, id: userProfile._id, sv: Number(userProfile.sessionVersion || 0) },
     process.env.TOKEN_SECRET,
     { expiresIn: "8h" }

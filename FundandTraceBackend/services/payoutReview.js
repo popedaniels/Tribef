@@ -58,6 +58,14 @@ function evaluatePayout({ fr, campaign, organizer, history = [], donations = { t
   else if (thirdParty) add("rail", "warn", "Payout route", "No bank code on file: this will be a manual transfer to the third party.");
   else add("rail", "fail", "Payout route", `No Stripe Connect account and no bank transfer route for ${currency}.`);
 
+  // 4b. A recent bank change holds bank payouts (account-takeover defence).
+  if (!thirdParty && !connect && campaign?.funding?.bankChangedAt) {
+    const { cooldownRemainingMs } = require("./bankChange");
+    const wait = cooldownRemainingMs(campaign, now);
+    if (wait > 0) add("bank-change", "fail", "Payout account settled", `Bank account changed ${new Date(campaign.funding.bankChangedAt).toISOString().slice(0, 16).replace("T", " ")} UTC; bank payouts resume in about ${Math.ceil(wait / 3600e3)}h.`);
+    else add("bank-change", "warn", "Payout account settled", "The organiser changed their bank account since setting it up. The bank's name for the account is checked at approval.");
+  }
+
   // 5. Evidence for this request.
   if (fr?.proofOfFunding) add("evidence", "pass", "Supporting document", "Invoice or quote attached.");
   else add("evidence", thirdParty ? "fail" : "warn", "Supporting document", thirdParty ? "Third-party payments need an invoice." : "No invoice or quote attached.");

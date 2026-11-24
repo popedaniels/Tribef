@@ -19,20 +19,7 @@ const safeDecrypt = (v) => {
 };
 
 /** Loose name comparison for bank-account checks ("MEDSERVE NIG LTD" ≈ "Medserve Nigeria Limited"). */
-function namesMatch(a, b) {
-  const norm = (s) =>
-    String(s || "")
-      .toUpperCase()
-      .replace(/\b(LIMITED|LTD|PLC|NIG|NIGERIA|INC|LLC|CO|COMPANY|THE|AND|&)\b/g, " ")
-      .replace(/[^A-Z0-9 ]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 1);
-  const x = new Set(norm(a));
-  const y = norm(b);
-  if (!x.size || !y.length) return false;
-  const shared = y.filter((w) => x.has(w)).length;
-  return shared / Math.max(x.size, y.length) >= 0.6;
-}
+const { namesMatch } = require("../utility/names");
 
 const publicView = (v, stats) => ({
   id: String(v._id),

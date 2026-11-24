@@ -1,3 +1,4 @@
+import axios from "axios";
 import Link from "next/link";
 import router from "next/router";
 import React from "react";
@@ -75,6 +76,23 @@ export default function AdminLayout({ active, children }: AdminLayoutProps) {
   useEffect(() => {
     adminRehydrated && !adminAuthenticated && router.push("/admin/auth/signIn");
   }, [adminRehydrated, adminAuthenticated]);
+
+  // A session from before admin 2FA was enforced (or one that has expired)
+  // is refused by the API: sign out so the admin goes through 2FA sign-in.
+  useEffect(() => {
+    const id = axios.interceptors.response.use(
+      (r) => r,
+      (error) => {
+        const st = error?.response?.status;
+        const code = error?.response?.data?.code;
+        if (code === "ADMIN_2FA_REQUIRED" || (st === 401 && String(error?.config?.url || "").includes("/api/admin/"))) {
+          dispatch(adminLogout());
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => axios.interceptors.response.eject(id);
+  }, [dispatch]);
 
   return (
     <Wrapper>

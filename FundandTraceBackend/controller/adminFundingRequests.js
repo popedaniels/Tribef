@@ -106,6 +106,78 @@ exports.getSingleFundingRequests = async (req, res, next) => {
   }
 };
 
+// Destination checks for bank payouts that aren't to a verified vendor
+// (vendors' accounts are checked when they join the network) or through
+// Stripe Connect (Stripe verifies the account holder).
+//  1. Organiser bank account changed recently -> wait out the cooldown.
+//  2. Ask the payout provider whose account it is; the name must match the
+//     organiser's verified ID name (or the named third party). A mismatch or a
+//     failed lookup needs an admin override with a note, which is recorded.
+async function checkPayoutDestination({ existing, campaign, body, admin }) {
+  if (existing.vendorDisbursement?.vendorId) return {};
+  const { railFor, resolveAccount } = require("../services/payoutRails");
+  const { cooldownRemainingMs, cooldownHours } = require("../services/bankChange");
+  const { namesMatch } = require("../utility/names");
+  const thirdParty = isThirdParty(existing.fundingType);
+  const currency = String(existing.currency || campaign.funding?.currency || "").toUpperCase();
+  const connect = campaign.stripeConnect?.accountId && campaign.stripeConnect?.payoutsEnabled;
+  if (!thirdParty && connect) return {};
+
+  const bankCode = thirdParty ? existing.thirdPartyBankCode : campaign.funding?.bankCode;
+  const accountNumber = thirdParty ? existing.thirdPartyAccountNumber : revealSensitive(campaign.funding?.accountNumber);
+  if (!bankCode || !accountNumber || !railFor(currency)) return {}; // manual payment: checked by hand
+
+  if (!thirdParty) {
+    const wait = cooldownRemainingMs(campaign);
+    if (wait > 0) {
+      const hours = Math.ceil(wait / 3600e3);
+      return {
+        status: 423,
+        error: {
+          code: "bank_change_cooldown",
+          error: `The organiser changed their payout bank account recently. Bank payouts resume in about ${hours} hour${hours === 1 ? "" : "s"} (${cooldownHours()}-hour hold).`,
+        },
+      };
+    }
+  }
+
+  let expected = [];
+  if (thirdParty) expected = [existing.thirdPartyAccountName, existing.thirdPartyNameOfRef];
+  else {
+    const organizer = await Users.findById(campaign.organizerId || existing.organizerId).select("firstName lastName identityVerification.nameOnId").lean();
+    expected = [organizer?.identityVerification?.nameOnId, `${organizer?.firstName || ""} ${organizer?.lastName || ""}`];
+  }
+  expected = expected.map((n) => String(n || "").trim()).filter(Boolean);
+
+  let resolvedName = "";
+  let lookupError = "";
+  try {
+    resolvedName = (await resolveAccount({ bankCode, accountNumber })).accountName || "";
+  } catch (err) {
+    lookupError = err?.status === 503 ? "no payout provider configured for lookups" : "the provider couldn't find the account";
+  }
+  const matched = Boolean(resolvedName) && expected.some((n) => namesMatch(n, resolvedName));
+  const record = { resolvedName, expected, matched, lookupError, at: new Date() };
+  if (matched) return { record };
+
+  const note = String(body.nameCheckOverride || "").trim().slice(0, 500);
+  if (note.length >= 10) {
+    const adminName = `${admin?.firstName || ""} ${admin?.lastName || ""}`.trim() || "Admin";
+    logger.warn({ fundingRequestId: String(existing._id), resolvedName, expected, adminName }, "Payout name check overridden");
+    return { record: { ...record, override: { note, adminId: String(admin?._id || ""), adminName } } };
+  }
+  return {
+    status: 409,
+    error: {
+      code: "bank_name_mismatch",
+      error: lookupError
+        ? `Couldn't confirm who owns the account (${lookupError}). Check it another way and approve with a note.`
+        : `The bank says this account belongs to "${resolvedName || "unknown"}", which doesn't match ${expected.map((n) => `"${n}"`).join(" or ") || "the expected name"}. Check it, then approve with a note if it's right.`,
+      data: { resolvedName, expected },
+    },
+  };
+}
+
 exports.approveFundingRequest = async (req, res, next) => {
   try {
     if (!req.auth) {
@@ -148,6 +220,11 @@ exports.approveFundingRequest = async (req, res, next) => {
       }
     }
 
+    // Where the money is going: cooldown after a bank change, and the
+    // provider's name for the account must match who should be paid.
+    const destination = await checkPayoutDestination({ existing, campaign, body: req.body || {}, admin: req.admin });
+    if (destination.error) return res.status(destination.status).json({ status: destination.status, ...destination.error });
+
     // Two-person rule: a large payout needs a second, different admin.
     const adminId = String(req.admin?._id || profile._id || profile.id || "");
     const adminName = `${req.admin?.firstName || profile.firstName || ""} ${req.admin?.lastName || profile.lastName || ""}`.trim() || "Admin";
@@ -188,6 +265,7 @@ exports.approveFundingRequest = async (req, res, next) => {
           declineReason: "",
           adminId,
           adminName,
+          ...(destination.record ? { bankNameCheck: destination.record } : {}),
         },
       },
       { new: true }

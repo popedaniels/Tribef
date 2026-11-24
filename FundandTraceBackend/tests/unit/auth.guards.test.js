@@ -166,6 +166,44 @@ describe("auth guards", () => {
       expect(next).toHaveBeenCalled();
       expect(req.admin).toMatchObject({ role: "admin" });
     });
+
+    describe("with admin 2FA enforced", () => {
+      beforeEach(() => {
+        process.env.ADMIN_REQUIRE_2FA = "true";
+        Users.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ role: "admin", suspended: false }) });
+      });
+      afterEach(() => delete process.env.ADMIN_REQUIRE_2FA);
+
+      it("refuses an admin session that didn't pass the TOTP challenge (incl. enrolment tokens)", async () => {
+        for (const payload of [{ id: "admin-1" }, { id: "admin-1", scope: "admin-enrol" }, { id: "admin-1", mfa: "true" }]) {
+          const res = mockRes();
+          const next = jest.fn();
+          await auth.requireAdmin(bearerReq(jwt.sign(payload, SECRET)), res, next);
+          expect(res.statusCode).toBe(403);
+          expect(res.body.code).toBe("ADMIN_2FA_REQUIRED");
+          expect(next).not.toHaveBeenCalled();
+        }
+      });
+
+      it("accepts a session issued after the TOTP challenge", async () => {
+        const next = jest.fn();
+        await auth.requireAdmin(bearerReq(jwt.sign({ id: "admin-1", mfa: true }, SECRET)), mockRes(), next);
+        expect(next).toHaveBeenCalled();
+      });
+
+      it("is on by default in production and can be switched off explicitly", () => {
+        const { adminMfaRequired } = require("../../utility/adminMfa");
+        const env = process.env.NODE_ENV;
+        delete process.env.ADMIN_REQUIRE_2FA;
+        process.env.NODE_ENV = "production";
+        expect(adminMfaRequired()).toBe(true);
+        process.env.ADMIN_REQUIRE_2FA = "false";
+        expect(adminMfaRequired()).toBe(false);
+        process.env.NODE_ENV = env;
+        delete process.env.ADMIN_REQUIRE_2FA;
+        expect(adminMfaRequired()).toBe(false);
+      });
+    });
   });
 
   describe("requireInternalWebhook", () => {

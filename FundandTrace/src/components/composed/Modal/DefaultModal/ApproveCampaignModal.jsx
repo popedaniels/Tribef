@@ -20,6 +20,10 @@ export default function ApproveCampaignModal({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  // The bank's name for the destination account didn't match: the admin can
+  // still approve after checking, with a note that is recorded.
+  const [nameMismatch, setNameMismatch] = useState(false);
+  const [overrideNote, setOverrideNote] = useState("");
   const first = fundingRequest?.firstApproval?.adminId ? fundingRequest.firstApproval : null;
 
   const handleApprove = async () => {
@@ -28,7 +32,7 @@ export default function ApproveCampaignModal({
     try {
       const res = await axios.patch(
         `${getApiBaseUrl()}/api/admin/fundingRequest/approve/${fundingRequest?._id}`,
-        { campaignId: fundingRequest?.campaign?._id },
+        { campaignId: fundingRequest?.campaign?._id, ...(nameMismatch && overrideNote.trim() ? { nameCheckOverride: overrideNote.trim() } : {}) },
         config()
       );
       setLoading(false);
@@ -38,6 +42,7 @@ export default function ApproveCampaignModal({
       setStep("1");
     } catch (err) {
       setLoading(false);
+      if (err?.response?.data?.code === "bank_name_mismatch") setNameMismatch(true);
       setError(err?.response?.data?.error || "Approval failed. Nothing was paid. Please try again.");
     }
   };
@@ -73,11 +78,26 @@ export default function ApproveCampaignModal({
                 {error}
               </p>
             )}
+            {nameMismatch && (
+              <div className="mb-4">
+                <label htmlFor="name-override" className="text-small d-block mb-1">
+                  Approve anyway: how did you confirm the account is right? (recorded with your name)
+                </label>
+                <textarea
+                  id="name-override"
+                  className="form-control"
+                  rows={2}
+                  value={overrideNote}
+                  onChange={(e) => setOverrideNote(e.target.value)}
+                  placeholder="e.g. Called the hospital on its published number; account confirmed on letterhead"
+                />
+              </div>
+            )}
             <div className="d-flex ml-auto">
               <button className="btn cancelBtn" onClick={onModalClose}>
                 Cancel
               </button>
-              <button className="btn approveBtn ml-4" onClick={handleApprove}>
+              <button className="btn approveBtn ml-4" onClick={handleApprove} disabled={loading || (nameMismatch && overrideNote.trim().length < 10)}>
                 {loading ? (
                   <Spinner
                     type="TailSpin"

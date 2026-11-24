@@ -47,3 +47,7 @@ module.exports = {
   isChallengePayload,
   CHALLENGE_TTL_SECONDS,
 };
+
+// Re-exported for convenience; lives in its own module so the auth guard can
+// use it without loading encryption.
+module.exports.adminMfaRequired = require("./adminMfa").adminMfaRequired;

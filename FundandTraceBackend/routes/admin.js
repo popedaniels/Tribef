@@ -81,6 +81,12 @@ router.post("/campaigns/:id/matching/payments", giving.recordMatchPayment);
 router.put("/charities/:id/gift-aid", giving.setCharityGiftAid);
 router.get("/gift-aid/export", giving.giftAidExport);
 
+// Verified vendor network (controller/vendors.js).
+const vendors = require("../controller/vendors");
+router.get("/vendors", vendors.adminList);
+router.post("/vendors/:id/resolve-bank", vendors.adminResolveBank);
+router.post("/vendors/:id/review", vendors.adminReview);
+
 router.get("/audit", async (req, res) => {
   try {
     const { ActivityLog } = require("../models/activityLogModel");

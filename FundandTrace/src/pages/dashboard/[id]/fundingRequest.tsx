@@ -13,6 +13,7 @@ import { StripeConnectCard } from "../../../components/FundingRequest/StripeConn
 import { FundingAmountInput } from "../../../components/FundingRequest/FundingAmountInput";
 import { BalanceCard, IdCard } from "../../../components/FundingRequest/BalanceCard";
 import type { FundingCampaign } from "../../../types/fundingRequest";
+import VendorPicker from "../../../components/trust/VendorPicker";
 import { fetchCampaignById } from "../../../services/fundingRequestService";
 
 interface FundingRequestProps {
@@ -543,6 +544,12 @@ export default function FundingRequest({
                     className="mb-5"
                     style={{ height: 181 }}
                   ></textarea>
+                  <VendorPicker
+                    selected={fundingRequest?.vendorDisbursement}
+                    onChange={(v) => setFundingRequest({ ...fundingRequest, vendorDisbursement: v })}
+                  />
+                  {!fundingRequest?.vendorDisbursement?.vendorId && (
+                  <>
                   <div className="thirdparty w-100 mb-3">
                     <h6 className=" mb-5">Third party Account information</h6>
                     <BankAccountFields
@@ -664,6 +671,8 @@ export default function FundingRequest({
                     </div>
                   </div>
 
+                  </>
+                  )}
                   <button
                     className="bluebtn btn text-white mt-5"
                     onClick={handleSubmit}

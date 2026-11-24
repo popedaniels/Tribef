@@ -11,6 +11,8 @@ export const validateFundingRequest = (fundingRequest: FundingRequestBody): Fund
   }
 
   if (fundingRequest.fundingType === "third-party") {
+    // Verified vendor: bank details come from the vendor record on the server.
+    if (fundingRequest.vendorDisbursement?.vendorId) return { valid: true };
     if (
       !fundingRequest.thirdPartyAccountName ||
       !fundingRequest.thirdPartyAccountNumber ||

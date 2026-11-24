@@ -168,6 +168,7 @@ app.use("/api/evidence", apiLimiter, evidence);
 app.use("/api/fx", apiLimiter, fxRoutes);
 app.use("/api/fees", apiLimiter, feeRoutes);
 app.use("/api/giving", apiLimiter, require("./routes/giving"));
+app.use("/api/vendors", apiLimiter, require("./routes/vendors"));
 app.use("/api/stripeConnect", apiLimiter, stripeConnect);
 app.use("/api/recurring", apiLimiter, recurring);
 app.use("/api/auth/2fa", authLimiter, twoFactor);

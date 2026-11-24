@@ -18,6 +18,9 @@ const fundingRequestSchema = new mongoose.Schema({
   // Direct-to-Vendor Institutional Disbursement
   vendorDisbursement: {
     isDirectToVendor: { type: Boolean, default: false },
+    // Set when paying a verified vendor from the network: the payout can then
+    // only go to that vendor's verified account (controller/donations/payout.js).
+    vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", default: null, index: true },
     vendorCategory: {
       type: String,
       enum: [

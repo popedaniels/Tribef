@@ -92,6 +92,30 @@ exports.addFundingRequest = async (req, res, next) => {
       }
     }
 
+    // Paying a vendor from the verified network: details come from the
+    // vendor record, never from the request, and the payout is locked to the
+    // vendor's verified account.
+    const vendorId = fundingrequestBody.vendorDisbursement?.vendorId;
+    if (vendorId) {
+      const { Vendor } = require("../models/vendorModel");
+      const vendor = mongoose.Types.ObjectId.isValid(vendorId) ? await Vendor.findOne({ _id: vendorId, status: "verified" }).lean() : null;
+      if (!vendor) return res.status(400).json({ status: 400, code: "vendor_not_verified", error: "That vendor isn't in the verified network." });
+      fundingrequestBody.fundingType = normalizeFundingType("Third Party");
+      fundingrequestBody.vendorDisbursement = {
+        ...fundingrequestBody.vendorDisbursement,
+        isDirectToVendor: true,
+        vendorId: vendor._id,
+        vendorCategory: vendor.category,
+        vendorLegalName: vendor.legalName,
+        vendorTaxIdOrRegistration: vendor.registrationNumber,
+        vendorContactEmail: vendor.contactEmail,
+        vendorContactPhone: vendor.contactPhone,
+        bankDetails: undefined,
+      };
+      ["thirdPartyAccountName", "thirdPartyAccountNumber", "thirdPartyBankName", "thirdPartyBankCode"].forEach((f) => delete fundingrequestBody[f]);
+      fundingrequestBody.thirdPartyNameOfRef = encrypt(vendor.legalName); // other fields above are already encrypted
+    }
+
     // Encrypt Direct-to-Vendor bank details if provided
     if (fundingrequestBody.vendorDisbursement?.bankDetails) {
       const bDetails = fundingrequestBody.vendorDisbursement.bankDetails;

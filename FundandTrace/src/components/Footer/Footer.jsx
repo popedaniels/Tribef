@@ -36,6 +36,7 @@ export default function Footer() {
               <li><Link href="/fundraisingIdeas">Strategy Playbooks</Link></li>
               <li><Link href="/fundraising-stories">Verified Stories</Link></li>
               <li><Link href="/fees">0% Pricing &amp; Fees</Link></li>
+              <li><Link href="/vendors">Verified Vendors</Link></li>
             </ul>
           </div>
 

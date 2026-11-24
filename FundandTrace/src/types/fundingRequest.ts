@@ -24,6 +24,8 @@ export interface FundingRequestBody {
   thirdPartyBankName: string;
   thirdPartyNameOfRef: string;
   thirdPartyContact: string;
+  /** Paying a vendor from the verified network (FT-038). */
+  vendorDisbursement?: { vendorId: string; vendorName?: string; last4?: string };
   mobileFieldVerification?: {
     captureTimestampNTP: Date;
     geolocation: {

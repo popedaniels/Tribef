@@ -274,3 +274,40 @@ describe("applyTransferOutcome (provider webhook)", () => {
     expect(result.outcome).toBe("successful");
   });
 });
+
+// ── Verified vendor network: payouts locked to the vendor's account ───────
+const mockVendor = { dest: null };
+jest.mock("../../controller/vendors", () => ({ vendorPayoutDestination: jest.fn(async () => mockVendor.dest) }));
+
+describe("vendor-backed funding requests", () => {
+  const VENDOR = { bankCode: "058", bankName: "GTBank", accountNumber: "0123456789", accountName: "Medserve Nigeria Ltd", currency: "NGN" };
+  beforeEach(() => {
+    state.claimed = makeRequestDoc({ fundingType: "third-party", vendorDisbursement: { vendorId: "60f7117f2ee78d31b4de0ccc" } });
+    state.campaign.funding.currency = "NGN";
+    mockRails.rail = "flutterwave";
+    mockVendor.dest = { ...VENDOR };
+  });
+
+  it("pays the vendor's verified account, never the organiser's Stripe account", async () => {
+    const res = await call({ currency: "NGN" });
+    expect(res.statusCode).toBe(200);
+    expect(mockRails.sent[0]).toMatchObject({ bankCode: "058", accountNumber: "0123456789", accountName: "Medserve Nigeria Ltd" });
+    expect(calls.find(([n]) => n === "stripe.transfer")).toBeUndefined();
+  });
+
+  it("refuses a different account supplied at payout time", async () => {
+    const res = await call({ currency: "NGN", bankCode: "044", accountNumber: "9999999999" });
+    expect(res.statusCode).toBe(409);
+    expect(res.body.code).toBe("vendor_account_locked");
+    expect(mockRails.sent).toHaveLength(0);
+    expect(calls.filter(([n]) => n === "campaign.updateOne")).toHaveLength(0);
+  });
+
+  it("refuses when the vendor is no longer verified", async () => {
+    mockVendor.dest = { error: "The vendor for this request isn't verified (or was suspended), so it can't be paid." };
+    const res = await call({ currency: "NGN" });
+    expect(res.statusCode).toBe(422);
+    expect(res.body.code).toBe("vendor_not_payable");
+    expect(mockRails.sent).toHaveLength(0);
+  });
+});

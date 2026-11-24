@@ -96,9 +96,38 @@ exports.stripePayoutWebhook = async (req, res, next) => {
     const thirdParty = isThirdParty(fundingRequest.fundingType);
     const connect = campaign.stripeConnect || {};
     const payoutCurrency = String(currency || campaign.funding.currency || "GBP").toUpperCase();
-    const useConnect = Boolean(stripe && connect.accountId && connect.payoutsEnabled);
-    const bankCode = String(req.body.bankCode || "");
-    const bankRail = !useConnect && bankCode && req.body.accountNumber ? railFor(payoutCurrency) : null;
+
+    // Destination. For a request that pays a vendor from the verified network
+    // the money can only go to that vendor's verified account: an account in
+    // the request body is refused rather than silently used.
+    const dest = {
+      bankCode: String(req.body.bankCode || ""),
+      bankName: req.body.bankName || "",
+      accountNumber: req.body.accountNumber || "",
+      accountName: req.body.accountName || "",
+    };
+    const vendorId = fundingRequest.vendorDisbursement?.vendorId;
+    if (vendorId) {
+      const { vendorPayoutDestination } = require("../vendors");
+      const v = await vendorPayoutDestination(vendorId);
+      if (v.error) {
+        await release();
+        return res.status(422).json({ status: 422, code: "vendor_not_payable", error: v.error });
+      }
+      if (dest.accountNumber && String(dest.accountNumber) !== String(v.accountNumber)) {
+        await release();
+        return res.status(409).json({ status: 409, code: "vendor_account_locked", error: "Vendor payouts can only go to the vendor's verified account." });
+      }
+      if (v.currency && v.currency !== payoutCurrency) {
+        await release();
+        return res.status(422).json({ status: 422, error: `The vendor's verified account is in ${v.currency}, not ${payoutCurrency}.` });
+      }
+      Object.assign(dest, { bankCode: v.bankCode, bankName: v.bankName, accountNumber: v.accountNumber, accountName: v.accountName });
+    }
+    // Vendor payouts always go by bank transfer, never to the organiser's Stripe account.
+    const useConnect = Boolean(!vendorId && stripe && connect.accountId && connect.payoutsEnabled);
+    const bankCode = dest.bankCode;
+    const bankRail = !useConnect && bankCode && dest.accountNumber ? railFor(payoutCurrency) : null;
     if (!useConnect && !bankRail && !thirdParty) {
       // No verified destination: never release escrow into the void.
       await release();
@@ -153,8 +182,8 @@ exports.stripePayoutWebhook = async (req, res, next) => {
         amount,
         currency: payoutCurrency,
         bankCode,
-        accountNumber: req.body.accountNumber,
-        accountName: req.body.accountName,
+        accountNumber: dest.accountNumber,
+        accountName: dest.accountName,
         narration: `Fund&Trace milestone payout ${req.params.id}`,
       });
       if (bankTransfer.status === "failed") {
@@ -169,9 +198,9 @@ exports.stripePayoutWebhook = async (req, res, next) => {
     fundingRequest.disbursement = {
       amount,
       currency: payoutCurrency,
-      bankName: encrypt(req.body.bankName || ""),
-      accountName: encrypt(req.body.accountName || ""),
-      accountNumber: encrypt(req.body.accountNumber || ""),
+      bankName: encrypt(dest.bankName || ""),
+      accountName: encrypt(dest.accountName || ""),
+      accountNumber: encrypt(dest.accountNumber || ""),
       dateDisbursed: Date.now(),
       receipt: "",
       stripeTransferId: transfer?.id || "",

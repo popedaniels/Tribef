@@ -111,7 +111,9 @@ async function refundDonation({ donationId, escrowAmount, includeTip = false, re
   }
 
   const amount = round2(escrowAmount === undefined ? donation.amount : escrowAmount);
-  const gatewayAmount = round2(amount + (includeTip ? Number(donation.tip || 0) : 0));
+  // A full self-refund returns everything the donor paid: donation, tip and
+  // the card fee they covered (the processor keeps its fee; we absorb it).
+  const gatewayAmount = round2(amount + (includeTip ? Number(donation.tip || 0) + Number(donation.processingFee || 0) : 0));
   let reserved = false;
 
   const release = async (status = "failed") => {

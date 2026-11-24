@@ -46,3 +46,11 @@ describe("currencyPrefix", () => {
     expect(currencyPrefix(undefined)).toBe("₦");
   });
 });
+
+describe("formatMoney exact", () => {
+  it("keeps kobo on large charged amounts", () => {
+    expect(formatMoney(10253.81, "NGN", { exact: true })).toBe("₦10,253.81");
+    expect(formatMoney(10253.81, "NGN")).toBe("₦10,254");
+    expect(formatMoney(10000, "NGN", { exact: true })).toBe("₦10,000");
+  });
+});

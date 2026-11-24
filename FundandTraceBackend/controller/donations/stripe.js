@@ -9,6 +9,9 @@ const {
   checkoutCurrency,
   currencyMismatch,
   sendDonationMailSafely,
+  resolveCheckout,
+  checkoutError,
+  splitTotal,
 } = require("./shared");
 const { Subscription } = require("../../models/subscriptionModel");
 const { FROZEN_MESSAGE } = require("../../utility/campaignState");
@@ -33,17 +36,16 @@ exports.createStripeSession = async (req, res) => {
       return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
     }
 
-    const amount = Number(req.body.amount);
-    const tip = Number(req.body.meta?.tip || 0);
     const charged = checkoutCurrency(campaign, req.body.currency);
     if (!charged) return currencyMismatch(res, campaign);
     const currency = charged.toLowerCase();
-    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
-      return res.status(400).json({ status: 400, error: "Invalid donation amount" });
+    let co;
+    try {
+      co = resolveCheckout(req, "stripe", charged);
+    } catch (err) {
+      return checkoutError(res, err);
     }
-    if (!Number.isFinite(tip) || tip < 0 || tip > amount) {
-      return res.status(400).json({ status: 400, error: "Invalid tip amount" });
-    }
+    const amount = co.total;
     if (!["gbp", "usd", "ngn"].includes(currency)) {
       return res.status(400).json({ status: 400, error: "Unsupported currency" });
     }
@@ -77,8 +79,9 @@ exports.createStripeSession = async (req, res) => {
         campaignId: req.params.id,
         donorEmail: req.body.customer?.email,
         donorName: req.body.customer?.name,
-        amount: String(amount - tip),
-        tip: String(tip),
+        amount: String(co.donation), // what the campaign receives
+        tip: String(co.tip),
+        fee: String(co.fee), // card fee the donor chose to cover (opt-in on UK/EU cards)
         paymentMethod: "Stripe",
         paymentOption: "card",
         zipCode: req.body.meta?.zipCode || "",
@@ -120,11 +123,14 @@ exports.paymentStripe = async (req, res, next) => {
 
     // The signed webhook is the only code path that records and credits a
     // donation. This success URL only shows the payment result to the donor.
-    const donatedAmount = Number(session.metadata.amount || 0);
-    const tip = Number(session.metadata.tip || 0);
-    const verifiedTotal = Number(session.amount_total || 0) / 100;
-    if (!Number.isFinite(donatedAmount) || donatedAmount <= 0 ||
-        Math.abs(verifiedTotal - (donatedAmount + tip)) > 0.01) {
+    const split = splitTotal({
+      total: Number(session.amount_total || 0) / 100,
+      donation: Number(session.metadata.amount || 0),
+      tip: Number(session.metadata.tip || 0),
+      fee: Number(session.metadata.fee || 0),
+    });
+    const donatedAmount = split.donation;
+    if (!split.ok) {
       return res.redirect(`${process.env.MAINURL || "http://localhost:3000"}/?status=invalid_session`);
     }
     return res.redirect(
@@ -311,14 +317,18 @@ exports.stripeCheckoutWebhook = async (req, res) => {
     });
     if (existingDonation) return res.status(200).json({ received: true });
 
-    const amount = Number(session.amount_total || 0) / 100;
-    const tip = Number(session.metadata.tip || 0);
-    const metadataAmount = Number(session.metadata.amount || 0);
-    if (!Number.isFinite(amount) || !Number.isFinite(tip) || !Number.isFinite(metadataAmount) ||
-        tip < 0 || metadataAmount <= 0 || Math.abs(amount - (metadataAmount + tip)) > 0.01) {
+    // total = donation + tip + covered card fee; campaign gets the donation.
+    const split = splitTotal({
+      total: Number(session.amount_total || 0) / 100,
+      donation: Number(session.metadata.amount || 0),
+      tip: Number(session.metadata.tip || 0),
+      fee: Number(session.metadata.fee || 0),
+    });
+    if (!split.ok) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }
-    const donationAmount = metadataAmount;
+    const { tip, fee } = split;
+    const donationAmount = split.donation;
     const campaign = await Campaign.findOne({
       _id: session.metadata.campaignId,
       launched: true,
@@ -336,6 +346,7 @@ exports.stripeCheckoutWebhook = async (req, res) => {
       transactionId: session.id,
       transactionRef: session.client_reference_id || session.id,
       tip,
+      processingFee: fee,
       paymentMethod: "Stripe",
       paymentOption: "card",
       zipCode: session.metadata.zipCode || "",

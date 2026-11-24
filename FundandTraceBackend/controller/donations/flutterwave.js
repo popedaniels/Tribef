@@ -12,6 +12,9 @@ const {
   checkoutCurrency,
   currencyMismatch,
   sendDonationMailSafely,
+  resolveCheckout,
+  checkoutError,
+  splitTotal,
 } = require("./shared");
 const { getClientIp, assessDonation, geoMismatchScore } = require("../../utility/fraud");
 const { notifyTargetReachedIfNeeded } = require("../../services/targetReached");
@@ -56,13 +59,20 @@ exports.initializePayment = async (req, res, next) => {
     if (!currency) return currencyMismatch(res, campaign);
     payment.currency = currency;
 
-    // Same contract as Stripe/Paystack: `amount` is the TOTAL charged and the
-    // campaign receives `amount - tip`. meta.amount always mirrors the total.
-    const tip = Number(payment.meta?.tip || 0);
-    if (!Number.isFinite(tip) || tip < 0 || tip >= amount) {
-      return res.status(400).json({ status: 400, error: "Invalid tip amount" });
+    // Same contract as Stripe/Paystack (shared.resolveCheckout): `amount` is
+    // the TOTAL charged = donation + tip + card fee; the campaign receives the
+    // donation. meta.amount always mirrors the total.
+    let co;
+    try {
+      co = resolveCheckout({ body: { amount, meta: payment.meta || {} }, headers: req.headers }, "flutterwave", currency);
+    } catch (err) {
+      return checkoutError(res, err);
     }
-    payment.meta = { ...(payment.meta || {}), amount: String(amount), tip: String(tip) };
+    payment.amount = co.total;
+    payment.meta = { ...(payment.meta || {}), amount: String(co.total), tip: String(co.tip), fee: String(co.fee), method: co.method };
+    // Mobile money: open Flutterwave straight on the right wallet.
+    const MOMO = { KES: "mpesa", GHS: "mobilemoneyghana", UGX: "mobilemoneyuganda", RWF: "mobilemoneyrwanda", ZMW: "mobilemoneyzambia", XOF: "mobilemoneyfranco", XAF: "mobilemoneyfranco", TZS: "mobilemoneytanzania" };
+    if ((co.method === "mpesa" || co.method === "mobilemoney") && MOMO[currency]) payment.payment_options = MOMO[currency];
 
     // Fraud snapshot rides through gateway metadata to the recorder.
     const fraud = await assessDonation({
@@ -137,15 +147,30 @@ exports.paymentFlutterwave = async (req, res, next) => {
         `${process.env.MAINURL || "http://localhost:3000"}/donated/${
           resp.data.data.meta.campaignId
         }?status=successful&name=${encodeURIComponent(resp.data.data.customer.name)}&amount=${
-          Number(resp.data.data.meta.amount) - Number(resp.data.data.meta.tip)
+          splitTotal({ total: Number(resp.data.data.meta.amount), tip: Number(resp.data.data.meta.tip || 0), fee: Number(resp.data.data.meta.fee || 0) }).donation
         }&email=${encodeURIComponent(resp.data.data.customer.email)}&campaignId=${
           resp.data.data.meta.campaignId
         }&anonymous=${resp.data.data.meta.anonymous}`
       );
     }
 
-    const donatedAmount =
-      Number(resp.data.data.meta.amount) - Number(resp.data.data.meta.tip);
+    // The amount Flutterwave actually collected must match the total we set at
+    // initialization (meta is ours, but a payment can be started directly with
+    // the public key and arbitrary meta), and be in the campaign's currency.
+    const fwMeta = resp.data.data.meta || {};
+    const split = splitTotal({ total: Number(fwMeta.amount), tip: Number(fwMeta.tip || 0), fee: Number(fwMeta.fee || 0) });
+    const paidTotal = Number(resp.data.data.amount);
+    const fwCampaign = await Campaign.findById(req.params.id).select("funding.currency").lean();
+    if (
+      !split.ok ||
+      !Number.isFinite(paidTotal) ||
+      Math.abs(paidTotal - split.total) > 0.01 ||
+      (fwCampaign?.funding?.currency && String(resp.data.data.currency).toUpperCase() !== String(fwCampaign.funding.currency).toUpperCase())
+    ) {
+      logger.error({ transaction_id, paidTotal, meta: fwMeta }, "Flutterwave redirect: paid amount/currency does not match — not credited");
+      return res.redirect(`${process.env.MAINURL}/donate/${req.params.id}?status=failed`);
+    }
+    const donatedAmount = split.donation;
     const donation = new Donations({
       campaignId: resp.data.data.meta.campaignId,
       donorEmail: resp.data.data.customer.email,
@@ -154,7 +179,8 @@ exports.paymentFlutterwave = async (req, res, next) => {
       transactionId: transaction_id,
       transactionRef: tx_ref,
       flwRef: resp.data.data.flw_ref,
-      tip: resp.data.data.meta.tip,
+      tip: split.tip,
+      processingFee: split.fee,
       paymentMethod: "flutterwave",
       paymentOption: "card",
       zipCode: resp.data.data.meta.zipCode,
@@ -281,19 +307,13 @@ exports.flutterwaveWebhook = async (req, res) => {
     }
 
     // meta.amount is the total charged (see initializePayment); the campaign
-    // receives total - tip. Previously this read meta.amount as the donation,
-    // so every tipped donation failed here (and disagreed with the redirect).
+    // receives total - tip - fee.
     const totalCharged = Number(tx.amount || 0);
-    const tip = Number(metadata.tip || 0);
     const metaTotal = Number(metadata.amount || 0);
-    const donatedAmount = Math.round((metaTotal - tip) * 100) / 100;
-    if (
-      !Number.isFinite(donatedAmount) ||
-      !Number.isFinite(tip) ||
-      tip < 0 ||
-      donatedAmount <= 0 ||
-      Math.abs(totalCharged - metaTotal) > 1
-    ) {
+    const split = splitTotal({ total: metaTotal, tip: Number(metadata.tip || 0), fee: Number(metadata.fee || 0) });
+    const donatedAmount = split.donation;
+    const { tip, fee } = split;
+    if (!split.ok || !Number.isFinite(totalCharged) || Math.abs(totalCharged - metaTotal) > 1) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }
 
@@ -316,6 +336,7 @@ exports.flutterwaveWebhook = async (req, res) => {
         transactionRef: txRef,
         flwRef,
         tip,
+        processingFee: fee,
         paymentMethod: "flutterwave",
         paymentOption: metadata.paymentOption || tx.payment_method || "card",
         zipCode: metadata.zipCode || "",

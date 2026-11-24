@@ -12,6 +12,9 @@ const {
   checkoutCurrency,
   currencyMismatch,
   sendDonationMailSafely,
+  resolveCheckout,
+  checkoutError,
+  splitTotal,
 } = require("./shared");
 const { getClientIp, assessDonation } = require("../../utility/fraud");
 const { notifyTargetReachedIfNeeded } = require("../../services/targetReached");
@@ -51,18 +54,18 @@ exports.initializePaystackPayment = async (req, res) => {
       return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
     }
 
-    // Contract shared by every gateway: `amount` is the TOTAL the donor pays
-    // (donation + optional tip); the campaign is credited `amount - tip`.
-    const amount = Number(req.body.amount);
-    const tip = Number(req.body.meta?.tip || 0);
+    // Contract shared by every gateway (shared.resolveCheckout): `amount` is the
+    // TOTAL the donor pays = donation + optional tip + card fee; the campaign
+    // is credited the donation only.
     const currency = checkoutCurrency(campaign, req.body.currency);
     if (!currency) return currencyMismatch(res, campaign);
-    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
-      return res.status(400).json({ status: 400, error: "Invalid donation amount" });
+    let co;
+    try {
+      co = resolveCheckout(req, "paystack", currency);
+    } catch (err) {
+      return checkoutError(res, err);
     }
-    if (!Number.isFinite(tip) || tip < 0 || tip >= amount) {
-      return res.status(400).json({ status: 400, error: "Invalid tip amount" });
-    }
+    const { tip } = co;
     if (!PAYSTACK_CURRENCIES.includes(currency)) {
       return res.status(400).json({ status: 400, error: `Paystack does not support ${currency}. Supported: ${PAYSTACK_CURRENCIES.join(", ")}` });
     }
@@ -71,8 +74,10 @@ exports.initializePaystackPayment = async (req, res) => {
     }
 
     const txRef = req.body.tx_ref || `fundandtrace-ps-${Date.now()}`;
-    const donation = Math.round((amount - tip) * 100) / 100;
-    const totalAmount = Math.round(amount * 100); // Paystack expects smallest currency unit
+    const donation = co.donation;
+    const totalAmount = Math.round(co.total * 100); // Paystack expects smallest currency unit
+    // Mobile money (M-PESA, MoMo): open Paystack straight on that channel.
+    const channels = co.method === "mpesa" || co.method === "mobilemoney" ? ["mobile_money"] : undefined;
     const callbackUrl = `${process.env.BACKENDURL || "http://localhost:5000"}/api/donations/paystack/${req.params.id}`;
 
     // Fraud snapshot rides through transaction metadata to the recorder.
@@ -90,12 +95,15 @@ exports.initializePaystackPayment = async (req, res) => {
         currency,
         reference: txRef,
         callback_url: callbackUrl,
+        ...(channels ? { channels } : {}),
         metadata: {
           campaignId: req.params.id,
           donorEmail: req.body.customer?.email,
           donorName: req.body.customer?.name,
           amount: String(donation), // what the campaign receives
           tip: String(tip),
+          fee: String(co.fee), // card/processing fee added to the donor's total
+          method: co.method,
           paymentMethod: "paystack",
           paymentOption: "card",
           zipCode: req.body.meta?.zipCode || "",
@@ -173,13 +181,17 @@ exports.paymentPaystack = async (req, res) => {
       );
     }
 
-    const donatedAmount = Number(metadata.amount || 0);
-    const tip = Number(metadata.tip || 0);
-
-    // Verify amount matches (Paystack returns amount in smallest unit)
-    const verifiedAmount = (txData.amount || 0) / 100;
-    if (!Number.isFinite(donatedAmount) || donatedAmount <= 0 ||
-        Math.abs(verifiedAmount - (donatedAmount + tip)) > 1) {
+    // Verify amount matches (Paystack returns amount in smallest unit):
+    // total = donation + tip + fee.
+    const split = splitTotal({
+      total: (txData.amount || 0) / 100,
+      donation: Number(metadata.amount || 0),
+      tip: Number(metadata.tip || 0),
+      fee: Number(metadata.fee || 0),
+    });
+    const donatedAmount = split.donation;
+    const { tip, fee } = split;
+    if (!split.ok) {
       return res.redirect(`${process.env.MAINURL || "http://localhost:3000"}/donate/${req.params.id}?status=failed`);
     }
 
@@ -191,6 +203,7 @@ exports.paymentPaystack = async (req, res) => {
       transactionId: reference,
       transactionRef: reference,
       tip,
+      processingFee: fee,
       paymentMethod: "paystack",
       paymentOption: txData.channel || "card",
       zipCode: metadata.zipCode || "",
@@ -285,12 +298,15 @@ exports.paystackWebhook = async (req, res) => {
     });
     if (existingDonation) return res.status(200).json({ received: true });
 
-    const donatedAmount = Number(metadata.amount || 0);
-    const tip = Number(metadata.tip || 0);
-    const verifiedAmount = (txData.amount || 0) / 100;
-
-    if (!Number.isFinite(donatedAmount) || donatedAmount <= 0 ||
-        Math.abs(verifiedAmount - (donatedAmount + tip)) > 1) {
+    const split = splitTotal({
+      total: (txData.amount || 0) / 100,
+      donation: Number(metadata.amount || 0),
+      tip: Number(metadata.tip || 0),
+      fee: Number(metadata.fee || 0),
+    });
+    const donatedAmount = split.donation;
+    const { tip, fee } = split;
+    if (!split.ok) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }
 
@@ -312,6 +328,7 @@ exports.paystackWebhook = async (req, res) => {
         transactionId: txData.reference,
         transactionRef: txData.reference,
         tip,
+        processingFee: fee,
         paymentMethod: "paystack",
         paymentOption: txData.channel || "card",
         zipCode: metadata.zipCode || "",

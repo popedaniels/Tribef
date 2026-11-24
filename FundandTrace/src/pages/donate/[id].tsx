@@ -13,6 +13,8 @@ import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "../../../store/hooks";
 import { getApiBaseUrl } from "../../utils/api";
 import { cdnImage } from "../../utils/cloudinary";
+import { quote, FeeSchedule } from "../../utils/fees";
+import { visitorCountry } from "../../utils/geo";
 import { getAllCountries, getCountries } from "../../components/helperFunctions/locationFunctions";
 import {
   formatMoney,
@@ -67,6 +69,15 @@ const RAILS: { id: Rail; name: string; detail: string; currencies: string[] }[] 
 ];
 
 const TIP_OPTIONS = [0, 5, 7.5, 10];
+// Currencies where donors can pay from a mobile wallet.
+const MOMO_LABEL: Record<string, { id: "mpesa" | "mobilemoney"; label: string }> = {
+  KES: { id: "mpesa", label: "M-PESA" },
+  GHS: { id: "mobilemoney", label: "Mobile money (MTN, Telecel, AirtelTigo)" },
+  UGX: { id: "mobilemoney", label: "Mobile money (MTN, Airtel)" },
+  RWF: { id: "mobilemoney", label: "Mobile money (MTN, Airtel)" },
+  TZS: { id: "mobilemoney", label: "Mobile money" },
+  ZMW: { id: "mobilemoney", label: "Mobile money" },
+};
 const FALLBACK_IMAGE = "/images/stories/water_story.jpg";
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
@@ -81,7 +92,13 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
   const [amount, setAmount] = useState<number>(0);
   const [amountText, setAmountText] = useState("");
-  const [tipPct, setTipPct] = useState<number | "custom">(7.5);
+  // No tip by default: an optional extra must be actively chosen (UK Consumer
+  // Contracts Regulations 2013 reg. 40 — a preselected extra isn't consent).
+  const [tipPct, setTipPct] = useState<number | "custom">(0);
+  const [feeSchedule, setFeeSchedule] = useState<FeeSchedule | null>(null);
+  const [coverFee, setCoverFee] = useState(false); // opt-in only (UK/EU cards)
+  const [method, setMethod] = useState<"card" | "mpesa" | "mobilemoney">("card");
+  const [donorCountry, setDonorCountry] = useState("");
   const [customTip, setCustomTip] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -124,6 +141,14 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
   }, [chooseRailFor]);
 
   useEffect(() => {
+    setDonorCountry(visitorCountry()?.code || "");
+    axios
+      .get(`${getApiBaseUrl()}/api/fees/schedule`, { timeout: 5000 })
+      .then((r) => setFeeSchedule(r.data?.data || null))
+      .catch(() => setFeeSchedule(null));
+  }, []);
+
+  useEffect(() => {
     axios
       .get(`${getApiBaseUrl()}/api/donations/refund-policy`, { timeout: 5000 })
       .then((r) => setRefundDays(r.data?.data?.enabled ? Number(r.data.data.windowDays) || null : null))
@@ -143,7 +168,11 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
     }
     return Math.round(amount * tipPct) / 100;
   }, [tipPct, customTip, amount]);
-  const total = Math.round((amount + tip) * 100) / 100;
+  // Card/processing fee: added at cost on African rails, opt-in on UK/EU cards.
+  const feeQuote = quote(feeSchedule, { rail, currency, base: Math.round((amount + tip) * 100) / 100, coverFee, method: method === "card" ? "" : method, donorCountry });
+  const fee = amount > 0 ? feeQuote.fee : 0;
+  const total = Math.round((amount + tip + fee) * 100) / 100;
+  const momo = MOMO_LABEL[currency];
 
   const errors = useMemo(() => {
     const e: Partial<Record<Field, string>> = {};
@@ -221,6 +250,10 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
       campaignId: campaign._id,
       tip,
       amount: total,
+      processingFee: fee,
+      coverFee,
+      method: method === "card" ? "" : method,
+      donorCountry,
       anonymous,
       referralCode,
     },
@@ -410,6 +443,16 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                     </label>
                   ))}
                 </div>
+                {momo && rail !== "stripe" && (
+                  <div className={styles.presets} role="radiogroup" aria-label="Pay with" style={{ marginTop: 12 }}>
+                    <button type="button" className="ft-pill" role="radio" aria-checked={method === "card"} onClick={() => setMethod("card")}>
+                      Card or bank
+                    </button>
+                    <button type="button" className="ft-pill" role="radio" aria-checked={method !== "card"} onClick={() => setMethod(momo.id)}>
+                      {momo.label}
+                    </button>
+                  </div>
+                )}
                 <p className={styles.help}>You&apos;ll finish paying on {rail === "stripe" ? "Stripe's" : rail === "paystack" ? "Paystack's" : "Flutterwave's"} secure page. We never see your card details.</p>
               </fieldset>
 
@@ -443,8 +486,32 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   <div><dt>Donation to campaign</dt><dd>{formatMoney(amount, currency)}</dd></div>
                   <div><dt>Tip to Fund&amp;Trace</dt><dd>{formatMoney(tip, currency)}</dd></div>
                   <div><dt>Platform fee</dt><dd className={styles.free}>{formatMoney(0, currency)}</dd></div>
-                  <div className={styles.total}><dt>Total</dt><dd>{formatMoney(total, currency)}</dd></div>
+                  {feeQuote.mode === "required" && amount > 0 && (
+                    <div>
+                      <dt>
+                        Card processing fee <span className="ft-muted">(charged by {rail === "paystack" ? "Paystack" : "Flutterwave"}, at cost)</span>
+                      </dt>
+                      <dd>{formatMoney(fee, currency, { exact: true })}</dd>
+                    </div>
+                  )}
+                  {feeQuote.mode === "optional" && coverFee && amount > 0 && (
+                    <div><dt>Card fee you&apos;re covering</dt><dd>{formatMoney(fee, currency, { exact: true })}</dd></div>
+                  )}
+                  <div className={styles.total}><dt>Total</dt><dd>{formatMoney(total, currency, { exact: true })}</dd></div>
                 </dl>
+                {feeQuote.mode === "required" && amount > 0 && (
+                  <p className={styles.help} style={{ marginTop: 0 }}>
+                    The payment processor deducts this fee, so it&apos;s added here and {campaign.basicInformation?.campaignTitle ? "the campaign" : "the campaign"} receives 100% of your {formatMoney(amount, currency)}.
+                  </p>
+                )}
+                {feeQuote.mode === "optional" && amount > 0 && feeQuote.offered > 0 && (
+                  <label className={styles.check}>
+                    <input type="checkbox" checked={coverFee} onChange={() => setCoverFee(!coverFee)} />
+                    <span>
+                      Add {formatMoney(feeQuote.offered, currency, { exact: true })} to cover the card fee, so 100% of your gift reaches the campaign <span className="ft-muted">(optional)</span>
+                    </span>
+                  </label>
+                )}
                 <label className={`${styles.check} ${show("terms") ? styles.checkInvalid : ""}`}>
                   <input type="checkbox" ref={ref("terms") as (el: HTMLInputElement | null) => void} checked={terms} aria-invalid={Boolean(show("terms"))} onChange={() => setTerms(!terms)} />
                   <span>
@@ -460,7 +527,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 )}
 
                 <button type="submit" className="ft-btn ft-btn--primary ft-btn--lg ft-btn--block" disabled={loading} aria-busy={loading}>
-                  {loading ? "Opening secure payment…" : amount > 0 ? `Donate ${formatMoney(total, currency)}` : "Donate"}
+                  {loading ? "Opening secure payment…" : amount > 0 ? `Donate ${formatMoney(total, currency, { exact: true })}` : "Donate"}
                 </button>
                 <p className={styles.secure}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>

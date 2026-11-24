@@ -1,526 +1,234 @@
-import React from "react";
-import styled from "styled-components";
-import StartFunding from "../components/homepageComponents/StartFundingSection/StartFunding";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import Layout from "../components/Layout";
 import Navbar from "../components/Navbar/Navbar";
-import Link from "next/link";
+import { getApiBaseUrl } from "../utils/api";
+import { FeeSchedule, quote } from "../utils/fees";
+import { formatMoney } from "../components/helperFunctions/helperFunctions";
+import styles from "../components/campaignPage/FeesPage.module.scss";
 
-const fees = [
+// Shown until the live schedule loads (same defaults as the server).
+const FALLBACK_MODES = { paystack: "required", flutterwave: "required", stripe: "optional" } as const;
+
+const METHODS: { rail: "paystack" | "flutterwave" | "stripe"; where: string; rate: string }[] = [
+  { rail: "paystack", where: "Nigeria (cards, bank transfer, USSD)", rate: "1.5% + ₦100, capped at ₦2,000 (₦100 waived under ₦2,500)" },
+  { rail: "paystack", where: "Ghana (cards, mobile money)", rate: "1.95%" },
+  { rail: "paystack", where: "Kenya", rate: "M-PESA 1.5% · cards 2.9%" },
+  { rail: "flutterwave", where: "Nigeria", rate: "2%, capped at ₦2,000" },
+  { rail: "flutterwave", where: "Other African currencies and mobile money", rate: "2.9%" },
+  { rail: "stripe", where: "UK cards", rate: "1.5% + 20p (EEA cards 2.5% + 20p, other cards 3.25% + 20p)" },
+];
+
+const COMPETITORS = [
   {
-    fundraiser: "Not-for-profit",
-    platform: "0%",
-    transaction: "1.4% + 20p**",
-    tips: "Optional",
-    currency: "1%",
-    total: "2.5%",
-    booster: "5%",
+    name: "GoFundMe (UK)",
+    personal: "2.9% + 25p per donation, taken from the donation",
+    charity: "1.9% + 20p per donation",
+    model: "Optional donor tips",
+    source: "https://www.gofundme.com/en-gb/c/blog/gofundme-fees",
   },
   {
-    fundraiser: "Corporation",
-    platform: "3%",
-    transaction: "1.4% + 20p**",
-    tips: "Optional",
-    currency: "1%",
-    total: "5.4%",
-    booster: "5%",
+    name: "JustGiving (UK)",
+    personal: "2.9% + 35p per donation",
+    charity: "1.9% + 30p per donation, plus 5% of Gift Aid if they claim it",
+    model: "Optional donor tips",
+    source: "https://www.justgiving.com/info/fees",
   },
   {
-    fundraiser: "Individual/ Community Initiative",
-    platform: "1%",
-    transaction: "1.4% + 20p**",
-    tips: "Optional",
-    currency: "1%",
-    total: "3.4%",
-    booster: "5%",
+    name: "M-Changa (Kenya)",
+    personal: "4.25% platform fee + 2.5% on cards (0% processing on M-Pesa)",
+    charity: "Same",
+    model: "Platform fee on every donation",
+    source: "https://mchanga.africa/fees",
   },
 ];
 
+type Mode = "required" | "optional" | "off";
+const modeText = (m: Mode) =>
+  m === "required" ? "Added to the donor's total, at cost" : m === "optional" ? "Donor can choose to cover it (never pre-ticked)" : "Absorbed by Fund&Trace";
+
 export default function FeesPage() {
+  const [schedule, setSchedule] = useState<FeeSchedule | null>(null);
+  useEffect(() => {
+    fetch(`${getApiBaseUrl()}/api/fees/schedule`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => setSchedule(b?.data || null))
+      .catch(() => setSchedule(null));
+  }, []);
+  const modes = (schedule?.modes || FALLBACK_MODES) as Record<string, Mode>;
+
+  // Worked examples, computed with the same formula the checkout uses.
+  const ngFee = schedule ? quote(schedule, { rail: "paystack", currency: "NGN", base: 10000 }).fee : 253.81;
+  const ukFee = schedule ? quote(schedule, { rail: "stripe", currency: "GBP", base: 50, coverFee: true, donorCountry: "GB" }).fee : 0.97;
+  const keFee = schedule ? quote(schedule, { rail: "paystack", currency: "KES", base: 1000, method: "mpesa" }).fee : 15.23;
+
   return (
-    <Layout
-      showFooter
-      title="Fees | Fund&Trace"
-      description="The Fees involved with using fund&trace"
-    >
-      <Wrapper>
-        <div>
-          <Navbar />
-        </div>
-        <Header className="mb-3" style={{ paddingTop: 130 }}>
-          <h1 className="text-heading mb-0 text-center">
-            <span style={{ color: "var(--color-primary)" }}>Transparent Pricing &amp; Fees</span> for Fundraisers
-          </h1>
-        </Header>
-        <div className="mb-5 custom-container">
-          <p className="text-center mb-0">
-            Date of posting: 11th November, 2021
-          </p>
-        </div>
-        <section className="mb-5 custom-container">
-          <h2 className="text-heading">Fees</h2>
+    <Layout showFooter title="Fees | Fund&Trace" description="Fund&Trace charges no platform fee. Card processing fees are shown before you pay and passed on at cost.">
+      <Navbar />
+      <main className={styles.page}>
+        <header className={styles.hero}>
+          <p className="ft-eyebrow">Fees</p>
+          <h1>0% platform fee. The campaign gets 100% of your gift.</h1>
           <p>
-            Fund&Trace’s mission stands to redefine crowdfunding by making it
-            possible to track the use of funds received from donations, driving
-            transparency between fundraisers and donors. Donors can now know
-            when donations are received and how their donations are being spent.
-            Fund&Trace categorises fundraisers into 3 main types:
+            We don&apos;t take a cut of donations, from organisers or donors. The only cost is the fee the card or mobile-money processor charges to move the money,
+            and we show it to you before you pay.
           </p>
-          <ul>
+        </header>
+
+        <section className={styles.cards} aria-label="Summary">
+          <div className="ft-card">
+            <strong className={styles.big}>0%</strong>
+            <span>Platform fee, on every campaign</span>
+          </div>
+          <div className="ft-card">
+            <strong className={styles.big}>At cost</strong>
+            <span>Card/mobile-money fee, shown at checkout</span>
+          </div>
+          <div className="ft-card">
+            <strong className={styles.big}>Optional</strong>
+            <span>Tips to Fund&amp;Trace. Never preselected</span>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h2>Who pays the card fee</h2>
+          <p>
+            Payment processors deduct a fee from every payment. So that the campaign still receives your full donation, the fee is handled like this:
+          </p>
+          <ul className={styles.rules}>
             <li>
-              <strong>Not-for-profit</strong>: Registered charitable and
-              not-for-profit organisations.
+              <strong>Paying with Paystack or Flutterwave</strong> (Nigeria, Ghana, Kenya and other African currencies, including M-PESA and mobile money): the
+              processor&apos;s fee is <strong>{modeText(modes.paystack).toLowerCase()}</strong>, listed on its own line before you pay.
             </li>
             <li>
-              <strong>Corporations</strong>: For-profit organisations and
-              companies.
+              <strong>Paying by card in the UK or EU</strong> (Stripe): the law doesn&apos;t allow a surcharge for paying by consumer card, so the fee is{" "}
+              <strong>never added automatically</strong>. You can tick a box to cover it if you&apos;d like; otherwise Fund&amp;Trace pays it.
             </li>
             <li>
-              <strong>Individuals</strong>: Individuals, groups or communities.
+              <strong>Tips</strong> to Fund&amp;Trace are optional and start at zero. Tips and covered fees are never credited to the campaign, and the campaign&apos;s
+              donation is never reduced by them.
             </li>
           </ul>
-        </section>
-        <section className="custom-container mx-auto mb-5">
-          <h2 className="text-heading">Fees Breakdown</h2>
-          <p className="mb-4">
-            The fee payable at the end of the campaign is dependent on the
-            category of the fundraiser, therefore it is important to choose the
-            correct category for your campaign. The table below shows the
-            breakdown of the fees by fundraiser type.
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <caption className="sr-only">Processing fees by payment method</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Paying with</th>
+                  <th scope="col">Where</th>
+                  <th scope="col">Processor&apos;s published rate</th>
+                  <th scope="col">Who pays it</th>
+                </tr>
+              </thead>
+              <tbody>
+                {METHODS.map((m) => (
+                  <tr key={m.rail + m.where}>
+                    <td data-label="Paying with">{m.rail === "stripe" ? "Card (Stripe)" : m.rail === "paystack" ? "Paystack" : "Flutterwave"}</td>
+                    <td data-label="Where">{m.where}</td>
+                    <td data-label="Rate">{m.rate}</td>
+                    <td data-label="Who pays">{modeText(modes[m.rail])}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="ft-muted" style={{ fontSize: 14 }}>
+            We use each processor&apos;s local rate, so you&apos;re never charged more than the fee on a local card. If you pay with a foreign card that costs more,
+            Fund&amp;Trace covers the difference. Rates checked on {schedule?.checkedOn ? new Date(schedule.checkedOn).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "24 November 2026"}.
           </p>
-          <section
-            className="w-100 overflow-auto"
-            style={{ width: "100%", maxWidth: "100%" }}
-            tabIndex={0}
-            role="region"
-            aria-label="Fee breakdown table (scrolls horizontally)"
-          >
-            <section className="border mx-auto" style={{ width: 1200 }}>
-              <article
-                className="bg-dark w-100 text-white d-flex"
-                style={{ height: 50 }}
-              >
-                <div
-                  className="px-3 d-flex align-items-center py-2"
-                  style={{ width: "20%" }}
-                >
-                  Fundraiser
-                </div>
-                <div
-                  className="px-3 d-flex align-items-center py-2"
-                  style={{ width: "15%" }}
-                >
-                  Platform fee
-                </div>
-                <div
-                  className="px-3 d-flex align-items-center py-2"
-                  style={{ width: "15%" }}
-                >
-                  Transaction fee
-                </div>
-                <div
-                  className="px-3 d-flex align-items-center py-2"
-                  style={{ width: "10%" }}
-                >
-                  Tips
-                </div>
-                <div
-                  className="px-3 d-flex align-items-center py-2"
-                  style={{ width: "25%" }}
-                >
-                  Foreign currency fee (if any)
-                </div>
-                <div
-                  className="px-3 d-flex align-items-center py-2"
-                  style={{ width: "15%" }}
-                >
-                  Total fees
-                </div>
-                <div
-                  className="px-3 d-flex align-items-center py-2"
-                  style={{ width: "20%" }}
-                >
-                  Booster++ fund fee
-                </div>
-              </article>
-
-              {fees.map((fee, i) => (
-                <article
-                  className="border-top border-bottom w-100 d-flex"
-                  style={{ height: 50 }}
-                  key={i}
-                >
-                  <div
-                    className="px-3 d-flex align-items-center py-2 border-right"
-                    style={{ width: "20%" }}
-                  >
-                    {fee?.fundraiser}
-                  </div>
-                  <div
-                    className="px-3 d-flex align-items-center py-2 border-right"
-                    style={{ width: "15%" }}
-                  >
-                    {fee?.platform}
-                  </div>
-                  <div
-                    className="px-3 d-flex align-items-center py-2 border-right"
-                    style={{ width: "15%" }}
-                  >
-                    {fee?.transaction}
-                  </div>
-                  <div
-                    className="px-3 d-flex align-items-center py-2 border-right"
-                    style={{ width: "10%" }}
-                  >
-                    {fee?.tips}
-                  </div>
-                  <div
-                    className="px-3 d-flex align-items-center py-2 border-right"
-                    style={{ width: "25%" }}
-                  >
-                    {fee?.currency}
-                  </div>
-                  <div
-                    className="px-3 d-flex align-items-center py-2 border-right"
-                    style={{ width: "15%" }}
-                  >
-                    {fee?.total}
-                  </div>
-                  <div
-                    className="px-3 d-flex align-items-center py-2"
-                    style={{ width: "20%" }}
-                  >
-                    {fee?.booster}
-                  </div>
-                </article>
-              ))}
-            </section>
-          </section>
         </section>
-        <section className="mb-5 custom-container">
-          <h2 className="text-heading">Definitions:</h2>
-          <ul>
-            <li className="mb-3">
-              <strong>Platform Fee</strong>: Fund&Trace charges this fee to
-              continuously improve the performance of our website and community
-              by incorporating new features and providing technical assistance
-              to fundraisers. In the interest of supporting not-for-profit
-              organisations, they are exempt from paying platform fees.{" "}
-            </li>
-            <li className="mb-3">
-              <strong>Transaction Fee</strong>: This fee goes to the payment
-              processor and is deducted from each contribution made to your
-              campaign. Transaction fees are also dependent on each country or
-              currency through which donation is made.
-            </li>
-            <li className="mb-3">
-              <strong>Tips</strong>: We appreciate any tips donated to
-              Fund&Trace and will re-invest it into the organisation to provide
-              assistance to more campaigns and work towards making crowdfunding
-              easier and more transparent. You can choose to tip us anywhere
-              from 0% (no tip) to 15%.{" "}
-            </li>
-            <li className="mb-3">
-              <strong>Foreign currency fee</strong>: Campaign targets are
-              presented to donors with a live conversion preview into their
-              local currency at checkout (see the dual-currency estimate on
-              every campaign page). This helps donors in Africa and the diaspora
-              give in a currency they understand, and donations are received in
-              the currency of the donation. A conversion fee applies to
-              donations made in a currency different from the campaign's
-              settlement currency, and is calculated at the applicable payment
-              provider's exchange rate — the effect is shown to the donor
-              before they confirm.
+
+        <section className={styles.section}>
+          <h2>Worked examples</h2>
+          <div className={styles.examples}>
+            <div className="ft-card">
+              <h3>₦10,000 in Lagos (Paystack)</h3>
+              <dl>
+                <div><dt>Donation</dt><dd>{formatMoney(10000, "NGN")}</dd></div>
+                <div><dt>Card fee (at cost)</dt><dd>{formatMoney(ngFee, "NGN", { exact: true })}</dd></div>
+                <div className={styles.total}><dt>You pay</dt><dd>{formatMoney(10000 + ngFee, "NGN", { exact: true })}</dd></div>
+                <div className={styles.gets}><dt>Campaign receives</dt><dd>{formatMoney(10000, "NGN")}</dd></div>
+              </dl>
+            </div>
+            <div className="ft-card">
+              <h3>KSh 1,000 by M-PESA</h3>
+              <dl>
+                <div><dt>Donation</dt><dd>{formatMoney(1000, "KES")}</dd></div>
+                <div><dt>M-PESA fee (at cost)</dt><dd>{formatMoney(keFee, "KES", { exact: true })}</dd></div>
+                <div className={styles.total}><dt>You pay</dt><dd>{formatMoney(1000 + keFee, "KES", { exact: true })}</dd></div>
+                <div className={styles.gets}><dt>Campaign receives</dt><dd>{formatMoney(1000, "KES")}</dd></div>
+              </dl>
+            </div>
+            <div className="ft-card">
+              <h3>£50 on a UK card</h3>
+              <dl>
+                <div><dt>Donation</dt><dd>{formatMoney(50, "GBP")}</dd></div>
+                <div><dt>Cover the card fee?</dt><dd>optional, +{formatMoney(ukFee, "GBP", { exact: true })}</dd></div>
+                <div className={styles.total}><dt>You pay</dt><dd>{formatMoney(50, "GBP")} or {formatMoney(50 + ukFee, "GBP", { exact: true })}</dd></div>
+                <div className={styles.gets}><dt>Campaign receives</dt><dd>{formatMoney(50, "GBP")}</dd></div>
+              </dl>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h2>How this compares</h2>
+          <p>On other platforms the processing fee usually comes out of the donation, so the campaign receives less than you gave.</p>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <caption className="sr-only">Fees on other fundraising platforms</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Platform</th>
+                  <th scope="col">Personal fundraising</th>
+                  <th scope="col">Charity fundraising</th>
+                  <th scope="col">How they make money</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className={styles.us}>
+                  <td data-label="Platform">Fund&amp;Trace</td>
+                  <td data-label="Personal">0% platform fee; card fee shown and passed on at cost (opt-in on UK/EU cards)</td>
+                  <td data-label="Charity">Same</td>
+                  <td data-label="Model">Optional donor tips</td>
+                </tr>
+                {COMPETITORS.map((c) => (
+                  <tr key={c.name}>
+                    <td data-label="Platform">
+                      <a href={c.source} target="_blank" rel="noopener noreferrer">
+                        {c.name}
+                      </a>
+                    </td>
+                    <td data-label="Personal">{c.personal}</td>
+                    <td data-label="Charity">{c.charity}</td>
+                    <td data-label="Model">{c.model}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="ft-muted" style={{ fontSize: 14 }}>
+            From each platform&apos;s own published fees page (linked), checked on 24 November 2026. Fees change; tell us if one is out of date.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2>Other costs</h2>
+          <ul className={styles.rules}>
+            <li>
+              <strong>Payouts:</strong> bank-transfer fees charged by the processor when escrowed money is paid out are deducted from the payout and shown on the
+              campaign&apos;s public tracker.
             </li>
             <li>
-              <strong>Booster++ fund (in development)</strong>: we are working
-              with partners to launch fund matching. When a campaign qualifies,
-              eligible donations will be matched by our partners so fundraisers
-              reach their targets sooner. There will be a 0% platform or
-              transaction fee charged on this extra fund once it goes live.
+              <strong>Refunds:</strong> if you refund your own donation within the refund window, you get back everything you paid, including any tip and covered
+              fee. The processor keeps its fee; we absorb it.
             </li>
           </ul>
+          <Link href="/StartACampaign" className="ft-btn ft-btn--primary">
+            Start a campaign for free
+          </Link>
         </section>
-        <section className="mb-5 custom-container">
-          <h2 className="text-heading">Fees Calculation</h2>
-          <p>
-            We have provided a quick example to show how our fees are calculated
-            below.
-          </p>
-          <p>
-            If a donor located in the UK donates £100 to a campaign created by a
-            fundraiser outside the UK, the following will be deducted as fees:
-          </p>
-        </section>
-        <section className="mb-5 custom-container">
-          <section
-            className="p-md-5 p-3"
-            style={{ background: "#F0F1FE", borderRadius: "4px" }}
-          >
-            <h2 className="text-heading" style={{ color: "var(--color-primary)" }}>
-              Fees example
-            </h2>
-            <ul style={{ color: "var(--color-primary)" }}>
-              <li className="mb-3">
-                <strong>Not-for-profit fundraiser</strong>:
-                <ul>
-                  <li>No platform fees will apply</li>
-                  <li>Transaction fees: 1.4% + 20p (£1.60)</li>
-                  <li>
-                    Foreign currency fee: This fee will apply because the
-                    campaign target will not be in ££ since the fundraiser is
-                    outside the UK. Thus, £1 will be charged.
-                  </li>
-                </ul>
-                <p>
-                  Therefore, a total of £1.60 + £1 = £2.60 will be charged and
-                  the fundraiser will receive £97.40.
-                </p>
-              </li>
-              <li className="mb-3">
-                <strong>For-profit/community project</strong>:
-                <ul>
-                  <li>
-                    Platform fees will apply because this is a for-profit
-                    campaign. Hence, £3 will be charged.{" "}
-                  </li>
-                  <li>Transaction fees: 1.4% + 20p (£1.60)</li>
-                  <li>
-                    Foreign currency fee: This fee will apply because the
-                    campaign target will not be in ££ since the fundraiser is
-                    outside the UK. Therefore, £1 will be charged.
-                  </li>
-                </ul>
-                <p>
-                  Therefore, a total of £3 + £1.60 + £1 = £5.60 will be charged
-                  and the fundraiser will receive £94.40
-                </p>
-              </li>
-              <li className="mb-3">
-                <strong>Individual</strong>:
-                <ul>
-                  <li>
-                    Lower platform fees will apply because this is an individual
-                    campaign. Hence, £1 will be charged.{" "}
-                  </li>
-                  <li>Transaction fees: 1.4% + 20p (£1.60)</li>
-                  <li>
-                    Foreign currency fee: This fee will apply because the
-                    campaign target will not be in ££ since the fundraiser is
-                    outside the UK. Therefore, £1 will be charged.
-                  </li>
-                </ul>
-                <p>
-                  Therefore, a total of £1 + £1.60 + £1 = £3.60 will be charged
-                  and the fundraiser will receive £96.40
-                </p>
-              </li>
-            </ul>
-          </section>{" "}
-          <p className="mt-3">
-            For all fundraisers, when the booster++ fund becomes active, if it
-            is secured from any of our partners, only a 5% charge will be
-            deducted from this supplementary funding.
-          </p>
-        </section>
-        <section className="mb-5 custom-container">
-          <h2 className="text-heading">
-            Fees comparison with other crowdfunding platforms
-          </h2>
-
-          <p >
-            The primary objective of fund and trace is to provide maximum
-            support and value to fundraisers, we therefore benchmarked ourselves
-            to similar platforms to provide the lowest fees.
-          </p>
-          <section className="pt-4" style={{width: "100%", overflowX: "auto", maxWidth: "100%"}}>
-          <table>
-            <tbody>
-              <tr>
-                <td style={{minWidth: 102}}>
-                  <p>Country</p>
-                </td>
-                <td style={{minWidth: 132}}>
-                  <p>Platform</p>
-                </td>
-                <td style={{minWidth: 260}}>
-                  <p>Platform fees</p>
-                </td>
-                <td style={{minWidth: 190}}>
-                  <p>Transaction fees</p>
-                </td>
-                <td style={{minWidth: 236}}>
-                  <p>Total fees</p>
-                </td>
-                <td style={{minWidth: 160}}>
-                  <p>Booster funding</p>
-                </td>
-              </tr>
-              <tr>
-                <td rowSpan={6} style={{minWidth: 102}}>
-                  <p>UK/EU</p>
-                </td>
-                <td style={{minWidth: 132}}>
-                  <p>Fund&amp;Trace</p>
-                </td>
-                <td style={{minWidth: 260}}>
-                  <p>0% (charity/not-for-profit)</p>
-                  <p>3.6% (for-profit)</p>
-                  <p>1% (individual)</p>
-                </td>
-                <td style={{minWidth: 190}}>
-                  <p>1.4% + 20p</p>
-                  <p>&nbsp;</p>
-                </td>
-                <td style={{minWidth: 236}}>
-                  <p>1.4% (charity/not-for-profit)</p>
-                  <p>5% (for-profit)</p>
-                  <p>2.6% (individual)</p>
-                </td>
-                <td style={{minWidth: 160}}>
-                <span role="img" aria-label="Included" style={{ color: "#047857", fontWeight: 800, fontSize: 18 }}>✓</span>
-                </td>
-              </tr>
-              <tr>
-                <td style={{minWidth: 102}}>
-                  <p>Crowdfunder</p>
-                </td>
-                <td style={{minWidth: 102}}>
-                  <p>0% (charity/not-for-profit)</p>
-                  <p>3% (Standard project)</p>
-                </td>
-                <td style={{minWidth: 190}}>
-                  <p>1.9% + 23p</p>
-                </td>
-                <td style={{minWidth: 236}}>
-                  <p>1.9% (charity/not-for-profit)</p>
-                  <p>4.9% (Standard project)</p>
-                </td>
-                <td style={{minWidth: 160}}>
-                  <span role="img" aria-label="Included" style={{ color: "#047857", fontWeight: 800, fontSize: 18 }}>✓</span>
-                </td>
-              </tr>
-              <tr>
-                <td style={{minWidth: 102}}>
-                  <p>Gofundme</p>
-                </td>
-                <td style={{minWidth: 102}}>
-                  <p>0%</p>
-                </td>
-                <td style={{minWidth: 190}}>
-                  <p>2.9% + 25p</p>
-                </td>
-                <td style={{minWidth: 236}}>
-                  <p>2.9%</p>
-                </td>
-                <td style={{minWidth: 160}}>
-                  <p>&nbsp;</p>
-                </td>
-              </tr>
-              <tr>
-                <td style={{minWidth: 102}}>
-                  <p>JustGiving</p>
-                </td>
-                <td style={{minWidth: 102}}>
-                  <p>0%</p>
-                </td>
-                <td style={{minWidth: 190}}>
-                  <p>1.9% + 25p</p>
-                </td>
-                <td style={{minWidth: 236}}>
-                  <p>1.9%</p>
-                </td>
-                <td style={{minWidth: 160}}>
-                  <p>&nbsp;</p>
-                </td>
-              </tr>
-              <tr>
-                <td style={{minWidth: 102}}>
-                  <p>Kickstarter</p>
-                </td>
-                <td style={{minWidth: 102}}>
-                  <p>5%</p>
-                </td>
-                <td style={{minWidth: 190}}>
-                  <p>3% + 20p</p>
-                </td>
-                <td style={{minWidth: 236}}>
-                  <p>8%</p>
-                </td>
-                <td style={{minWidth: 160}}>
-                  <p>&nbsp;</p>
-                </td>
-              </tr>
-              <tr>
-                <td style={{minWidth: 102}}>
-                  <p>Indiegogo</p>
-                </td>
-                <td style={{minWidth: 102}}>
-                  <p>5%</p>
-                </td>
-                <td style={{minWidth: 190}}>
-                  <p>2.9% + 30p</p>
-                </td>
-                <td style={{minWidth: 236}}>
-                  <p>7.9%</p>
-                </td>
-                <td style={{minWidth: 160}}>
-                  <p>&nbsp;</p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          </section>
-
-          
-        </section>
-        <section className="mb-5 custom-container">
-          <h2 className="text-heading">Other regions</h2>
-
-          <p>
-            Fees as regards to other regions will be made available as soon as
-            partnerships with the countries in these regions are finalized.
-          </p>
-        </section>
-        <section className="mb-5 custom-container pb-5">
-          <h2 className="text-heading">Still have questions?</h2>
-
-          <p>
-            Our <Link href="/help">help centre</Link> is packed with more
-            information, you could also reach out to us through{" "}
-            <a href="mailto:info@fundandtrace.com" target="_blank" rel="noreferrer">info@fundandtrace.com</a>
-          </p>
-        </section>
-        <StartFunding />
-      </Wrapper>
+      </main>
     </Layout>
   );
 }
-
-const Wrapper = styled.main`
-  article {
-    div {
-      font-size: 16px;
-      font-weight: 400;
-    }
-  }
-  tr {
-    border-bottom: 0.5px solid #dee2e6;
-  }
-  td {
-    border-right: 0.5px solid #dee2e6;
-    padding: 12px 16px;
-  }
-  table {
-    margin: 0 auto;
-    border-top: 1px solid #dee2e6;
-    border-left: 1px solid #dee2e6;
-    p {
-      margin-bottom: 0;
-    }
-  }
-`;
-
-const Header = styled.header`
-  background: #f9f9f9;
-  padding: 50px 15px;
-`;

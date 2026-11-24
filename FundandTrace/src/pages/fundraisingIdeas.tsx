@@ -412,8 +412,8 @@ export default function FundRaisingIdeas() {
                         <tbody>
                           <tr>
                             <td>Platform Commission</td>
-                            <td className="text-danger">5% to 8% deducted</td>
-                            <td className="highlight-col text-success font-weight-bold">0% (Zero Fee)</td>
+                            <td className="text-danger">Processing fee taken out of each donation</td>
+                            <td className="highlight-col text-success font-weight-bold">0% platform fee; card fee shown at checkout, campaign gets the full gift</td>
                           </tr>
                           <tr>
                             <td>Disbursement Control</td>

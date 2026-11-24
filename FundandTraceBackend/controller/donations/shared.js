@@ -72,6 +72,38 @@ const creditCampaign = async (campaignId, amount, ref = {}) => {
   return result;
 };
 
+// ── Checkout amounts (shared by every gateway) ─────────────────────────────
+// The donor's TOTAL = donation + optional tip + processing fee (services/fees).
+// The campaign is credited the donation only. The client sends the total, the
+// tip and the fee it showed; the server re-computes the fee and refuses a
+// mismatch, so a tampered client can neither short the campaign nor overcharge.
+const fees = require("../../services/fees");
+const ISO2 = /^[A-Z]{2}$/;
+
+function resolveCheckout(req, rail, currency) {
+  const meta = req.body.meta || {};
+  const total = Number(req.body.amount);
+  const tip = Number(meta.tip || 0);
+  const clientFee = Number(meta.processingFee || 0);
+  const coverFee = meta.coverFee === true || meta.coverFee === "true";
+  const method = ["mpesa", "mobilemoney", "card", "bank"].includes(meta.method) ? meta.method : "";
+  const cc = String(meta.donorCountry || req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"] || "").toUpperCase();
+  const donorCountry = ISO2.test(cc) ? cc : "";
+  const fail = (error, code) => Object.assign(new Error(error), { status: 400, code });
+
+  if (!Number.isFinite(total) || total <= 0 || total > 100000000) throw fail("Invalid donation amount");
+  if (!Number.isFinite(clientFee) || clientFee < 0 || clientFee >= total) throw fail("Invalid processing fee");
+  const base = fees.round2(total - clientFee); // donation + tip
+  if (!Number.isFinite(tip) || tip < 0 || tip >= base) throw fail("Invalid tip amount");
+  const fee = fees.checkClientFee({ rail, currency, base, coverFee, method, donorCountry, clientFee });
+  const donation = fees.round2(base - tip);
+  if (!(donation > 0)) throw fail("Invalid donation amount");
+  return { total: fees.round2(total), donation, tip: fees.round2(tip), fee, method, donorCountry, coverFee };
+}
+
+const checkoutError = (res, err) =>
+  res.status(err.status || 400).json({ status: err.status || 400, code: err.code, error: err.message, expectedFee: err.expectedFee });
+
 // Best-effort donor email; a mail outage must never fail a recorded donation.
 const sendDonationMailSafely = async (donor, campaign, amount) => {
   if (!campaign || !donor?.email) return;
@@ -93,4 +125,7 @@ module.exports = {
   checkoutCurrency,
   currencyMismatch,
   sendDonationMailSafely,
+  resolveCheckout,
+  checkoutError,
+  splitTotal: fees.splitTotal,
 };

@@ -8,6 +8,23 @@ const DonationsSchema = new mongoose.Schema({
   donorName: String,
   amount: Number,
   tip: Number,
+  // Card/processing fee the donor paid on top (services/fees.js). Not credited
+  // to the campaign; covers what the processor deducts.
+  processingFee: { type: Number, default: 0 },
+  // Gift Aid (UK): declaration captured at checkout for eligible campaigns.
+  giftAid: {
+    declared: { type: Boolean, default: false },
+    title: { type: String, default: "" },
+    firstName: { type: String, default: "" },
+    lastName: { type: String, default: "" },
+    houseNameOrNumber: { type: String, default: "" },
+    postcode: { type: String, default: "" },
+    declaredAt: { type: Date, default: null },
+    claimedAt: { type: Date, default: null },
+  },
+  // Team / matching attribution (group fundraising).
+  teamId: { type: String, default: "", index: true },
+  matchedAmount: { type: Number, default: 0 },
   transactionId: { type: String, unique: true, sparse: true, index: true },
   transactionRef: { type: String, unique: true, sparse: true, index: true },
   paymentMethod: String,

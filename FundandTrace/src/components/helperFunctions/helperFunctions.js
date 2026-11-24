@@ -344,12 +344,13 @@ const selectPaymentRail = (countryName) => {
  * Never returns NaN/undefined — bad input renders as 0 in the given currency.
  * Whole amounts drop decimals; `compact` gives "₦12.6M" for tight spaces.
  */
-const formatMoney = (amount, currency = "USD", { compact = false } = {}) => {
+// exact: never drop pence/kobo (use for anything a donor is charged).
+const formatMoney = (amount, currency = "USD", { compact = false, exact = false } = {}) => {
   const num = Number(amount);
   const value = Number.isFinite(num) ? num : 0;
   const code = String(currency || "USD").toUpperCase().trim();
   const symbol = CURRENCY_SYMBOLS[code] ?? `${code} `;
-  const whole = Number.isInteger(value) || Math.abs(value) >= 1000;
+  const whole = Number.isInteger(Math.round(value * 100) / 100) || (!exact && Math.abs(value) >= 1000);
   const formatted = new Intl.NumberFormat("en-US", compact
     ? { notation: "compact", maximumFractionDigits: 1 }
     : { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(Math.abs(value));

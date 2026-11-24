@@ -151,10 +151,10 @@ export default function Workings() {
                 <div className="stepIconWrap">
                   <img src="/images/icons/payment.svg" alt="Give" />
                 </div>
-                <h3>2. Zero-Fee Community Giving</h3>
+                <h3>2. No Platform Fee</h3>
                 <p>
-                  Donors contribute securely via card, bank transfer, or mobile money in USD, GBP,
-                  or NGN. Fund&amp;Trace charges 0% platform commission on all donations.
+                  Donors give by card, bank transfer or mobile money. Fund&amp;Trace takes no platform fee; the processor&apos;s card
+                  fee is shown at checkout (<a href="/fees">how fees work</a>), so the campaign receives the full donation.
                 </p>
               </div>
 

@@ -162,6 +162,25 @@ Do these once, in this order, when deploying the `fix/audit-hardening-ui-polish`
    - Organisers now need a submitted live ID check to launch
      (`REQUIRE_KYC_TO_LAUNCH=submitted`). Staff the `/admin/identity` queue
      before switching it on.
+10. **Card and processing fees** (no platform fee; see `services/fees.js`).
+    The donor's total = donation + optional tip + processing fee, and the
+    server recomputes the fee and rejects a checkout that doesn't match.
+    - **Paystack dashboard → Settings → Preferences → "Pass fees to
+      customers" must stay OFF.** We already add the fee; if Paystack adds it
+      too, the donor is charged twice and every webhook total fails to match.
+    - **Flutterwave dashboard → Settings → "Who should pay the transaction
+      fees?" must be set to the merchant**, for the same reason.
+    - Defaults: `FEE_MODE_PAYSTACK=required`, `FEE_MODE_FLUTTERWAVE=required`,
+      `FEE_MODE_STRIPE=optional`. **Don't set `FEE_MODE_STRIPE=required`**:
+      the Consumer Rights (Payment Surcharges) Regulations 2012 ban card
+      surcharges for UK consumers (EU equivalent: PSD2 Art. 62(4)), and they
+      cover donations. Stripe's "cover the fee" box must stay unticked by
+      default (Consumer Contracts Regulations 2013 reg. 40). Ask counsel to
+      confirm both, and whether the pass-through wording on `/fees` is enough
+      in Nigeria, Kenya and Ghana.
+    - Rates live in `RULES` and were checked on 24 Nov 2026. When a processor
+      changes its pricing, override without a deploy using `FEE_SCHEDULE_JSON`
+      (same shape as `RULES`) and update the `/fees` page table.
 
 ---
 

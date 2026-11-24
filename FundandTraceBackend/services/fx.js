@@ -54,6 +54,17 @@ function parseProvider(data) {
   return { ratesToUsd: out, asOf };
 }
 
+// Core currencies we take money in. A provider update that moves any of them
+// by more than FX_MAX_JUMP (default 25%) since the last good rates is
+// rejected: a bad feed must not silently skew every displayed amount.
+const CORE = ["GBP", "EUR", "NGN", "KES", "GHS", "ZAR", "UGX"];
+const maxJump = () => Number(process.env.FX_MAX_JUMP || 0.25);
+
+/** Pure: which core rates moved implausibly between two snapshots. */
+function implausibleMoves(prev, next, limit = maxJump()) {
+  return CORE.filter((c) => prev[c] && next[c] && Math.abs(next[c] / prev[c] - 1) > limit).map((c) => ({ currency: c, from: prev[c], to: next[c], change: Math.round((next[c] / prev[c] - 1) * 1000) / 10 }));
+}
+
 async function refresh({ http = axios, force = false } = {}) {
   if (process.env.NODE_ENV === "test" && !force) return state;
   if (!force && Date.now() - state.fetchedAt < refreshMs()) return state;
@@ -64,6 +75,13 @@ async function refresh({ http = axios, force = false } = {}) {
     .then((res) => {
       const parsed = parseProvider(res.data);
       if (!parsed) throw new Error("unrecognised FX response");
+      // Compare with the last LIVE rates only (the dated fallback can be months old).
+      const jumps = state.source === "live" ? implausibleMoves(state.ratesToUsd, parsed.ratesToUsd) : [];
+      if (jumps.length) {
+        state.rejected = { at: new Date().toISOString(), jumps };
+        throw new Error(`implausible FX move: ${jumps.map((j) => `${j.currency} ${j.change}%`).join(", ")}`);
+      }
+      state.rejected = null;
       Object.assign(state, { ratesToUsd: { ...FALLBACK.ratesToUsd, ...parsed.ratesToUsd }, asOf: parsed.asOf, source: "live" });
       return state;
     })
@@ -93,11 +111,33 @@ function convert(amount, from, to) {
   return (a * f) / t;
 }
 
-const snapshot = () => ({ base: "USD", ratesToUsd: { ...state.ratesToUsd }, asOf: state.asOf, source: state.source });
+const ageHours = () => (state.asOf ? Math.round((Date.now() - new Date(`${state.asOf}T00:00:00Z`).getTime()) / 36e5) : null);
+const snapshot = () => ({ base: "USD", ratesToUsd: { ...state.ratesToUsd }, asOf: state.asOf, source: state.source, ageHours: ageHours(), stale: state.source !== "live" || ageHours() > 48 });
+
+/**
+ * Daily live check (services/scheduler.js): force a refresh and report
+ * whether rates are live, fresh and accepted. Throws so the job is marked
+ * failed and alerts.
+ */
+async function dailyCheck({ http = axios } = {}) {
+  await refresh({ http, force: true });
+  const snap = snapshot();
+  const problems = [];
+  if (snap.source !== "live") problems.push("using fallback rates (provider unreachable or invalid)");
+  if (snap.ageHours > 48) problems.push(`rates are ${snap.ageHours} h old`);
+  if (state.rejected) problems.push(`provider update rejected: ${state.rejected.jumps.map((j) => `${j.currency} ${j.change}%`).join(", ")}`);
+  if (problems.length) {
+    const text = `Fund&Trace FX check: ${problems.join("; ")}`;
+    if (process.env.ALERT_WEBHOOK_URL) await http.post(process.env.ALERT_WEBHOOK_URL, { text, content: text }, { timeout: 10000 }).catch(() => {});
+    throw new Error(text);
+  }
+  return { source: snap.source, asOf: snap.asOf, ageHours: snap.ageHours, ngnPerUsd: Math.round(1 / snap.ratesToUsd.NGN), gbpUsd: Math.round(snap.ratesToUsd.GBP * 1000) / 1000 };
+}
 
 /** Test helper. */
 function _set(ratesToUsd, asOf = "2026-11-01", source = "live") {
+  state.rejected = null;
   Object.assign(state, { ratesToUsd: { ...FALLBACK.ratesToUsd, ...ratesToUsd }, asOf, source, fetchedAt: Date.now() });
 }
 
-module.exports = { FALLBACK, parseProvider, refresh, convert, snapshot, _set };
+module.exports = { FALLBACK, CORE, parseProvider, implausibleMoves, refresh, convert, snapshot, dailyCheck, _set };

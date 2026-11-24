@@ -277,6 +277,20 @@ The *Backup drill* GitHub workflow runs the same scripts monthly against a
 seeded throwaway database and also proves a tampered ledger entry is caught.
 It deliberately never touches production data.
 
+### 5.2 Load, FX and end-to-end checks
+
+- **Load + concurrency** (*Load test* workflow, weekly): read load on the public
+  campaign endpoints with a p95 budget, then a storm of signed Paystack
+  webhooks, each delivered 3× concurrently; the campaign must be credited
+  exactly once per donation and the ledger must verify. Run it against
+  staging before launch with `--connections` set to your expected peak.
+- **Live FX** (*FX check* workflow, daily; `fx-check` job in the app): the
+  provider must answer with fresh rates that an independent source agrees
+  with within 5%; the app refuses a feed that moves a core currency >25% in
+  one refresh and alerts. FX is display-only, money never converts.
+- **End-to-end** (*E2E* workflow, every PR): Playwright on desktop and a
+  Pixel 7 profile against a production build.
+
 ## 6. Incident playbooks
 
 **Integrity alert: `balance_mismatch` or `negative_balance` (critical).**

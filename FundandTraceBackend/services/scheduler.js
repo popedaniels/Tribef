@@ -24,6 +24,8 @@ function dailyJobs() {
           .then((a) => ({ root: a.root, digest: a.digest, campaigns: a.leafCount, published: (a.publications || []).map((p) => `${p.target}:${p.ok ? "ok" : "failed"}`) })),
     ],
   ];
+  // Live FX check: fresh rates, sane moves; alerts via ALERT_WEBHOOK_URL.
+  jobs.push(["fx-check", () => require("./fx").dailyCheck()]);
   if (process.env.RECONCILE_DAILY === "true") {
     jobs.push(["gateway-reconciliation", () => require("./reconciliation").runReconciliation({ days: 1 })]);
   }

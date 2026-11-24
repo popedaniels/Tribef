@@ -40,7 +40,8 @@ exports.rateLimiter = (options = {}) => {
     standardHeaders: "draft-6",
     legacyHeaders: false,
     passOnStoreError: true,
-    skip: (req) => isWebhook(req),
+    // RATE_LIMIT_DISABLED is for load tests only and is ignored in production.
+    skip: (req) => isWebhook(req) || (process.env.RATE_LIMIT_DISABLED === "true" && process.env.NODE_ENV !== "production"),
     handler: (req, res) => {
       res.status(429).json({
         success: false,

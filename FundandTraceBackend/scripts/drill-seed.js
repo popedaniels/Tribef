@@ -10,8 +10,10 @@ const mongoose = require("mongoose");
   const { appendEntry } = require("../services/ledger");
   await LedgerEntry.init();
   await Donations.init();
+  let firstId = "";
   for (let c = 0; c < 3; c += 1) {
-    const camp = await Campaign.create({ launched: true, funding: { currency: "NGN", amountExpected: 100000, amountRaised: 0, availableBalance: 0 } });
+    const camp = await Campaign.create({ launched: true, suspended: false, basicInformation: { campaignTitle: `Seed campaign ${c + 1}` }, funding: { currency: "NGN", amountExpected: 100000, amountRaised: 0, availableBalance: 0 } });
+    firstId = firstId || String(camp._id);
     let total = 0;
     for (let i = 0; i < 5; i += 1) {
       const amount = 1000 * (i + 1);
@@ -21,7 +23,7 @@ const mongoose = require("mongoose");
     }
     await Campaign.updateOne({ _id: camp._id }, { $set: { "funding.amountRaised": total, "funding.availableBalance": total } });
   }
-  console.log("seeded");
+  console.log(`seeded ${firstId}`); // last line: a campaign id (used by the load test)
   await mongoose.disconnect();
 })().catch((e) => {
   console.error(e);

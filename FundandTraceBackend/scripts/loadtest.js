@@ -106,7 +106,7 @@ async function webhookStorm() {
   const ledger = (await getJson(`/api/ledger/${CAMPAIGN}?limit=100000`)).data.entries.filter((e) => String(e.refId).startsWith(`paystack:lt-${run}-`));
   check(ledger.length === DONATIONS, "one ledger credit per donation", `${ledger.length} of ${DONATIONS}`);
   const v = (await getJson(`/api/ledger/${CAMPAIGN}/verify`)).data;
-  check(v.valid !== false, "ledger hash chain still verifies", v.valid === false ? JSON.stringify(v) : `${v.count ?? ""} entries`);
+  check(v.valid !== false, "ledger hash chain still verifies", v.valid === false ? JSON.stringify(v) : `${v.length ?? v.count ?? "?"} entries`);
 }
 
 (async () => {

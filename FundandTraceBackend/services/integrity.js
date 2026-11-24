@@ -95,7 +95,10 @@ async function runIntegrityCheck({ now = new Date(), alert = true } = {}) {
     .select("_id campaignId refund.createdAt")
     .lean();
 
+  const queuedLedger = await require("../models/ledgerOutboxModel").LedgerOutbox.distinct("campaignId").catch(() => []);
+  if (queuedLedger.length) findings.push({ severity: "warning", code: "ledger_outbox_pending", count: queuedLedger.length });
   const inFlight = new Set([
+    ...queuedLedger.map(String),
     ...stalePayoutLock.map((f) => String(f.campaignId)),
     ...pendingTransfers.map((f) => String(f.campaignId)),
     ...processingRefunds.map((d) => String(d.campaignId)),

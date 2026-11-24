@@ -34,6 +34,11 @@ function dailyJobs() {
 
 async function tick(now = new Date()) {
   if (mongoose.connection.readyState !== 1) return [];
+  // Every tick: land any ledger entries that were queued under contention.
+  await require("./ledger")
+    .drainOutbox()
+    .then((r) => r.pending && logger.info(r, "Ledger outbox drained"))
+    .catch((err) => logger.error({ err }, "Ledger outbox drain failed"));
   const hour = Number(process.env.DAILY_JOBS_HOUR_UTC ?? 1);
   if (now.getUTCHours() < hour) return [];
   const day = utcDate(now);

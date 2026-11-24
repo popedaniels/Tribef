@@ -19,7 +19,7 @@ const { LedgerEntry } = require("../models/ledgerEntryModel");
 const logger = require("../utility/logger");
 
 const GENESIS = "0".repeat(64);
-const MAX_ATTEMPTS = 6;
+const MAX_ATTEMPTS = 25;
 
 const round2 = (n) => Math.round(Number(n) * 100) / 100;
 
@@ -41,18 +41,26 @@ const hashEntry = (e) => crypto.createHash("sha256").update(canonical(e)).digest
 
 const SIGN = { credit: 1, payout: -1, payout_reversal: 1, refund: -1 };
 
-/**
- * Append an entry. Never throws: the ledger must not break a money flow that
- * already succeeded. Failures are logged loudly for reconciliation.
- * @returns the stored entry, the existing one for a duplicate refId, or null.
- */
-async function appendEntry({ campaignId, type, amount, currency = "", refId, memo = "", at = new Date() }) {
-  if (!campaignId || !SIGN[type] || !refId || !Number.isFinite(Number(amount))) {
-    logger.error({ campaignId, type, refId, amount }, "Ledger append rejected: invalid entry");
-    return null;
-  }
-  const signed = SIGN[type] * Math.abs(round2(amount));
+// Appends to one campaign's chain are serialised within this process (no
+// self-contention), and retried with jittered backoff when another instance
+// takes the next seq. The load test showed the old fixed 6 retries losing
+// ~1 in 3 entries with 25 concurrent webhooks on one campaign.
+const chains = new Map(); // campaignId -> tail promise
+function serialise(campaignId, fn) {
+  const key = String(campaignId);
+  const prev = chains.get(key) || Promise.resolve();
+  const run = prev.then(fn, fn);
+  const tail = run.catch(() => undefined);
+  chains.set(key, tail);
+  tail.then(() => {
+    if (chains.get(key) === tail) chains.delete(key);
+  });
+  return run;
+}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+async function tryAppend({ campaignId, type, amount, currency, refId, memo, at }) {
+  const signed = SIGN[type] * Math.abs(round2(amount));
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
       const existing = await LedgerEntry.findOne({ campaignId, type, refId: String(refId) });
@@ -73,13 +81,71 @@ async function appendEntry({ campaignId, type, amount, currency = "", refId, mem
       entry.hash = hashEntry(entry);
       return await LedgerEntry.create(entry);
     } catch (err) {
-      // 11000 = another writer took this seq (or the same refId): retry.
-      if (err && err.code === 11000 && attempt < MAX_ATTEMPTS) continue;
-      logger.error({ err, campaignId, type, refId }, "Ledger append failed");
-      return null;
+      // 11000 = another writer took this seq (or the same refId): back off and retry.
+      if (err && err.code === 11000 && attempt < MAX_ATTEMPTS) {
+        await sleep(Math.min(200, 2 ** Math.min(attempt, 7)) * (0.5 + Math.random()));
+        continue;
+      }
+      throw err;
     }
   }
-  return null;
+  throw new Error("ledger contention: retries exhausted");
+}
+
+/**
+ * Append an entry. Never throws: the ledger must not break a money flow that
+ * already succeeded. If the append can't be done now it goes to the durable
+ * outbox and is retried until it lands, so no credit is ever left unrecorded.
+ * @returns the stored entry, the existing one for a duplicate refId, or null (queued).
+ */
+async function appendEntry({ campaignId, type, amount, currency = "", refId, memo = "", at = new Date() }) {
+  if (!campaignId || !SIGN[type] || !refId || !Number.isFinite(Number(amount))) {
+    logger.error({ campaignId, type, refId, amount }, "Ledger append rejected: invalid entry");
+    return null;
+  }
+  const item = { campaignId, type, amount, currency, refId: String(refId), memo, at };
+  try {
+    return await serialise(campaignId, async () => {
+      await drainOutbox(campaignId); // earlier stragglers first, keeps order close to real time
+      return tryAppend(item);
+    });
+  } catch (err) {
+    logger.error({ err, campaignId, type, refId }, "Ledger append deferred to outbox");
+    await queue(item, err);
+    return null;
+  }
+}
+
+async function queue(item, err) {
+  const { LedgerOutbox } = require("../models/ledgerOutboxModel");
+  try {
+    await LedgerOutbox.updateOne(
+      { campaignId: item.campaignId, type: item.type, refId: item.refId },
+      { $setOnInsert: { amount: item.amount, currency: item.currency, memo: item.memo, at: item.at }, $inc: { attempts: 1 }, $set: { lastError: String(err?.message || err).slice(0, 200) } },
+      { upsert: true }
+    );
+  } catch (e) {
+    logger.fatal({ err: e, item }, "LEDGER ENTRY LOST: outbox write failed; reconcile manually");
+  }
+}
+
+/** Retry queued entries (one campaign, or all). Safe to call any time. */
+async function drainOutbox(campaignId = null, limit = 500) {
+  const { LedgerOutbox } = require("../models/ledgerOutboxModel");
+  const pending = await LedgerOutbox.find(campaignId ? { campaignId } : {}).sort({ at: 1 }).limit(limit).lean();
+  let done = 0;
+  for (const p of pending) {
+    try {
+      const run = () => tryAppend(p);
+      // When draining everything, still serialise per campaign.
+      await (campaignId ? run() : serialise(p.campaignId, run));
+      await LedgerOutbox.deleteOne({ _id: p._id });
+      done += 1;
+    } catch (err) {
+      await LedgerOutbox.updateOne({ _id: p._id }, { $inc: { attempts: 1 }, $set: { lastError: String(err?.message || err).slice(0, 200) } });
+    }
+  }
+  return { pending: pending.length, appended: done };
 }
 
 /** Recompute a chain. Pure: works on any array of entries sorted by seq. */
@@ -108,4 +174,4 @@ async function verifyCampaign(campaignId) {
   return verifyEntries(entries);
 }
 
-module.exports = { appendEntry, verifyEntries, verifyCampaign, hashEntry, canonical, GENESIS };
+module.exports = { appendEntry, drainOutbox, verifyEntries, verifyCampaign, hashEntry, canonical, GENESIS };

@@ -80,6 +80,7 @@ router.put("/campaigns/:id/matching", giving.setMatching);
 router.post("/campaigns/:id/matching/payments", giving.recordMatchPayment);
 router.put("/charities/:id/gift-aid", giving.setCharityGiftAid);
 router.get("/gift-aid/export", giving.giftAidExport);
+router.get("/metrics", giving.adminMetrics);
 
 // Verified vendor network (controller/vendors.js).
 const vendors = require("../controller/vendors");

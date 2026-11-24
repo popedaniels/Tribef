@@ -328,3 +328,16 @@ function buildStatementPdf({ email, year, uk, from, to, donations, byId }) {
 
 // Exposed for tests.
 exports._internals = { csvCell, ddmmyy };
+
+// ── Admin: business metrics (FT-030/040) ──────────────────────────────────
+exports.adminMetrics = async (req, res) => {
+  try {
+    const to = req.query.to ? new Date(req.query.to) : new Date();
+    const from = req.query.from ? new Date(req.query.from) : new Date(to.getTime() - 30 * 864e5);
+    if (Number.isNaN(+from) || Number.isNaN(+to) || to <= from || to - from > 400 * 864e5) return fail(res, 400, "Use a valid range of up to 400 days");
+    const data = await require("../services/metrics").computeMetrics({ from, to });
+    return res.json({ status: 200, data });
+  } catch (err) {
+    return handle("adminMetrics")(err, res);
+  }
+};

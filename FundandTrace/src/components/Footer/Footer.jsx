@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import styles from "./Footer.module.scss";
+import { LanguageSwitcher } from "../../i18n";
 
 export default function Footer() {
   return (
@@ -74,6 +75,8 @@ export default function Footer() {
             <Link href="/privacy">Privacy Policy</Link>
             <span className={styles.dot}>•</span>
             <Link href="/fees">Fee Schedule</Link>
+            <span className={styles.dot}>•</span>
+            <LanguageSwitcher />
           </div>
         </div>
       </div>

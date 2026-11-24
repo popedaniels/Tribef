@@ -1,3 +1,4 @@
+import { useI18n } from "../../i18n";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
@@ -94,6 +95,7 @@ const UK_POSTCODE = /^(GIR ?0AA|[A-PR-UWYZ][A-HK-Y]?\d[A-Z\d]? ?\d[ABD-HJLNP-UW-
 export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { t } = useI18n();
   // Donations are always taken in the campaign's currency (the API enforces it).
   const currency = String(campaign?.funding?.currency || "USD").toUpperCase();
   const availableRails = RAILS.filter((r) => r.currencies.includes(currency));
@@ -185,8 +187,9 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
   useEffect(() => {
     if (router.query.status === "failed") {
-      dispatch(toast(true, "Your payment didn't go through, and you haven't been charged. Please try again.", "error"));
+      dispatch(toast(true, t("donate.failed"), "error"));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.query.status, dispatch]);
 
   const tip = useMemo(() => {
@@ -204,16 +207,16 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
   const errors = useMemo(() => {
     const e: Partial<Record<Field, string>> = {};
-    if (!(amount > 0)) e.amount = "Choose or enter an amount.";
-    if (!firstName.trim()) e.firstName = "Enter your first name.";
-    if (!lastName.trim()) e.lastName = "Enter your last name.";
-    if (!EMAIL_RE.test(email.trim())) e.email = "Enter a valid email so we can send your receipt.";
-    if (!country) e.country = "Choose your country.";
-    if (!terms) e.terms = "Please accept the terms to continue.";
+    if (!(amount > 0)) e.amount = t("donate.err.amount");
+    if (!firstName.trim()) e.firstName = t("donate.err.firstName");
+    if (!lastName.trim()) e.lastName = t("donate.err.lastName");
+    if (!EMAIL_RE.test(email.trim())) e.email = t("donate.err.email");
+    if (!country) e.country = t("donate.err.country");
+    if (!terms) e.terms = t("donate.err.terms");
     if (giftAid && !gaHouse.trim()) e.gaHouse = "Gift Aid needs your house name or number.";
     if (giftAid && !UK_POSTCODE.test(gaPostcode.trim())) e.gaPostcode = "Enter your UK home postcode for Gift Aid.";
     return e;
-  }, [amount, firstName, lastName, email, country, terms, giftAid, gaHouse, gaPostcode]);
+  }, [amount, firstName, lastName, email, country, terms, giftAid, gaHouse, gaPostcode, t]);
   const show = (f: Field) => (submitted ? errors[f] : undefined);
 
   if (!campaign) {
@@ -332,7 +335,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
         else fail(null, "We couldn't open Flutterwave. Please try again.");
       }
     } catch (err) {
-      fail(err, "We couldn't start your payment. You haven't been charged. Please try again.");
+      fail(err, t("donate.startFailed"));
     }
   };
 
@@ -347,7 +350,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
         <div className={styles.container}>
           <Link href={`/campaign/${campaign._id}`} className={styles.back}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-            Back to campaign
+            {t("donate.back")}
           </Link>
 
           <div className={styles.layout}>
@@ -355,14 +358,14 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
               <header className={styles.header}>
                 <img src={cdnImage(campaign.basicInformation?.campaignImage || FALLBACK_IMAGE, 160)} alt="" className={styles.mobileThumb} width={80} height={80} decoding="async" />
                 <div>
-                  <span className="ft-eyebrow">Donate</span>
+                  <span className="ft-eyebrow">{t("donate.eyebrow")}</span>
                   <h1 id="donate-title">{title}</h1>
                 </div>
               </header>
 
               {/* 1. Amount */}
               <fieldset className={styles.section}>
-                <legend>Your donation</legend>
+                <legend>{t("donate.yourDonation")}</legend>
                 <div className={styles.presets} role="group" aria-label="Suggested amounts">
                   {presets.map((p) => (
                     <button
@@ -380,7 +383,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   ))}
                 </div>
                 <label htmlFor="amount" className={styles.label}>
-                  Or enter an amount
+                  {t("donate.orEnter")}
                 </label>
                 <div className={`${styles.amountField} ${show("amount") ? styles.invalid : ""}`}>
                   <span aria-hidden="true">{getCurrency(currency).trim()}</span>
@@ -403,33 +406,33 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   <span className={styles.code}>{currency}</span>
                 </div>
                 <p id="amount-help" className={show("amount") ? styles.error : styles.help}>
-                  {show("amount") || (approx ? `About ${approx} (rate from ${rateDate}). You pay in ${currency}, the campaign's currency; your bank converts it.` : `Donations are taken in ${currency}, the campaign's currency.`)}
+                  {show("amount") || (approx ? t("donate.approx", { approx, date: rateDate, currency }) : t("donate.takenIn", { currency }))}
                 </p>
               </fieldset>
 
               {/* 2. Details */}
               <fieldset className={styles.section}>
-                <legend>Your details</legend>
+                <legend>{t("donate.yourDetails")}</legend>
                 <div className={styles.row}>
                   <div>
-                    <label htmlFor="firstName" className={styles.label}>First name</label>
+                    <label htmlFor="firstName" className={styles.label}>{t("donate.firstName")}</label>
                     <input id="firstName" ref={ref("firstName")} className="form-control" autoComplete="given-name" value={firstName} aria-invalid={Boolean(show("firstName"))} onChange={(e) => setFirstName(e.target.value)} />
                     {show("firstName") && <p className={styles.error}>{show("firstName")}</p>}
                   </div>
                   <div>
-                    <label htmlFor="lastName" className={styles.label}>Last name</label>
+                    <label htmlFor="lastName" className={styles.label}>{t("donate.lastName")}</label>
                     <input id="lastName" ref={ref("lastName")} className="form-control" autoComplete="family-name" value={lastName} aria-invalid={Boolean(show("lastName"))} onChange={(e) => setLastName(e.target.value)} />
                     {show("lastName") && <p className={styles.error}>{show("lastName")}</p>}
                   </div>
                 </div>
-                <label htmlFor="email" className={styles.label}>Email</label>
+                <label htmlFor="email" className={styles.label}>{t("donate.email")}</label>
                 <input id="email" ref={ref("email")} type="email" className="form-control" autoComplete="email" value={email} aria-invalid={Boolean(show("email"))} aria-describedby="email-help" onChange={(e) => setEmail(e.target.value)} />
                 <p id="email-help" className={show("email") ? styles.error : styles.help}>
-                  {show("email") || "We'll email your receipt and updates on how the money is spent."}
+                  {show("email") || t("donate.emailHelp")}
                 </p>
                 <div className={styles.row}>
                   <div>
-                    <label htmlFor="country" className={styles.label}>Country</label>
+                    <label htmlFor="country" className={styles.label}>{t("donate.country")}</label>
                     <select
                       id="country"
                       ref={ref("country")}
@@ -442,7 +445,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                         chooseRailFor(e.target.value);
                       }}
                     >
-                      <option value="">Select…</option>
+                      <option value="">{t("donate.select")}</option>
                       {country && !countries.some((c) => c.name === country) && <option value={country}>{country}</option>}
                       {countries.map((c) => (
                         <option key={c.name} value={c.name}>{c.name}</option>
@@ -452,22 +455,22 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   </div>
                   <div>
                     <label htmlFor="zip" className={styles.label}>
-                      Postcode <span className="ft-muted">(optional)</span>
+                      {t("donate.postcodeOptional")} <span className="ft-muted">{t("donate.optional")}</span>
                     </label>
                     <input id="zip" className="form-control" autoComplete="postal-code" value={zip} onChange={(e) => setZip(e.target.value)} />
                   </div>
                 </div>
                 <label className={styles.check}>
                   <input type="checkbox" checked={anonymous} onChange={() => setAnonymous(!anonymous)} />
-                  <span>Don&apos;t show my name publicly</span>
+                  <span>{t("donate.anonymous")}</span>
                 </label>
                 {giving && giving.teams.length > 0 && (
                   <div>
                     <label htmlFor="team" className={styles.label}>
-                      Supporting a team? <span className="ft-muted">(optional)</span>
+                      {t("donate.team")} <span className="ft-muted">{t("donate.optional")}</span>
                     </label>
                     <select id="team" className="form-control" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
-                      <option value="">No team</option>
+                      <option value="">{t("donate.noTeam")}</option>
                       {giving.teams.map((t) => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
@@ -512,7 +515,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
               {/* 3. Payment */}
               <fieldset className={styles.section}>
-                <legend>How would you like to pay?</legend>
+                <legend>{t("donate.howToPay")}</legend>
                 <div className={styles.rails}>
                   {availableRails.map((r) => (
                     <label key={r.id} className={`${styles.rail} ${rail === r.id ? styles.railOn : ""}`}>
@@ -527,7 +530,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 {momo && rail !== "stripe" && (
                   <div className={styles.presets} role="radiogroup" aria-label="Pay with" style={{ marginTop: 12 }}>
                     <button type="button" className="ft-pill" role="radio" aria-checked={method === "card"} onClick={() => setMethod("card")}>
-                      Card or bank
+                      {t("donate.method.card")}
                     </button>
                     <button type="button" className="ft-pill" role="radio" aria-checked={method !== "card"} onClick={() => setMethod(momo.id)}>
                       {momo.label}
@@ -539,18 +542,18 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
               {/* 4. Tip */}
               <fieldset className={styles.section}>
-                <legend>Support Fund&amp;Trace <span className="ft-muted">(optional)</span></legend>
+                <legend>{t("donate.tipTitle")} <span className="ft-muted">{t("donate.optional")}</span></legend>
                 <p className={styles.help} style={{ marginTop: 0 }}>
-                  We charge organisers nothing. Tips from donors keep the platform running. Your donation to the campaign is the same either way.
+                  {t("donate.tipBody")}
                 </p>
                 <div className={styles.presets} role="group" aria-label="Tip">
-                  {TIP_OPTIONS.map((t) => (
-                    <button key={t} type="button" className="ft-pill" aria-pressed={tipPct === t} onClick={() => setTipPct(t)}>
-                      {t === 0 ? "No tip" : `${t}%`}
+                  {TIP_OPTIONS.map((pct) => (
+                    <button key={pct} type="button" className="ft-pill" aria-pressed={tipPct === pct} onClick={() => setTipPct(pct)}>
+                      {pct === 0 ? t("donate.noTip") : `${pct}%`}
                     </button>
                   ))}
                   <button type="button" className="ft-pill" aria-pressed={tipPct === "custom"} onClick={() => setTipPct("custom")}>
-                    Other
+                    {t("donate.other")}
                   </button>
                 </div>
                 {tipPct === "custom" && (
@@ -572,56 +575,58 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   </p>
                 )}
                 <dl className={styles.breakdown}>
-                  <div><dt>Donation to campaign</dt><dd>{formatMoney(amount, currency)}</dd></div>
-                  <div><dt>Tip to Fund&amp;Trace</dt><dd>{formatMoney(tip, currency)}</dd></div>
-                  <div><dt>Platform fee</dt><dd className={styles.free}>{formatMoney(0, currency)}</dd></div>
+                  <div><dt>{t("donate.summary.donation")}</dt><dd>{formatMoney(amount, currency)}</dd></div>
+                  <div><dt>{t("donate.summary.tip")}</dt><dd>{formatMoney(tip, currency)}</dd></div>
+                  <div><dt>{t("donate.summary.platformFee")}</dt><dd className={styles.free}>{formatMoney(0, currency)}</dd></div>
                   {feeQuote.mode === "required" && amount > 0 && (
                     <div>
                       <dt>
-                        Card processing fee <span className="ft-muted">(charged by {rail === "paystack" ? "Paystack" : "Flutterwave"}, at cost)</span>
+                        {t("donate.summary.cardFee", { rail: rail === "paystack" ? "Paystack" : "Flutterwave" })}
                       </dt>
                       <dd>{formatMoney(fee, currency, { exact: true })}</dd>
                     </div>
                   )}
                   {feeQuote.mode === "optional" && coverFee && amount > 0 && (
-                    <div><dt>Card fee you&apos;re covering</dt><dd>{formatMoney(fee, currency, { exact: true })}</dd></div>
+                    <div><dt>{t("donate.summary.coverFee")}</dt><dd>{formatMoney(fee, currency, { exact: true })}</dd></div>
                   )}
-                  <div className={styles.total}><dt>Total</dt><dd>{formatMoney(total, currency, { exact: true })}</dd></div>
+                  <div className={styles.total}><dt>{t("donate.summary.total")}</dt><dd>{formatMoney(total, currency, { exact: true })}</dd></div>
                 </dl>
                 {feeQuote.mode === "required" && amount > 0 && (
                   <p className={styles.help} style={{ marginTop: 0 }}>
-                    The payment processor deducts this fee, so it&apos;s added here and {campaign.basicInformation?.campaignTitle ? "the campaign" : "the campaign"} receives 100% of your {formatMoney(amount, currency)}.
+                    {t("donate.feeExplainer", { amount: formatMoney(amount, currency) })}
                   </p>
                 )}
                 {feeQuote.mode === "optional" && amount > 0 && feeQuote.offered > 0 && (
                   <label className={styles.check}>
                     <input type="checkbox" checked={coverFee} onChange={() => setCoverFee(!coverFee)} />
                     <span>
-                      Add {formatMoney(feeQuote.offered, currency, { exact: true })} to cover the card fee, so 100% of your gift reaches the campaign <span className="ft-muted">(optional)</span>
+                      {t("donate.coverFeeOptIn", { fee: formatMoney(feeQuote.offered, currency, { exact: true }) })} <span className="ft-muted">{t("donate.optional")}</span>
                     </span>
                   </label>
                 )}
                 <label className={`${styles.check} ${show("terms") ? styles.checkInvalid : ""}`}>
                   <input type="checkbox" ref={ref("terms") as (el: HTMLInputElement | null) => void} checked={terms} aria-invalid={Boolean(show("terms"))} onChange={() => setTerms(!terms)} />
                   <span>
-                    I agree to the <Link href="/terms" target="_blank">Terms</Link> and <Link href="/privacy" target="_blank">Privacy Policy</Link>.
+                    {t("donate.terms").split(/(\{terms\}|\{privacy\})/).map((part, i) =>
+                      part === "{terms}" ? <Link key={i} href="/terms" target="_blank">{t("donate.termsLink")}</Link> : part === "{privacy}" ? <Link key={i} href="/privacy" target="_blank">{t("donate.privacyLink")}</Link> : part
+                    )}
                   </span>
                 </label>
                 {show("terms") && <p className={styles.error}>{show("terms")}</p>}
 
                 {submitted && Object.keys(errors).length > 0 && (
                   <p className={styles.errorSummary} role="alert">
-                    Please fix {Object.keys(errors).length === 1 ? "1 thing" : `${Object.keys(errors).length} things`} above before you continue.
+                    {Object.keys(errors).length === 1 ? t("donate.fixOne") : t("donate.fixMany", { n: Object.keys(errors).length })}
                   </p>
                 )}
 
                 <button type="submit" className="ft-btn ft-btn--primary ft-btn--lg ft-btn--block" disabled={loading} aria-busy={loading}>
-                  {loading ? "Opening secure payment…" : amount > 0 ? `Donate ${formatMoney(total, currency, { exact: true })}` : "Donate"}
+                  {loading ? t("donate.opening") : amount > 0 ? t("donate.submit", { total: formatMoney(total, currency, { exact: true }) }) : t("donate.submitBare")}
                 </button>
                 <p className={styles.secure}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-                  Held in escrow and released in reviewed stages.
-                  {refundDays ? ` You can refund it within ${refundDays} days while it's still in escrow.` : ""}
+                  {t("donate.secure")}
+                  {refundDays ? ` ${t("donate.refundable", { days: refundDays })}` : ""}
                 </p>
               </div>
             </form>
@@ -644,9 +649,9 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 </div>
               </div>
               <ul className={styles.promises}>
-                <li>Your money is held in escrow, not paid straight to the organiser.</li>
-                <li>Each payout is reviewed, and receipts are published on the tracker.</li>
-                <li>Every payment is on a public ledger you can verify yourself.</li>
+                <li>{t("donate.trust.escrow")}</li>
+                <li>{t("donate.trust.review")}</li>
+                <li>{t("donate.trust.ledger")}</li>
               </ul>
               <Link href={`/campaign/${campaign._id}/tracker`} className="ft-btn ft-btn--link">
                 See where the money has gone so far →

@@ -166,4 +166,20 @@ function splitTotal({ total, donation, tip = 0, fee = 0 }) {
   return { ok, donation: d, tip: tp, fee: f, total: t };
 }
 
-module.exports = { RULES, DEFAULT_MODES, grossUp, quote, checkClientFee, schedule, splitTotal, ruleFor, modeFor, round2 };
+/**
+ * Estimated processor cost of a charge of `total` (for margin reporting).
+ * Without the donor's card country, Stripe is costed at the domestic rate, so
+ * this is a lower bound for foreign cards.
+ */
+function processorCost({ rail, currency, total, method = "", donorCountry = "" }) {
+  const rule = ruleFor({ rail, currency, method, donorCountry });
+  const t = Number(total);
+  if (!rule || !(t > 0)) return 0;
+  const p = (Number(rule.pct || 0) + Number(rule.fx || 0)) / 100;
+  const fixed = rule.waiveFixedBelow && t < rule.waiveFixedBelow ? 0 : Number(rule.fixed || 0);
+  let cost = t * p + fixed;
+  if (rule.cap && cost > rule.cap) cost = rule.cap;
+  return round2(cost);
+}
+
+module.exports = { RULES, DEFAULT_MODES, grossUp, quote, checkClientFee, schedule, splitTotal, ruleFor, modeFor, round2, processorCost };

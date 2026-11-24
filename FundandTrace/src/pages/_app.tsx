@@ -1,3 +1,4 @@
+import { I18nProvider } from "../i18n";
 import React, { useEffect } from "react";
 // Self-hosted fonts (bundled, same origin, latin subsets load on demand via
 // unicode-range). Google Fonts used to be a render-blocking third-party
@@ -48,8 +49,10 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, []);
   return (
     <Provider store={store}>
-      <Content Component={Component} pageProps={pageProps} />
-      <Toast />
+      <I18nProvider>
+        <Content Component={Component} pageProps={pageProps} />
+        <Toast />
+      </I18nProvider>
     </Provider>
   );
 }

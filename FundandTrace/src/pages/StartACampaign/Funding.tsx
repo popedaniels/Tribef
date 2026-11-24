@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useRouter } from "next/router";
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
+import BankAccountFields from "../../components/trust/BankAccountFields";
 import { useState } from "react";
 import styled from "styled-components";
 import { useSelector } from "react-redux";
@@ -16,8 +17,9 @@ import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
 import {
   grabErrorMessage,
-  grabErrorStatus,
-} from "../../components/helperFunctions/helperFunctions";
+  grabErrorStatus, currencyPrefix } from "../../components/helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Funding() {
   const router = useRouter();
@@ -26,10 +28,11 @@ export default function Funding() {
   const { startCampaign } = useSelector(selectStartCampaignState);
   const [campaignId, setCampaignId] = useState("");
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   useEffect(() => {
     const storedCampaignId = localStorage.getItem("campaignId") || "";
@@ -40,7 +43,7 @@ export default function Funding() {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/funding",
+        getApiBaseUrl() + "/api/startCampaign/funding",
         { funding: startCampaign?.funding, id: campaignId },
         { withCredentials: true }
       );
@@ -84,11 +87,7 @@ export default function Funding() {
               background: "#fafafa",
             }}
           >
-            {startCampaign?.funding?.currency == "USD"
-              ? "$"
-              : startCampaign?.funding?.currency == "GBP"
-              ? "£"
-              : "₦"}
+            {currencyPrefix(startCampaign?.funding?.currency)}
           </div>
           <input
             type="number"
@@ -195,36 +194,82 @@ export default function Funding() {
           <p className="mb-4">Fill out your bank account information.</p>
         </div>
 
-        <Div className="d-flex mb-md-5 justify-content-between mt-4 flex-column flex-md-row">
-          <div className="d-flex flex-column detailsRow">
-            <h2 className="text-medium mb-4">Bank Name</h2>
-            <input
-              type="text"
-              value={startCampaign?.funding?.bankName}
-              onChange={(e) =>
-                dispatch(
-                  startCampaignActions.setFunding({
-                    bankName: e.target.value,
-                  })
-                )
-              }
-            />
-          </div>
-          <div className="d-flex flex-column detailsRow">
-            <h2 className="text-medium mb-4">Account Name</h2>
-            <input
-              type="text"
-              value={startCampaign?.funding?.accountName}
-              onChange={(e) =>
-                dispatch(
-                  startCampaignActions.setFunding({
-                    accountName: e.target.value,
-                  })
-                )
-              }
-            />
-          </div>
-        </Div>
+        {startCampaign?.funding?.currency === "NGN" ? (
+          <BankAccountFields
+            currency="NGN"
+            idPrefix="campaign-bank"
+            value={{
+              bankCode: startCampaign?.funding?.bankCode || "",
+              bankName: startCampaign?.funding?.bankName || "",
+              accountNumber: startCampaign?.funding?.accountNumber || "",
+              accountName: startCampaign?.funding?.accountName || "",
+            }}
+            onChange={(next) => dispatch(startCampaignActions.setFunding(next))}
+            fallback={
+            <Div className="d-flex mb-md-5 justify-content-between mt-4 flex-column flex-md-row">
+              <div className="d-flex flex-column detailsRow">
+                <h2 className="text-medium mb-4">Bank Name</h2>
+                <input
+                  type="text"
+                  value={startCampaign?.funding?.bankName}
+                  onChange={(e) =>
+                    dispatch(
+                      startCampaignActions.setFunding({
+                        bankName: e.target.value,
+                      })
+                    )
+                  }
+                />
+              </div>
+              <div className="d-flex flex-column detailsRow">
+                <h2 className="text-medium mb-4">Account Name</h2>
+                <input
+                  type="text"
+                  value={startCampaign?.funding?.accountName}
+                  onChange={(e) =>
+                    dispatch(
+                      startCampaignActions.setFunding({
+                        accountName: e.target.value,
+                      })
+                    )
+                  }
+                />
+              </div>
+            </Div>
+            }
+          />
+        ) : (
+          <Div className="d-flex mb-md-5 justify-content-between mt-4 flex-column flex-md-row">
+            <div className="d-flex flex-column detailsRow">
+              <h2 className="text-medium mb-4">Bank Name</h2>
+              <input
+                type="text"
+                value={startCampaign?.funding?.bankName}
+                onChange={(e) =>
+                  dispatch(
+                    startCampaignActions.setFunding({
+                      bankName: e.target.value,
+                    })
+                  )
+                }
+              />
+            </div>
+            <div className="d-flex flex-column detailsRow">
+              <h2 className="text-medium mb-4">Account Name</h2>
+              <input
+                type="text"
+                value={startCampaign?.funding?.accountName}
+                onChange={(e) =>
+                  dispatch(
+                    startCampaignActions.setFunding({
+                      accountName: e.target.value,
+                    })
+                  )
+                }
+              />
+            </div>
+          </Div>
+        )}
 
         <Div className="d-flex mb-md-5 justify-content-between mt-4 flex-column flex-md-row">
           <div className="d-flex flex-column detailsRow">

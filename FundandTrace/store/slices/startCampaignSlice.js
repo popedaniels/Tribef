@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import { useSelector } from "react-redux";
+import { getApiBaseUrl } from "../../src/utils/api";
 // Typed initial state for strict tsc compliance
 /** @type {{ startCampaign?: any }} */
 const initialState = {};
@@ -66,20 +67,17 @@ export const {
 export default startCampaignSlice.reducer;
 
 // Actions
-const getApiUrl = () => {
-  return (
-    process.env.NEXT_PUBLIC_API_URL ||
-    (typeof window !== "undefined" && window.location.port === "3000"
-      ? "http://localhost:5000"
-      : "http://localhost:5000")
-  );
-};
+const getApiUrl = () => getApiBaseUrl();
 
 export const loadStartCampaign = (id) => async (dispatch) => {
+  // A fresh wizard has no draft yet; calling /campaign/<empty> just 500s.
+  if (!id || id === "undefined" || id === "null") return;
   try {
-    const res = await axios.get(
-      getApiUrl() + "/api/campaigns/campaign/" + id
-    );
+    // withCredentials: the API returns the owner's full draft (payout
+    // details, team contacts) only to the signed-in owner.
+    const res = await axios.get(getApiUrl() + "/api/campaigns/campaign/" + id, {
+      withCredentials: true,
+    });
 
     res && dispatch(startCampaignActions.setStartCampaign(res.data.data));
   } catch (error) {

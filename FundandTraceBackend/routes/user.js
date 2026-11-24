@@ -1,13 +1,21 @@
 const express = require("express");
 const router = express.Router();
+const { objectIdParam } = require("../utility/validate");
 
 const userController = require("../controller/user");
 const { requireAuth } = require("../utility/auth");
+
+// Reject malformed ObjectIds with 400 before any handler runs.
+router.param("id", objectIdParam("User ID"));
 
 router.post("/signup", userController.signup);
 router.post("/signup/charity", userController.signupCharity);
 router.post("/login", userController.login);
 router.post("/logout", userController.logout);
+router.post("/logout-all", requireAuth, userController.logoutAll);
+// Data protection: download everything we hold; delete the account.
+router.get("/me/export", requireAuth, require("../controller/privacy").exportMine);
+router.post("/me/delete", requireAuth, require("../controller/privacy").deleteMine);
 router.get("/checkExists/:id", userController.check);
 router.get("/signup/verifyUser/:email", userController.verifyUser);
 router.post("/signup/verifyEmail/:email", userController.verifyEmail);

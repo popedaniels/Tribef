@@ -8,8 +8,12 @@ const fundingRequestSchema = new mongoose.Schema({
   currency: { type: String },
   amount: { type: Number, default: 0 },
   purposeOfFunding: { type: String, default: "" },
+  // Provider name lookup on the destination account at approval time
+  // (controller/adminFundingRequests.js): resolvedName, expected, matched, override.
+  bankNameCheck: { type: mongoose.Schema.Types.Mixed, default: null },
   proofOfFunding: { type: String, default: "" },
-  thirdPartyAccountNumber: { type: Number },
+  // String: Nigerian (NUBAN) and other account numbers can start with 0.
+  thirdPartyAccountNumber: { type: String },
   thirdPartyAccountName: { type: String },
   thirdPartyBankName: { type: String },
   thirdPartyNameOfRef: { type: String },
@@ -18,6 +22,9 @@ const fundingRequestSchema = new mongoose.Schema({
   // Direct-to-Vendor Institutional Disbursement
   vendorDisbursement: {
     isDirectToVendor: { type: Boolean, default: false },
+    // Set when paying a verified vendor from the network: the payout can then
+    // only go to that vendor's verified account (controller/donations/payout.js).
+    vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", default: null, index: true },
     vendorCategory: {
       type: String,
       enum: [
@@ -85,11 +92,22 @@ const fundingRequestSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now },
   approvedAt: { type: Date },
+  // Two-person rule for large payouts (services/payoutApproval.js).
+  firstApproval: {
+    adminId: { type: String, default: "" },
+    adminName: { type: String, default: "" },
+    at: { type: Date, default: null },
+  },
   declinedAt: { type: Date },
   status: { type: String, default: "Pending", index: true },
   declineReason: String,
   adminId: String,
   adminName: String,
+  // Set atomically by the payout handler while a disbursement is in flight so
+  // concurrent/retried payout calls for the same request cannot both run.
+  payoutLockedAt: { type: Date },
+  payoutAttempts: { type: Number, default: 0 },
+  thirdPartyBankCode: { type: String, default: "" },
   disbursement: {
     amount: Number,
     currency: String,
@@ -100,6 +118,15 @@ const fundingRequestSchema = new mongoose.Schema({
     receipt: String,
     stripeTransferId: String,
     stripeTransferStatus: String,
+    // stripe_connect | flutterwave | paystack | manual
+    provider: String,
+    providerReference: String,
+    providerId: String,
+    // pending | successful | failed (bank rails settle asynchronously)
+    providerStatus: String,
+    receiptUploadedAt: Date,
+    // Set when the receipt was captured live in the app (sealed evidence).
+    receiptEvidenceSessionId: String,
   },
 });
 

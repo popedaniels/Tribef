@@ -8,6 +8,24 @@ const DonationsSchema = new mongoose.Schema({
   donorName: String,
   amount: Number,
   tip: Number,
+  // Card/processing fee the donor paid on top (services/fees.js). Not credited
+  // to the campaign; covers what the processor deducts.
+  processingFee: { type: Number, default: 0 },
+  // Gift Aid (UK): declaration captured at checkout for eligible campaigns.
+  giftAid: {
+    declared: { type: Boolean, default: false },
+    title: { type: String, default: "" },
+    firstName: { type: String, default: "" },
+    lastName: { type: String, default: "" },
+    houseNameOrNumber: { type: String, default: "" },
+    postcode: { type: String, default: "" },
+    declaredAt: { type: Date, default: null },
+    claimedAt: { type: Date, default: null },
+  },
+  // Team / matching attribution (group fundraising).
+  teamId: { type: String, default: "", index: true },
+  matchedAt: { type: Date, default: null },
+  matchedAmount: { type: Number, default: 0 },
   transactionId: { type: String, unique: true, sparse: true, index: true },
   transactionRef: { type: String, unique: true, sparse: true, index: true },
   paymentMethod: String,
@@ -27,13 +45,19 @@ const DonationsSchema = new mongoose.Schema({
     reasons: [{ type: String }],
     flagged: { type: Boolean, default: false, index: true },
     ip: { type: String, default: "" },
+    // Keyed hash of the gateway's card signature (never card data): spots one
+    // card used by many identities or in a burst (utility/fraud.js).
+    card: { type: String, default: "", index: { sparse: true } },
     assessedAt: { type: Date, default: null },
   },
   // Link to the funding request this donation contributed to (if disbursed)
   fundingRequestId: { type: ObjectId, ref: "fundingRequest" },
   refund: {
+    // "" | processing | pending | succeeded | failed
     status: { type: String, default: "", index: true },
-    amount: Number,
+    amount: Number, // returned to the donor (may include the tip)
+    escrowAmount: Number, // taken back out of the campaign escrow
+    requestedBy: { type: String, default: "" }, // admin | donor | dispute
     reason: String,
     adminId: String,
     adminName: String,

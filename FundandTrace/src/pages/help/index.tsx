@@ -37,8 +37,8 @@ export default function Help() {
               Find out about how we operate, understand Fund&Trace policies and
               how we protect our customers, etc.
             </p>
-            <Link href="/help/general" passHref>
-              <a className="my-3 text-blue">View all</a>
+            <Link href="/help/general" passHref className="my-2 text-blue d-inline-flex align-items-center" style={{ minHeight: 44 }}>
+              View all
             </Link>
           </article>
           <article className="d-flex flex-column align-items-center pt-4 pb-2 px-3 mx-auto mx-md-0">
@@ -53,8 +53,8 @@ export default function Help() {
               Learn how to plan, create and manage your crowdfunding campaign
               for individual and non-profit
             </p>
-            <Link href="/help/fundraisers" passHref>
-              <a className="my-3 text-blue">View all</a>
+            <Link href="/help/fundraisers" passHref className="my-2 text-blue d-inline-flex align-items-center" style={{ minHeight: 44 }}>
+              View all
             </Link>
           </article>
           <article className="d-flex flex-column align-items-center pt-4 pb-2 px-3 mx-auto mx-md-0">
@@ -69,8 +69,8 @@ export default function Help() {
               Learn how to evaluate and donate to crowdfunding campaigns, track
               campaigns and customize your profile..
             </p>
-            <Link href="/help/donors" passHref>
-              <a className="my-3 text-blue">View all</a>
+            <Link href="/help/donors" passHref className="my-2 text-blue d-inline-flex align-items-center" style={{ minHeight: 44 }}>
+              View all
             </Link>
           </article>
         </section>

@@ -7,6 +7,11 @@ export default function MobileBottomDock() {
   const router = useRouter();
   const currentPath = router.pathname;
 
+  // Pages with their own sticky action bar (Donate, payment steps), admin, and
+  // focused camera tasks (identity check, live evidence) where the dock would
+  // cover the viewfinder and the capture buttons.
+  if (/^\/(campaign\/\[id\]$|donate\/|donated\/|admin|capture\/|dashboard\/verify-identity|dashboard\/\[id\]\/evidence)/.test(currentPath)) return null;
+
   const navItems = [
     {
       label: "Explore",
@@ -49,8 +54,9 @@ export default function MobileBottomDock() {
       ),
     },
     {
-      label: "Tracker",
-      path: "/campaign/6228221c5690b201dc93ec3e/tracker",
+      // Was a hard-coded link to one specific campaign's tracker.
+      label: "Search",
+      path: "/search",
       icon: (active: boolean) => (
         <svg
           width="20"
@@ -62,8 +68,8 @@ export default function MobileBottomDock() {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          <path d="m9 12 2 2 4-4" />
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
         </svg>
       ),
     },
@@ -123,10 +129,10 @@ export default function MobileBottomDock() {
               ? currentPath.includes("StartACampaign")
               : item.path === "/dashboard"
               ? currentPath.startsWith("/dashboard")
-              : currentPath.includes("tracker");
+              : currentPath.startsWith(item.path);
 
           return (
-            <Link href={item.path} key={item.label} passHref>
+            <Link href={item.path} key={item.label} passHref legacyBehavior>
               <a
                 className="d-flex flex-column align-items-center justify-content-center mobile-touchable text-decoration-none"
                 style={{
@@ -134,7 +140,8 @@ export default function MobileBottomDock() {
                   height: "100%",
                   borderRadius: 999,
                   position: "relative",
-                  color: isActive ? "var(--color-primary, #6979F8)" : "#64748B",
+                  // #475569 keeps 4.5:1+ even over tinted content behind the translucent dock.
+                  color: isActive ? "var(--color-primary, #6979F8)" : "#475569",
                   transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                 }}
               >
@@ -148,7 +155,7 @@ export default function MobileBottomDock() {
                 </div>
                 <span
                   style={{
-                    fontSize: 10.5,
+                    fontSize: 12,
                     fontWeight: isActive ? 700 : 500,
                     marginTop: 2,
                     letterSpacing: "-0.01em",

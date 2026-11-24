@@ -13,10 +13,11 @@ const {
 } = require("../services/suspendCampaignMailService");
 const {
   unsuspendCampaignMailService,
-} = require("../services/unsuspendCampaignMailService.");
+} = require("../services/unsuspendCampaignMailService");
 const logger = require("../utility/logger");
 const { getFlaggedDonations, getAdminMetrics } = require("../services/adminService");
 const { startTwoFactorChallenge } = require("./twoFactor");
+const { adminMfaRequired } = require("../utility/twoFactor");
 const { safeProfile, safeJwtProfile } = require("../utility/safeProfile");
 
 // Fields an admin may update via updateAdminProfile. Note this is intentionally
@@ -90,7 +91,7 @@ exports.adminLogin = async (req, res, next) => {
     //generate a JWT — slim payload only. Never embed the full profile
     //(it leaked the encrypted TOTP secret and admin activity trail).
     const token = jwt.sign(
-      { profile: safeJwtProfile(userProfile) },
+      { profile: safeJwtProfile(userProfile), sv: Number(userProfile.sessionVersion || 0) },
       process.env.TOKEN_SECRET,
       { expiresIn: "8h" }
     );
@@ -100,6 +101,22 @@ exports.adminLogin = async (req, res, next) => {
       // Admins with 2FA enabled must complete the TOTP challenge first.
       if (userProfile.twoFactor && userProfile.twoFactor.enabled) {
         return startTwoFactorChallenge(res, userProfile, "admin");
+      }
+      // Enforced 2FA: an admin without it gets a short-lived token that can
+      // only enrol (requireAdmin refuses tokens without the mfa claim).
+      if (adminMfaRequired()) {
+        const enrolmentToken = jwt.sign(
+          { profile: safeJwtProfile(userProfile), sv: Number(userProfile.sessionVersion || 0), scope: "admin-enrol" },
+          process.env.TOKEN_SECRET,
+          { expiresIn: "15m" }
+        );
+        addActivity("adminLoginNeeds2faSetup", email);
+        return res.status(200).json({
+          success: true,
+          twoFactorSetupRequired: true,
+          enrolmentToken,
+          message: "Set up two-factor authentication to use the admin dashboard",
+        });
       }
       addActivity("adminLogin", email);
       return res.status(200).json({

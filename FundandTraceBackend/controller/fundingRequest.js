@@ -5,7 +5,33 @@ const { FundingRequests } = require("../models/fundingRequestModel");
 const { Users } = require("../models/users");
 const { addActivity } = require("../services/activityLog");
 const { encrypt } = require("../utility/encryption");
+const { normalizeFundingType, isThirdParty } = require("../utility/fundingType");
+const {
+  CAMPAIGN_PUBLIC_PROJECTION,
+  toPublicCampaign,
+  DONATION_PUBLIC_FIELDS,
+  toPublicDonation,
+  FUNDING_REQUEST_PUBLIC_PROJECTION,
+  toPublicUser,
+} = require("../utility/publicViews");
 const logger = require("../utility/logger");
+
+// Fields only the server (admin review / payout pipeline) may set. Accepting
+// them from the organizer would let a request be created already "Approved"
+// with a fabricated disbursement record on the public tracker.
+const SERVER_OWNED_FIELDS = [
+  "_id",
+  "status",
+  "approvedAt",
+  "declinedAt",
+  "declineReason",
+  "adminId",
+  "adminName",
+  "disbursement",
+  "payoutLockedAt",
+  "payoutAttempts",
+  "createdAt",
+];
 
 exports.addFundingRequest = async (req, res, next) => {
   try {
@@ -18,6 +44,15 @@ exports.addFundingRequest = async (req, res, next) => {
       return res.status(400).json({ status: 400, error: "fundingRequest is required" });
     }
 
+    SERVER_OWNED_FIELDS.forEach((field) => delete fundingrequestBody[field]);
+    fundingrequestBody.fundingType = normalizeFundingType(fundingrequestBody.fundingType);
+
+    const requestedAmount = Number(fundingrequestBody.amount);
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+      return res.status(400).json({ status: 400, error: "amount must be a positive number" });
+    }
+    fundingrequestBody.amount = requestedAmount;
+
     // Check if campaign is frozen due to active dispute
     if (fundingrequestBody.campaignId && mongoose.Types.ObjectId.isValid(fundingrequestBody.campaignId)) {
       const campaign = await Campaign.findById(fundingrequestBody.campaignId).maxTimeMS(3000);
@@ -29,7 +64,7 @@ exports.addFundingRequest = async (req, res, next) => {
       }
     }
 
-    if (fundingrequestBody.fundingType === "thirdParty") {
+    if (isThirdParty(fundingrequestBody.fundingType)) {
       if (fundingrequestBody.thirdPartyAccountName) {
         fundingrequestBody.thirdPartyAccountName = encrypt(
           fundingrequestBody.thirdPartyAccountName
@@ -55,6 +90,30 @@ exports.addFundingRequest = async (req, res, next) => {
           fundingrequestBody.thirdPartyContact
         );
       }
+    }
+
+    // Paying a vendor from the verified network: details come from the
+    // vendor record, never from the request, and the payout is locked to the
+    // vendor's verified account.
+    const vendorId = fundingrequestBody.vendorDisbursement?.vendorId;
+    if (vendorId) {
+      const { Vendor } = require("../models/vendorModel");
+      const vendor = mongoose.Types.ObjectId.isValid(vendorId) ? await Vendor.findOne({ _id: vendorId, status: "verified" }).lean() : null;
+      if (!vendor) return res.status(400).json({ status: 400, code: "vendor_not_verified", error: "That vendor isn't in the verified network." });
+      fundingrequestBody.fundingType = normalizeFundingType("Third Party");
+      fundingrequestBody.vendorDisbursement = {
+        ...fundingrequestBody.vendorDisbursement,
+        isDirectToVendor: true,
+        vendorId: vendor._id,
+        vendorCategory: vendor.category,
+        vendorLegalName: vendor.legalName,
+        vendorTaxIdOrRegistration: vendor.registrationNumber,
+        vendorContactEmail: vendor.contactEmail,
+        vendorContactPhone: vendor.contactPhone,
+        bankDetails: undefined,
+      };
+      ["thirdPartyAccountName", "thirdPartyAccountNumber", "thirdPartyBankName", "thirdPartyBankCode"].forEach((f) => delete fundingrequestBody[f]);
+      fundingrequestBody.thirdPartyNameOfRef = encrypt(vendor.legalName); // other fields above are already encrypted
     }
 
     // Encrypt Direct-to-Vendor bank details if provided
@@ -120,9 +179,9 @@ exports.getAllCampaignFundingRequests = async (req, res, next) => {
     const fundingRequest = await FundingRequests.find({
       campaignId: id,
     })
-      .select(
-        "-thirdPartyAccountNumber -thirdPartyAccountName -thirdPartyBankName -thirdPartyNameOfRef -thirdPartyContact -disbursement"
-      )
+      // Public projection keeps payout status/date/receipt (needed for proof
+      // uploads and the tracker) but never bank details.
+      .select(FUNDING_REQUEST_PUBLIC_PROJECTION)
       .sort({ _id: "desc" })
       .maxTimeMS(3000);
 
@@ -146,7 +205,7 @@ exports.getAllUserFundingRequests = async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(500).json({ status: 500, error: "Invalid Organizer ID" });
+      return res.status(400).json({ status: 400, error: "Invalid Organizer ID" });
     }
 
     if (mongoose.connection.readyState !== 1) {
@@ -175,7 +234,7 @@ exports.getSingleFundingRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(500).json({ status: 500, error: "Invalid Funding Request ID" });
+      return res.status(400).json({ status: 400, error: "Invalid Funding Request ID" });
     }
 
     if (mongoose.connection.readyState !== 1) {
@@ -214,21 +273,29 @@ exports.trackingFunction = async (req, res, next) => {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ status: 400, error: "Invalid Campaign ID" });
     }
+    // Public tracker: projections strip payout bank details, team PII,
+    // dispute reporters and donor emails/IPs (see utility/publicViews.js).
     const [allFundingRequests, approvedFundingRequests, campaign, donations] =
       await Promise.all([
-        FundingRequests.find({ campaignId: id }).sort({
-          _id: "desc",
-        }).maxTimeMS(3000),
+        FundingRequests.find({ campaignId: id })
+          .select(FUNDING_REQUEST_PUBLIC_PROJECTION)
+          .sort({ _id: "desc" })
+          .maxTimeMS(3000),
         FundingRequests.find({
           campaignId: id,
           status: "Approved",
           disbursement: { $ne: null },
-        }).sort({ _id: "desc" }).maxTimeMS(3000),
-        Campaign.findById(id).maxTimeMS(3000),
+        })
+          .select(FUNDING_REQUEST_PUBLIC_PROJECTION)
+          .sort({ _id: "desc" })
+          .maxTimeMS(3000),
+        Campaign.findById(id).select(CAMPAIGN_PUBLIC_PROJECTION).maxTimeMS(3000),
         Donations.find({
           campaignId: id,
           "refund.status": { $ne: "succeeded" },
-        }).maxTimeMS(3000),
+        })
+          .select(DONATION_PUBLIC_FIELDS)
+          .maxTimeMS(3000),
       ]);
 
     if (!campaign) {
@@ -248,12 +315,32 @@ exports.trackingFunction = async (req, res, next) => {
       data: {
         allFundingRequests,
         approvedFundingRequests,
-        campaign: { ...campaign._doc, donations: donations },
-        user,
+        campaign: { ...toPublicCampaign(campaign), donations: donations.map(toPublicDonation) },
+        user: toPublicUser(user),
       },
     });
   } catch (error) {
     logger.error({ err: error });
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};
+
+// GET /api/fundingRequests/me/todos — what the signed-in organiser should do next.
+exports.myTodos = async (req, res) => {
+  try {
+    const { Users } = require("../models/users");
+    const { Campaign } = require("../models/campaignModel");
+    const { organiserTodos } = require("../services/organiserTodos");
+    const userId = require("../utility/auth").getAuthUserId(req.auth);
+    if (!userId) return res.status(401).json({ status: 401, error: "Unauthorized" });
+    const [user, campaigns, fundingRequests] = await Promise.all([
+      Users.findById(userId).select("identityVerification").lean(),
+      Campaign.find({ organizerId: userId }).select("basicInformation.campaignTitle launched funding.amountRaised funding.bankCode funding.accountNumber stripeConnect disputeGovernance.isLocked updates.datePosted createdAt").lean(),
+      FundingRequests.find({ organizerId: userId }).select("campaignId status amount currency fundingType declineReason createdAt updatedAt disbursement.dateDisbursed disbursement.receipt disbursement.providerStatus").lean(),
+    ]);
+    return res.status(200).json({ data: organiserTodos({ user, campaigns, fundingRequests }) });
+  } catch (error) {
+    logger.error({ err: error }, "myTodos failed");
     return res.status(500).json({ status: 500, error: "Server error." });
   }
 };

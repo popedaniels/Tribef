@@ -1,218 +1,113 @@
 import { useState } from "react";
 import ApproveCampaignModal from "../composed/Modal/DefaultModal/ApproveCampaignModal";
 import DeclineCampaignModal from "../composed/Modal/DefaultModal/DeclineCampaignModal";
+import ReceiptUpload from "../trust/ReceiptUpload";
+import { formatMoney } from "../helperFunctions/helperFunctions";
 import styles from "./PaymentHistoryCard.module.scss";
 
-export default function PaymentHistoryCard({
-  fundingRequest,
-  last,
-  admin = false,
-  campaignDetail = null,
-  reload = () => {},
-}) {
-  const [showDropdown, setShowDropdown] = useState(false);
+const STATUS = {
+  Approved: { chip: "ft-chip--ok", icon: "approved", label: "Approved" },
+  Pending: { chip: "ft-chip--warn", icon: "pending", label: "Awaiting review" },
+};
+const statusOf = (s) => STATUS[s] || { chip: "ft-chip--bad", icon: "rejected", label: s || "Declined" };
+
+const PROOF_DUE_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * One funding request in a timeline.
+ *  - public tracker: read-only
+ *  - `owner` (organiser dashboard): can upload proof of spend after payout
+ *  - `admin`: can approve / decline pending requests
+ */
+export default function PaymentHistoryCard({ fundingRequest, last, admin = false, owner = false, campaignDetail = null, reload = () => {} }) {
+  const [open, setOpen] = useState(false);
   const [approveModal, setApproveModal] = useState(false);
   const [declineModal, setDeclineModal] = useState(false);
 
+  const fr = fundingRequest || {};
+  const status = statusOf(fr.status);
+  const panelId = `fr-${fr._id || fr.createdAt}`;
+  const created = fr.createdAt ? new Date(fr.createdAt) : null;
+  const paidAt = fr.disbursement?.dateDisbursed ? new Date(fr.disbursement.dateDisbursed) : null;
+  const overdue = paidAt && !fr.disbursement?.receipt && Date.now() - paidAt.getTime() > PROOF_DUE_MS;
+
   return (
-    <div
-      className="w-100 pb-5 pl-4 pl-md-5"
-      style={{
-        cursor: "pointer",
-        borderLeft: last ? "none" : "1px solid #D8DAFA",
-        position: "relative",
-      }}
-    >
-      <div className={styles.icon}>
-        <img
-          src={`/images/icons/${
-            fundingRequest?.status == "Approved"
-              ? "approved"
-              : fundingRequest?.status == "Pending"
-              ? "pending"
-              : "rejected"
-          }.svg`}
-          width="20"
-          height="20"
-          alt="PaymentHistoryIcon"
-        />
+    <div className={`${styles.item} ${last ? styles.last : ""}`}>
+      <div className={styles.icon} aria-hidden="true">
+        <img src={`/images/icons/${status.icon}.svg`} width="20" height="20" alt="" />
       </div>
 
-      <div
-        className="pb-3 pl-2 pl-md-0"
-        role="button"
-        onClick={() => setShowDropdown(!showDropdown)}
-      >
-        <div className="d-flex flex-wrap align-items-start justify-content-between">
-          <div>
-            <div className="mb-3">
-              <h2 className={styles.bold}>
-                {fundingRequest?.amount} {fundingRequest?.currency}
-              </h2>
-              <p className="text-small mb-0">
-                {new Date(fundingRequest?.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="d-flex align-items-center d-md-none">
-              <div
-                className={[
-                  "text-small mb-0 mr-3 d-flex align-items-center",
-                  styles.state,
-                ].join(" ")}
-                style={{
-                  background:
-                    fundingRequest?.status == "Approved"
-                      ? "#17D37B"
-                      : fundingRequest?.status == "Pending"
-                      ? "#EFC109"
-                      : "#FF5050",
-                }}
-              >
-                <img
-                  src={`/images/icons/${
-                    fundingRequest?.status == "Approved"
-                      ? "checkWhite"
-                      : fundingRequest?.status == "Pending"
-                      ? "pendingWhite"
-                      : "rejectedWhite"
-                  }.svg`}
-                  width="15"
-                  height="13"
-                  alt="PaymentHistoryIcon"
-                  className="mr-2 mr-md-3"
-                />
-                <p className="mb-0">{fundingRequest?.status}</p>
-              </div>
-            </div>
-          </div>
-          <div className="align-items-center d-none d-md-flex">
-            <div
-              className={[
-                "text-small mb-0 mr-3 d-flex align-items-center",
-                styles.state,
-              ].join(" ")}
-              style={{
-                background:
-                  fundingRequest?.status == "Approved"
-                    ? "#17D37B"
-                    : fundingRequest?.status == "Pending"
-                    ? "#EFC109"
-                    : "#FF5050",
-              }}
-            >
-              <img
-                src={`/images/icons/${
-                  fundingRequest?.status == "Approved"
-                    ? "checkWhite"
-                    : fundingRequest?.status == "Pending"
-                    ? "pendingWhite"
-                    : "rejectedWhite"
-                }.svg`}
-                width="15"
-                height="13"
-                alt="PaymentHistoryIcon"
-                className="mr-2 mr-md-3"
-              />
-              <p className="mb-0">{fundingRequest?.status}</p>
-            </div>
-            {showDropdown ? (
-              <img
-                src="/images/icons/blueup.svg"
-                alt=""
-                width={15}
-                height={16}
-              />
-            ) : (
-              <img
-                src="/images/icons/dropdown.svg"
-                alt=""
-                width={15}
-                height={16}
-              />
-            )}
-          </div>
-          <div className="d-md-none">
-            {showDropdown ? (
-              <img
-                src="/images/icons/blueup.svg"
-                alt=""
-                width={15}
-                height={16}
-              />
-            ) : (
-              <img
-                src="/images/icons/dropdown.svg"
-                alt=""
-                width={15}
-                height={16}
-              />
-            )}
-          </div>
-        </div>
-      </div>
+      <button type="button" className={`ft-plain ${styles.summary}`} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
+        <span>
+          <span className={styles.amount}>{formatMoney(fr.amount, fr.currency)}</span>
+          <span className={styles.meta}>
+            Requested {created ? created.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : ""}
+            {paidAt ? ` · paid ${paidAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+          </span>
+        </span>
+        <span className={styles.right}>
+          <span className={`ft-chip ${status.chip}`}>{status.label}</span>
+          <svg className={open ? styles.chevronUp : ""} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
+      </button>
 
-      <div className={showDropdown ? styles.showdropdown : styles.hidedropdown}>
-        <div className="d-flex align-items-center mb-4">
-          <div className="w-50">
-            <h2 className={styles.bold}>Amount</h2>
-            <p className="text-small mb-0">
-              {" "}
-              {fundingRequest?.amount} {fundingRequest?.currency}
-            </p>
-          </div>
-        </div>
-        <div className="mb-4">
-          <h2 className={styles.bold}>Purpose of Funding</h2>
-          <p className="text-small mb-0" style={{ whiteSpace: "pre-wrap" }}>
-            {fundingRequest?.purposeOfFunding}
-          </p>
-        </div>
-        <div>
-          <h2 className={styles.bold}>Proof of Funding</h2>
-          <div className={styles.image__div}>
-            <img src={fundingRequest?.proofOfFunding} alt="" />
-          </div>
-        </div>
-        {/* */}
-        {fundingRequest?.declineReason && fundingRequest?.declineReason != "" && (
-          <div className="mt-5">
-            <h2 className={styles.bold}>Reason for decline</h2>
-            <p className="text-small mb-0" style={{ whiteSpace: "pre-wrap" }}>
-              {fundingRequest?.declineReason}
-            </p>
+      <div id={panelId} hidden={!open} className={styles.panel}>
+        <dl>
+          <dt>What it&apos;s for</dt>
+          <dd style={{ whiteSpace: "pre-wrap" }}>{fr.purposeOfFunding || "—"}</dd>
+          {fr.proofOfFunding && (
+            <>
+              <dt>Supporting document</dt>
+              <dd>
+                <a href={fr.proofOfFunding} target="_blank" rel="noopener noreferrer" className={styles.proof}>
+                  <img src={fr.proofOfFunding} alt="Supporting document for this request" />
+                </a>
+              </dd>
+            </>
+          )}
+          {fr.declineReason && (
+            <>
+              <dt>Why it was declined</dt>
+              <dd style={{ whiteSpace: "pre-wrap" }}>{fr.declineReason}</dd>
+            </>
+          )}
+        </dl>
+
+        {owner && !admin && fr.status === "Approved" && paidAt && (
+          <div className={styles.upload}>
+            <h3>Proof of spend</h3>
+            <p>Add the receipt or invoice for this payout. A receipt captured live with your camera is sealed and marked “captured live” for donors; it raises your Transparency Score.</p>
+            <ReceiptUpload fundingRequestId={fr._id} campaignId={fr.campaignId ? String(fr.campaignId) : undefined} existingReceipt={fr.disbursement?.receipt} overdue={overdue} />
           </div>
         )}
-        {admin && fundingRequest?.status == "Pending" && (
-          <div className="d-flex align-items-center mt-4">
-            <button
-              className={styles.acceptbutton}
-              onClick={() => setApproveModal(true)}
-            >
+
+        {admin && fr.status === "Pending" && (
+          <div className="d-flex align-items-center mt-3" style={{ gap: 12 }}>
+            <button type="button" className="ft-btn ft-btn--primary ft-btn--sm" onClick={() => setApproveModal(true)}>
               Approve
             </button>
-            <button
-              className={styles.deletebutton}
-              onClick={() => setDeclineModal(true)}
-            >
+            <button type="button" className="ft-btn ft-btn--secondary ft-btn--sm" onClick={() => setDeclineModal(true)}>
               Decline
             </button>
           </div>
         )}
       </div>
-      <ApproveCampaignModal
-        showModal={approveModal}
-        fundingRequest={fundingRequest}
-        reload={() => reload()}
-        onModalClose={() => setApproveModal(false)}
-      />
-      <DeclineCampaignModal
-        showModal={declineModal}
-        organizer={campaignDetail?.organizer}
-        organizerId={fundingRequest?.organizerId}
-        id={fundingRequest._id}
-        reload={() => reload()}
-        onModalClose={() => setDeclineModal(false)}
-      />
+
+      {admin && (
+        <>
+          <ApproveCampaignModal showModal={approveModal} fundingRequest={fundingRequest} reload={() => reload()} onModalClose={() => setApproveModal(false)} />
+          <DeclineCampaignModal
+            showModal={declineModal}
+            organizer={campaignDetail?.organizer}
+            organizerId={fr.organizerId}
+            id={fr._id}
+            reload={() => reload()}
+            onModalClose={() => setDeclineModal(false)}
+          />
+        </>
+      )}
     </div>
   );
 }

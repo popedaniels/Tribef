@@ -6,8 +6,9 @@ import { useState } from "react";
 import styled from "styled-components";
 import { toast } from "../../../store/slices/ToastSlice";
 import Spinner from "../../components/composed/spinner/Spinner";
-import ForgotPasswordLayout from "../ForgotPassword/ForgotPasswordLayout";
+import ForgotPasswordLayout from "../../layouts/ForgotPasswordLayout";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function VerifyEmail() {
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ export default function VerifyEmail() {
     setLoading(true);
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/auth/signup/verifyEmail/" +
           email
       );

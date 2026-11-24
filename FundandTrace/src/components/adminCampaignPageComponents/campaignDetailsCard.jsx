@@ -1,11 +1,11 @@
 import Link from "next/link";
 import React from "react";
 import styled from "styled-components";
-import { addCommaToNumber } from "../helperFunctions/helperFunctions";
+import { addCommaToNumber, currencyPrefix } from "../helperFunctions/helperFunctions";
 
 export default function CampaignDetailsCard({ campaign, index }) {
   return (
-    <Link href={`/admin/campaign/${campaign?._id}`} passHref>
+    <Link href={`/admin/campaign/${campaign?._id}`} passHref legacyBehavior>
       <Wrapper
         className="d-flex"
         style={{
@@ -33,6 +33,23 @@ export default function CampaignDetailsCard({ campaign, index }) {
             {campaign?.basicInformation?.campaignTitle?.substring(0, 30)}
             {campaign?.basicInformation?.campaignTitle?.length > 30 && "..."}
           </p>
+          {campaign?.riskAssessment?.level && campaign.riskAssessment.level !== "low" && (
+            <span
+              title={(campaign.riskAssessment.reasons || []).join("\n")}
+              style={{
+                display: "inline-block",
+                marginTop: 4,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "1px 8px",
+                borderRadius: 999,
+                background: campaign.riskAssessment.level === "high" ? "#fee2e2" : "#fef3c7",
+                color: campaign.riskAssessment.level === "high" ? "#991b1b" : "#92400e",
+              }}
+            >
+              {campaign.riskAssessment.level === "high" ? "High" : "Medium"} risk · {campaign.riskAssessment.score}
+            </span>
+          )}
         </div>
         <div className="category mx-3" style={{ width: 110 }}>
           <p className="mb-0 text-capitalize">{campaign?.category}</p>
@@ -42,21 +59,13 @@ export default function CampaignDetailsCard({ campaign, index }) {
         </div>
         <div className="ending mx-3" style={{ width: 110 }}>
           <p className="mb-0">
-            {campaign?.funding?.currency == "USD"
-              ? "$"
-              : campaign?.funding?.currency == "GBP"
-              ? "£"
-              : "₦"}
+            {currencyPrefix(campaign?.funding?.currency)}
             {addCommaToNumber(campaign?.funding?.availableBalance)}
           </p>
         </div>
         <div className="raised mx-3" style={{ width: 110 }}>
           <p className="mb-0">
-            {campaign?.funding?.currency == "USD"
-              ? "$"
-              : campaign?.funding?.currency == "GBP"
-              ? "£"
-              : "₦"}
+            {currencyPrefix(campaign?.funding?.currency)}
             {addCommaToNumber(campaign?.funding?.amountRaised)}
           </p>
         </div>

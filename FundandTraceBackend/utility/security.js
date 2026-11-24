@@ -14,6 +14,20 @@ let anonymousLimiterSeq = 0;
 //
 // passOnStoreError keeps the API available if Redis is briefly unreachable —
 // a missed throttle is preferable to a full outage.
+// Payment-provider webhooks are signed and come from a handful of provider
+// IPs; rate-limiting them per IP would drop real payments on a busy day
+// (and providers only retry for a limited time).
+const WEBHOOK_PATHS = new Set([
+  "/api/donations/stripe-webhook",
+  "/api/donations/flutterwave-webhook",
+  "/api/donations/paystack-webhook",
+  "/api/identity/webhook",
+  "/api/stripeConnect/webhook",
+]);
+exports.WEBHOOK_PATHS = WEBHOOK_PATHS;
+const isWebhook = (req) => WEBHOOK_PATHS.has(String(req.originalUrl || req.url || "").split("?")[0]);
+exports.isWebhook = isWebhook;
+
 exports.rateLimiter = (options = {}) => {
   const windowMs = options.windowMs ?? 15 * 60 * 1000;
   const max = options.max ?? 100;
@@ -26,14 +40,24 @@ exports.rateLimiter = (options = {}) => {
     standardHeaders: "draft-6",
     legacyHeaders: false,
     passOnStoreError: true,
-    handler: (req, res) => {
-      res.status(429).json({
-        success: false,
-        status: 429,
-        error: "Too many requests. Please try again later.",
-      });
-    },
+    // RATE_LIMIT_DISABLED is for load tests only and is ignored in production.
+    skip: (req) =>
+      isWebhook(req) ||
+      (process.env.RATE_LIMIT_DISABLED === "true" && process.env.NODE_ENV !== "production") ||
+      Boolean(options.skip && options.skip(req)),
+    handler:
+      options.handler ||
+      ((req, res) => {
+        res.status(429).json({
+          success: false,
+          status: 429,
+          error: options.message || "Too many requests. Please try again later.",
+        });
+      }),
   };
+  // Custom keys (e.g. per donor email). IP keys keep the library default,
+  // which handles IPv6 subnets correctly.
+  if (options.keyGenerator) config.keyGenerator = options.keyGenerator;
 
   if (redis) {
     config.store = new RedisStore({
@@ -112,12 +136,10 @@ exports.csrfOriginGuard = (allowedOrigins) => {
 
 // Remove operator keys from mutation payloads before they reach Mongo queries.
 exports.sanitizeInput = (req, res, next) => {
-  if (
-    ["POST", "PUT", "PATCH"].includes(req.method) &&
-    req.body &&
-    !Buffer.isBuffer(req.body)
-  ) {
-    const sanitize = (value) => {
+  // Webhook bodies are verified against the provider's signature and must
+  // reach the handler exactly as sent.
+  if (isWebhook(req)) return next();
+  const sanitize = (value) => {
       if (!value || typeof value !== "object") return;
 
       Object.keys(value).forEach((key) => {
@@ -129,7 +151,9 @@ exports.sanitizeInput = (req, res, next) => {
       });
     };
 
-    sanitize(req.body);
-  }
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && req.body && !Buffer.isBuffer(req.body)) sanitize(req.body);
+  // Defence in depth: the "simple" query parser yields no objects, but strip
+  // operator-looking keys from the query as well.
+  if (req.query && typeof req.query === "object") sanitize(req.query);
   next();
 };

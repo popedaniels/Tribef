@@ -1,4 +1,8 @@
 .container {
+  // Always exactly the viewport's width. Without this, the absolutely
+  // positioned bar could lay out wider than a phone screen on first paint and
+  // the browser kept the page 6px wide enough to scroll sideways.
+  width: 100% !important;
   padding-top: 16px;
   padding-bottom: 16px;
   z-index: 1000;
@@ -366,6 +370,13 @@
         font-weight: 600;
         color: var(--color-text-heading);
         border-radius: 4px;
+        /* The whole row is the tap target, not just the words. */
+        > a,
+        > button {
+          display: block;
+          margin: -12px -16px;
+          padding: 12px 16px;
+        }
 
         &:hover {
           background: #f0f3ff;

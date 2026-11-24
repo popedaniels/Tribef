@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import styled from "styled-components";
 import { toast } from "../../../store/slices/ToastSlice";
 import Spinner from "../composed/spinner/Spinner";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function HoldingPageFooter() {
   const dispatch = useDispatch();
@@ -16,7 +17,7 @@ export default function HoldingPageFooter() {
     setLoading(true);
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/waitlist/" + email
+        getApiBaseUrl() + "/api/waitlist/" + email
       );
       res && dispatch(toast(true, res?.data?.message, "success"));
       res && setLoading(false);
@@ -103,38 +104,54 @@ export default function HoldingPageFooter() {
           <div className="links d-flex justify-content-between">
             <nav className="d-flex flex-column">
               <h6 className="mb-4 text-white">Company</h6>
-              <Link href="/terms" passHref>
-                <a target="_blank" className="mb-3">
+              <Link href="/terms" passHref target="_blank" className="mb-3">
+                
                   Terms
-                </a>
+                
               </Link>
-              <Link href="/privacy" passHref>
-                <a target="_blank" className="mb-3">
+              <Link href="/privacy" passHref target="_blank" className="mb-3">
+                
                   Privacy
-                </a>
+                
               </Link>
             </nav>
             <nav className="d-flex flex-column">
               <h6 className="mb-4 text-white">Follow Us</h6>
-              <Link href="https://twitter.com/fundandtrace" passHref>
-                <a target="_blank" className="mb-3">
+              <Link
+                href="https://twitter.com/fundandtrace"
+                passHref
+                target="_blank"
+                className="mb-3">
+                
                   Twitter
-                </a>
+                
               </Link>
-              <Link href="https://linkedIn.com/company/fundandtrace" passHref>
-                <a target="_blank" className="mb-3">
+              <Link
+                href="https://linkedIn.com/company/fundandtrace"
+                passHref
+                target="_blank"
+                className="mb-3">
+                
                   LinkedIn
-                </a>
+                
               </Link>
-              <Link href="https://facebook.com/fundandtrace" passHref>
-                <a target="_blank" className="mb-3">
+              <Link
+                href="https://facebook.com/fundandtrace"
+                passHref
+                target="_blank"
+                className="mb-3">
+                
                   Facebook
-                </a>
+                
               </Link>
-              <Link href="https://instagram.com/fundandtrace" passHref>
-                <a target="_blank" className="mb-3">
+              <Link
+                href="https://instagram.com/fundandtrace"
+                passHref
+                target="_blank"
+                className="mb-3">
+                
                   Instagram
-                </a>
+                
               </Link>
             </nav>
           </div>

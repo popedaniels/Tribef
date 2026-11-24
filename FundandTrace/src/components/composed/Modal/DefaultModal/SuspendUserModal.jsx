@@ -7,6 +7,7 @@ import { toast } from "../../../../../store/slices/ToastSlice";
 import { useDispatch } from "react-redux";
 import { config } from "../../../helperFunctions/helperFunctions";
 import Spinner from "../../spinner/Spinner";
+import { getApiBaseUrl } from "../../../../utils/api";
 
 export default function SuspendUserModal({ onModalClose, showModal, profile }) {
   const [step, setStep] = useState(1);
@@ -18,7 +19,7 @@ export default function SuspendUserModal({ onModalClose, showModal, profile }) {
     setLoading(true);
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/suspendUser/${profile._id}`,
+        `${getApiBaseUrl()}/api/admin/suspendUser/${profile._id}`,
         {
           profile,
           message,

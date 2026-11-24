@@ -1,142 +1,71 @@
 const mongoose = require("mongoose");
 const { Campaign } = require("../models/campaignModel");
 const { Donations } = require("../models/donationsModel");
-const stripe = process.env.STRIPESECRET
-  ? require("stripe")(process.env.STRIPESECRET)
-  : null;
 const logger = require("../utility/logger");
 
+const { refundDonation, proRataRefundCampaign, RefundError } = require("../services/refunds");
+const { recordAdminAction } = require("../services/activityLog");
+
+const actorOf = (req) => ({
+  id: req.admin?._id,
+  name: req.admin ? `${req.admin.firstName || ""} ${req.admin.lastName || ""}`.trim() || "Admin" : "Admin",
+});
+
+const sendRefundError = (res, err) => {
+  if (err instanceof RefundError) {
+    return res.status(err.status).json({ status: err.status, code: err.code, error: err.message });
+  }
+  logger.error({ err });
+  return res.status(500).json({ status: 500, error: "Server error." });
+};
+
+// Route name kept for compatibility; now refunds Stripe, Flutterwave and
+// Paystack donations through the guarded refund pipeline.
 exports.stripeRefund = async (req, res) => {
   try {
-    if (!req.auth) {
-      return res.status(401).json({ status: 401, error: "Unauthorized" });
-    }
-    if (!stripe) {
-      return res.status(503).json({ status: 503, error: "Stripe is not configured" });
-    }
     const { campaignId, donationId } = req.params;
     if (
-      !campaignId ||
-      !donationId ||
-      !mongoose.Types.ObjectId.isValid(campaignId) ||
-      !mongoose.Types.ObjectId.isValid(donationId)
+      !mongoose.Types.ObjectId.isValid(String(campaignId || "")) ||
+      !mongoose.Types.ObjectId.isValid(String(donationId || ""))
     ) {
       return res.status(400).json({ status: 400, error: "Invalid ID" });
     }
-    const campaign = await Campaign.findById(campaignId).maxTimeMS(3000);
-    const donation = await Donations.findOne({
-      _id: donationId,
-      campaignId: campaignId,
-      paymentMethod: "Stripe",
-    }).maxTimeMS(3000);
-
-    if (!campaign || !donation || !donation.paymentId) {
+    const donation = await Donations.findOne({ _id: donationId, campaignId }).select("_id").maxTimeMS(3000);
+    if (!donation) {
       return res.status(404).json({ status: 404, error: "Donation not found" });
     }
-
-    if (donation.refund.status === "succeeded") {
-      return res
-        .status(422)
-        .json({ status: 422, error: "Refund already made." });
-    }
-
-    const refund = await stripe.refunds.create({
-      payment_intent: donation.paymentId,
+    const result = await refundDonation({
+      donationId,
+      requestedBy: "admin",
+      actor: actorOf(req),
+      reason: String(req.body?.reason || "Refunded by admin"),
     });
-    donation.refund.amount = refund.amount / 100;
-    donation.refund.status = refund.status;
-    donation.refund.adminId = req.admin?._id;
-    donation.refund.refundId = refund.id;
-    donation.refund.createdAt = Date.now();
-    donation.refund.adminName = req.admin
-      ? `${req.admin.firstName} ${req.admin.lastName}`
-      : "Admin";
-    await donation.save();
-    await Campaign.updateOne(
-      { _id: campaign._id },
-      {
-        $inc: {
-          "funding.amountRaised": -Number(donation.amount),
-          "funding.availableBalance": -Number(donation.amount),
-        },
-      }
-    ).maxTimeMS(3000);
-    return res.status(200).json({
-      status: 200,
-      message: "Refund successfully created.",
-    });
+    recordAdminAction(req, "refundDonation", { targetType: "donation", targetId: donationId, campaignId, details: result });
+    return res.status(200).json({ status: 200, message: "Refund created.", data: result });
   } catch (error) {
-    logger.error({ err: error });
-    return res.status(500).json({ status: 500, error: "Server error." });
+    return sendRefundError(res, error);
   }
 };
 
+// Refund everything still in escrow, pro-rata (see services/refunds.js).
 exports.stripeRefundBatch = async (req, res) => {
   try {
-    if (!req.auth) {
-      return res.status(401).json({ status: 401, error: "Unauthorized" });
-    }
-    if (!stripe) {
-      return res.status(503).json({ status: 503, error: "Stripe is not configured" });
-    }
     const { campaignId } = req.params;
-    if (!campaignId || !mongoose.Types.ObjectId.isValid(campaignId)) {
+    if (!mongoose.Types.ObjectId.isValid(String(campaignId || ""))) {
       return res.status(400).json({ status: 400, error: "Invalid Campaign ID" });
     }
-    const campaign = await Campaign.findById(campaignId).maxTimeMS(3000);
-
-    if (!campaign) {
-      return res.status(404).json({ status: 404, error: "Campaign not found" });
-    }
-    const donations = await Donations.find({
-      campaignId: campaignId,
-      paymentMethod: "Stripe",
-    }).maxTimeMS(3000);
-    if (campaign.funding.refunded) {
-      return res.status(422).json({ status: 422, error: "Funds already made" });
-    }
-
-    if (donations.length) {
-      let totalRefunded = 0;
-      for (const donation of donations) {
-        if (donation.refund.status === "succeeded" || !donation.paymentId) continue;
-
-        const refund = await stripe.refunds.create({
-          payment_intent: donation.paymentId,
-        });
-        donation.refund.amount = refund.amount / 100;
-        donation.refund.status = refund.status;
-        donation.refund.adminId = req.admin?._id;
-        donation.refund.refundId = refund.id;
-        donation.refund.createdAt = Date.now();
-        donation.refund.adminName = req.admin
-          ? `${req.admin.firstName} ${req.admin.lastName}`
-          : "Admin";
-        await donation.save();
-        totalRefunded += Number(donation.amount);
-      }
-
-      await Campaign.updateOne(
-        { _id: campaign._id },
-        {
-          $set: { "funding.refunded": true },
-          $inc: {
-            "funding.amountRaised": -totalRefunded,
-            "funding.availableBalance": -totalRefunded,
-          },
-        }
-      ).maxTimeMS(3000);
-    } else {
-      return res.status(422).json({ status: 422, error: "No donations" });
-    }
-
-    return res.status(200).json({
-      status: 200,
-      message: "Refunds successfully created.",
+    const summary = await proRataRefundCampaign(campaignId, {
+      requestedBy: "admin",
+      actor: actorOf(req),
+      reason: String(req.body?.reason || "Campaign refunded by admin"),
     });
+    recordAdminAction(req, "refundCampaign", { targetType: "campaign", targetId: campaignId, campaignId, details: { totalRefunded: summary.totalRefunded, failed: summary.failed.length } });
+    if (!summary.refunded.length && !summary.failed.length) {
+      return res.status(422).json({ status: 422, error: "Nothing left in escrow to refund" });
+    }
+    return res.status(summary.failed.length ? 207 : 200).json({ status: summary.failed.length ? 207 : 200, data: summary });
   } catch (error) {
-    logger.error({ err: error });
-    return res.status(500).json({ status: 500, error: "Server error." });
+    return sendRefundError(res, error);
   }
 };
 

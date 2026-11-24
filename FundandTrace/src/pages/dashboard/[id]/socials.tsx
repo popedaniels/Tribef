@@ -1,405 +1,177 @@
 import axios from "axios";
 import type { GetServerSidePropsContext } from "next";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import styled from "styled-components";
+import { useCallback, useEffect, useState } from "react";
+import { useAppDispatch } from "../../../../store/hooks";
 import type { Campaign } from "../../../types/campaign";
-import CampaignDashboardLayout from "./campaignDashboardLayout";
+import CampaignDashboardLayout from "../../../layouts/CampaignDashboardLayout";
+import api, { getApiBaseUrl } from "../../../utils/api";
+import { whatsappShareUrl } from "../../../utils/share";
+import { formatMoney } from "../../../components/helperFunctions/helperFunctions";
+import { toast } from "../../../../store/slices/ToastSlice";
+import styles from "../../../components/campaignPage/SharePage.module.scss";
 
 interface SocialsProps {
   campaign: Campaign | null;
   campaignId: GetServerSidePropsContext["query"]["id"];
 }
+type Team = { id: string; name: string; slug: string; captainName?: string; raised: number; donations: number };
+
+const SITE = "https://fundandtrace.com";
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
-    const campaigndata = await axios.get(
-    process.env.NEXT_PUBLIC_API_URL + "/api/campaigns/campaign/" + campaignId
-  );
-    const campaign = campaigndata?.data?.data;
-
-    return {
-      props: { campaign, campaignId },
-    };
+    const res = await axios.get(`${getApiBaseUrl()}/api/campaigns/campaign/${campaignId}`, { timeout: 4000 });
+    return { props: { campaign: res?.data?.data || null, campaignId } };
   } catch {
     return { props: { campaign: null, campaignId } };
   }
-};
+}
 
 export default function Socials({ campaign, campaignId }: SocialsProps) {
-  return (
-    <CampaignDashboardLayout
-      active={3}
-      campaignId={campaignId}
-      title={campaign?.basicInformation?.campaignTitle}
-      page="Socials"
-    >
-      <div className="bg-white mb-3">
-        <nav className="custom mx-auto" style={{ maxWidth: 1140 }}>
-          <p className="text-blue mb-0">
-            {campaign?.basicInformation?.campaignTitle} / SOCIALS
-          </p>
+  const dispatch = useAppDispatch();
+  const id = String(campaignId || "");
+  const title = campaign?.basicInformation?.campaignTitle || "my campaign";
+  const currency = campaign?.funding?.currency || "USD";
+  const link = `${SITE}/campaign/${id}`;
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [name, setName] = useState("");
+  const [captain, setCaptain] = useState("");
+  const [busy, setBusy] = useState(false);
 
-          <button className="btn text-white d-none d-md-block">
-            Boost your Campaign!
-          </button>
-        </nav>
+  const loadTeams = useCallback(() => {
+    api.get(`/api/giving/campaign/${id}`).then((r) => setTeams(r.data?.data?.teams || [])).catch(() => {});
+  }, [id]);
+  useEffect(loadTeams, [loadTeams]);
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      dispatch(toast(true, "Link copied", "success"));
+    } catch {
+      dispatch(toast(true, "Couldn't copy. Select the link and copy it instead.", "error"));
+    }
+  };
+
+  const addTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim().length < 2) return;
+    setBusy(true);
+    try {
+      await api.post(`/api/giving/campaign/${id}/teams`, { name: name.trim(), captainName: captain.trim() });
+      setName("");
+      setCaptain("");
+      loadTeams();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      dispatch(toast(true, msg || "Couldn't create the team.", "error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeTeam = async (t: Team) => {
+    try {
+      await api.delete(`/api/giving/campaign/${id}/teams/${t.id}`);
+      loadTeams();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      dispatch(toast(true, msg || "Couldn't delete the team.", "error"));
+    }
+  };
+
+  const enc = encodeURIComponent;
+  const shares = [
+    { label: "WhatsApp", href: whatsappShareUrl({ title, url: `${link}?ref=wa`, raised: Number(campaign?.funding?.amountRaised) || 0, goal: Number(campaign?.funding?.amountExpected) || 0, currency }) },
+    { label: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${enc(`${link}?ref=fb`)}` },
+    { label: "X", href: `https://x.com/intent/post?text=${enc(`Please support "${title}"`)}&url=${enc(`${link}?ref=x`)}` },
+    { label: "LinkedIn", href: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(`${link}?ref=li`)}` },
+  ];
+
+  return (
+    <CampaignDashboardLayout active={3} campaignId={campaignId} title={title} page="Share">
+      <div className={styles.page}>
+        <section className={styles.card} aria-labelledby="share-heading">
+          <h2 id="share-heading">Share your campaign</h2>
+          <p className="ft-muted">This is the preview people see when you share the link. It updates as donations come in.</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className={styles.preview} src={`/api/og/campaign/${id}`} alt={`Share preview for ${title}`} width={1200} height={630} loading="lazy" />
+          <div className={styles.buttons}>
+            {shares.map((s) => (
+              <a key={s.label} className={`ft-btn ${s.label === "WhatsApp" ? styles.wa : "ft-btn--secondary"}`} href={s.href} target="_blank" rel="noopener noreferrer">
+                {s.label}
+              </a>
+            ))}
+          </div>
+          <div className={styles.linkRow}>
+            <input readOnly value={link} aria-label="Campaign link" onFocus={(e) => e.currentTarget.select()} />
+            <button type="button" className="ft-btn ft-btn--primary" onClick={() => copy(link)}>
+              Copy link
+            </button>
+          </div>
+        </section>
+
+        <section className={styles.card} aria-labelledby="teams-heading">
+          <h2 id="teams-heading">Fundraising teams</h2>
+          <p className="ft-muted">
+            Let supporters fundraise as a team, such as a running club, a church or an office. Each team gets its own link, donations are credited to it, and a leaderboard shows on your
+            campaign page.
+          </p>
+          <form className={styles.teamForm} onSubmit={addTeam}>
+            <label>
+              <span>Team name</span>
+              <input className="form-control" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} placeholder="e.g. Kaduna Runners" />
+            </label>
+            <label>
+              <span>
+                Captain <span className="ft-muted">(optional)</span>
+              </span>
+              <input className="form-control" value={captain} maxLength={60} onChange={(e) => setCaptain(e.target.value)} />
+            </label>
+            <button type="submit" className="ft-btn ft-btn--primary" disabled={busy || name.trim().length < 2}>
+              {busy ? "Adding…" : "Add team"}
+            </button>
+          </form>
+          {teams.length > 0 ? (
+            <ul className={styles.teams}>
+              {teams.map((t) => {
+                const teamLink = `${SITE}/donate/${id}?team=${t.slug}`;
+                return (
+                  <li key={t.id}>
+                    <div>
+                      <strong>{t.name}</strong>
+                      <span className="ft-muted">
+                        {" "}
+                        · {formatMoney(t.raised, currency)} from {t.donations} donation{t.donations === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    <div className={styles.teamActions}>
+                      <button type="button" className="ft-btn ft-btn--secondary" onClick={() => copy(teamLink)}>
+                        Copy team link
+                      </button>
+                      {t.donations === 0 && (
+                        <button type="button" className="ft-btn ft-btn--quiet" onClick={() => removeTeam(t)}>
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="ft-muted mb-0">No teams yet.</p>
+          )}
+        </section>
+
+        <section className={styles.card} aria-labelledby="match-heading">
+          <h2 id="match-heading">Matched giving</h2>
+          <p className="ft-muted mb-0">
+            Have a business or donor willing to match gifts? Email <a href="mailto:support@fundandtrace.com">support@fundandtrace.com</a> with their details. We confirm the sponsor before the
+            &quot;matched&quot; banner goes live, so donors can trust it.
+          </p>
+        </section>
       </div>
-      {/* <button className="btn text-white d-md-none d-block mx-auto my-4">
-        Boost your Campaign!
-      </button> */}
-      <Wrapper
-        className="d-flex flex-column flex-md-row mx-auto custom justify-content-between"
-        style={{ maxWidth: 1140 }}
-      >
-        <div className="left">
-          <p className="text-small">Post Your Campaign</p>
-          <div className="d-flex align-items-center mb-5">
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href={`https://www.facebook.com/sharer/sharer.php?u=https://fundandtrace.com/campaign/${
-                campaign?._id
-              }?title=${campaign?.basicInformation?.campaignTitle
-                ?.split(" ")
-                .join("")}`}
-            >
-              <div className="d-flex flex-column align-items-center mr-4">
-                <img
-                  src="/images/icons/facebook2.svg"
-                  width={20}
-                  height={32}
-                  alt="socialMedia Icons"
-                />
-              </div>
-            </a>
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href={`https://twitter.com/intent/tweet?text=Please Donate to this cause - https://fundandtrace.com/campaign/${
-                campaign?._id
-              }?title=${campaign?.basicInformation?.campaignTitle
-                ?.split(" ")
-                .join("")}`}
-            >
-              <div className="d-flex flex-column align-items-center mr-4">
-                <img
-                  src="/images/icons/twitter2.svg"
-                  width={20}
-                  height={32}
-                  alt="socialMedia Icons"
-                />
-              </div>
-            </a>
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href={`https://api.whatsapp.com/send?text=Please Donate to this cause - https://fundandtrace.com/campaign/${
-                campaign?._id
-              }?title=${campaign?.basicInformation?.campaignTitle
-                ?.split(" ")
-                .join("")}`}
-            >
-              <div className="d-flex flex-column align-items-center mr-4">
-                <img
-                  src="/images/icons/whatsapp.svg"
-                  width={20}
-                  height={32}
-                  alt="socialMedia Icons"
-                />
-              </div>
-            </a>
-          </div>
-          <div className="mb-4">
-            <h2 className="text-medium-heading mb-3">
-              Share Your Campaign URL
-            </h2>
-            <p className="mb-3">Share this link to your friends!</p>
-          </div>
-          <div className="d-flex shareDiv mb-5">
-            <div className="d-flex align-items-center justify-content-center shareBtn">
-              <img src="/images/icons/exportblack.svg" alt="" />
-            </div>
-            <input
-              type="text"
-              className="w-100"
-              value={`https:fundandtrace.com/campaign/${campaignId}`}
-              disabled
-            />
-          </div>
-          {/* <div className="bg-white" style={{ borderRadius: 10 }}>
-            <img src="/images/graph2.png" width="100%" alt="" />
-          </div> */}
-        </div>
-        <div className="right bg-white">
-          <div className="right-stats">
-            <div className="d-flex justify-content-between mb-5">
-              <div>
-                <h6 className="mb-3">Views</h6>
-                <p className="text-small mb-0">
-                  Times people saw this campaign
-                </p>
-              </div>
-              <div className="d-flex justify-content-end">
-                <h2 className="text-medium-heading">3000</h2>
-              </div>
-            </div>
-            <div className="d-flex justify-content-between mb-5">
-              <div>
-                <h6 className="mb-3">Share</h6>
-                <p className="text-small mb-0">
-                  Times your campaign was shared
-                </p>
-              </div>
-              <div className="d-flex justify-content-end">
-                <h2 className="text-medium-heading">1000</h2>
-              </div>
-            </div>
-            <div className="d-flex justify-content-between">
-              <div>
-                <h6 className="mb-3">Impressions</h6>
-                <p className="text-small mb-0">
-                  Times people engaged your campaign
-                </p>
-              </div>
-              <div className="d-flex justify-content-end">
-                <h2 className="text-medium-heading mb-0">4000</h2>
-              </div>
-            </div>
-          </div>
-          {/* <div className="right-posts d-md-block d-none">
-            <h6 className="mb-4">Recent Posts</h6>
-            <div>
-              <img
-                src="/images/icons/facebook2.svg"
-                width="24px"
-                height="24px"
-                alt="facebookIcon"
-              />
-              <div className="d-flex justify-content-between mb-4 mt-3">
-                <div className="d-flex align-items-center ">
-                  <img
-                    src="https://res.cloudinary.com/wisdomosara/image/upload/v1622836169/family.png"
-                    className="profilepic"
-                    alt="profilePic"
-                  />
-                  <div>
-                    <h6>Daniel Momoh</h6>
-                    <p className="mb-0 text-small">13 hours ago</p>
-                  </div>
-                </div>
-                <div className="d-flex justify-content-end">
-                  <img
-                    src="/images/icons/exportblue.svg"
-                    width="24px"
-                    height="24px"
-                    alt="exporticon"
-                  />
-                </div>
-              </div>
-              <p className="text-small">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Non
-                tempor, et euismod lorem enim. Pellentesque arcu odio eu
-                ultricies congue adipiscing congue. Sit cursus viverra sed
-                imperdiet augue volutpat nibh. Amet egestas in...
-              </p>
-            </div>
-            <div className="mt-4">
-              <img
-                src="/images/icons/twitter2.svg"
-                width="24px"
-                height="24px"
-                alt="twitter Icon"
-              />
-              <div className="d-flex justify-content-between mb-4 mt-3">
-                <div className="d-flex align-items-center ">
-                  <img
-                    src="https://res.cloudinary.com/wisdomosara/image/upload/v1622836169/family.png"
-                    className="profilepic"
-                    alt="profilePic"
-                  />
-                  <div>
-                    <h6>Daniel Momoh</h6>
-                    <p className="mb-0 text-small">13 hours ago</p>
-                  </div>
-                </div>
-                <div className="d-flex justify-content-end">
-                  <img
-                    src="/images/icons/exportblue.svg"
-                    width="24px"
-                    height="24px"
-                    alt="export Icon"
-                  />
-                </div>
-              </div>
-              <p className="text-small">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Non
-                tempor, et euismod lorem enim. Pellentesque arcu odio eu
-                ultricies congue adipiscing congue. Sit cursus viverra sed
-                imperdiet augue volutpat nibh. Amet egestas in...
-              </p>
-            </div>
-          </div> */}
-        </div>
-        {/* <div className="right-posts d-md-none d-block">
-          <h6 className="mb-4">Recent Posts</h6>
-          <div>
-            <img
-              src="/images/icons/facebook2.svg"
-              width="24px"
-              height="24px"
-              alt="facebook Icon"
-            />
-            <div className="d-flex justify-content-between mb-4 mt-3">
-              <div className="d-flex align-items-center ">
-                <img
-                  src="https://res.cloudinary.com/wisdomosara/image/upload/v1622836169/family.png"
-                  className="profilepic"
-                  alt="profile pic"
-                />
-                <div>
-                  <h6>Daniel Momoh</h6>
-                  <p className="mb-0 text-small">13 hours ago</p>
-                </div>
-              </div>
-              <div className="d-flex justify-content-end">
-                <img
-                  src="/images/icons/exportblue.svg"
-                  width="24px"
-                  height="24px"
-                  alt="export ICon"
-                />
-              </div>
-            </div>
-            <p className="text-small">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Non
-              tempor, et euismod lorem enim. Pellentesque arcu odio eu ultricies
-              congue adipiscing congue. Sit cursus viverra sed imperdiet augue
-              volutpat nibh. Amet egestas in...
-            </p>
-          </div>
-          <div className="mt-4">
-            <img
-              src="/images/icons/twitter2.svg"
-              width="24px"
-              height="24px"
-              alt="twitter Icon"
-            />
-            <div className="d-flex justify-content-between mb-4 mt-3">
-              <div className="d-flex align-items-center ">
-                <img
-                  src="https://res.cloudinary.com/wisdomosara/image/upload/v1622836169/family.png"
-                  className="profilepic"
-                  alt="profile pIc"
-                />
-                <div>
-                  <h6>Daniel Momoh</h6>
-                  <p className="mb-0 text-small">13 hours ago</p>
-                </div>
-              </div>
-              <div className="d-flex justify-content-end">
-                <img
-                  src="/images/icons/exportblue.svg"
-                  width="24px"
-                  height="24px"
-                  alt="export Icon"
-                />
-              </div>
-            </div>
-            <p className="text-small">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Non
-              tempor, et euismod lorem enim. Pellentesque arcu odio eu ultricies
-              congue adipiscing congue. Sit cursus viverra sed imperdiet augue
-              volutpat nibh. Amet egestas in...
-            </p>
-          </div>
-        </div> */}
-      </Wrapper>
     </CampaignDashboardLayout>
   );
 }
-
-const Wrapper = styled.div`
-  @media screen and (max-width: 767px) {
-    margin-right: 15px !important;
-    margin-left: 15px !important;
-  }
-  .left {
-    @media screen and (max-width: 767px) {
-      order: 10;
-      width: 100%;
-      margin-right: 0px;
-      padding: 50px 0px;
-    }
-    width: 45%;
-    padding: 30px 0px;
-    @media screen and (min-width: 1024px) and (max-width: 1100px) {
-      padding: 30px 0px;
-    }
-    .shareDiv {
-      border: 1px solid #c4c4c4;
-      border-radius: 4px;
-      .shareBtn {
-        background: #f0f0f0;
-        box-sizing: border-box;
-        width: 64px;
-        height: 50px;
-        img {
-          width: 24px;
-          height: 24px;
-        }
-      }
-      input {
-        border-style: none;
-        padding: 10px 20px;
-        color: #b3b3b3;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 14px;
-        line-height: 24px;
-        /* identical to box height, or 171% */
-
-        opacity: 0.9;
-        &:disabled {
-          background: white !important;
-        }
-      }
-    }
-  }
-  .right {
-    width: 45%;
-    box-shadow: -2px 4px 48px rgba(50, 50, 71, 0.05),
-      2px 10px 24px rgba(50, 50, 71, 0.05);
-    @media screen and (max-width: 767px) {
-      order: 1;
-      width: 100%;
-      padding: 30px 15px;
-    }
-    padding: 30px;
-    .right-stats {
-      // border-bottom: 0.5px solid #b3b3b3;
-    }
-    .right-posts {
-      padding: 35px 0;
-      .profilepic {
-        width: 50px;
-        height: 50px;
-        object-fit: cover;
-        margin-right: 20px;
-      }
-    }
-  }
-  .right-posts {
-    @media screen and (max-width: 767px) {
-      order: 12;
-    }
-    padding: 35px 0;
-    .profilepic {
-      width: 50px;
-      height: 50px;
-      object-fit: cover;
-      margin-right: 20px;
-    }
-  }
-`;

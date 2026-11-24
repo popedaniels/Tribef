@@ -1,6 +1,7 @@
 import Link from "next/link";
 import React from "react";
 import styled from "styled-components";
+import { currencyPrefix } from "../helperFunctions/helperFunctions";
 
 export default function AdminFundingRequestDetailsCard({
   fundingRequest,
@@ -8,7 +9,10 @@ export default function AdminFundingRequestDetailsCard({
   index,
 }) {
   return (
-    <Link href={`/admin/fundingRequest/${fundingRequest?._id}`} passHref>
+    <Link
+      href={`/admin/fundingRequest/${fundingRequest?._id}`}
+      passHref
+      legacyBehavior>
       <Wrapper
         className="d-flex"
         style={{
@@ -46,11 +50,7 @@ export default function AdminFundingRequestDetailsCard({
         </div>
         <div className="raised mx-3" style={{ width: 150 }}>
           <p className="mb-0">
-            {fundingRequest?.currency == "USD"
-              ? "$"
-              : fundingRequest?.currency == "GBP"
-              ? "£"
-              : "₦"}
+            {currencyPrefix(fundingRequest?.currency)}
             {fundingRequest?.amount}
           </p>
         </div>

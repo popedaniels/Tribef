@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { objectIdParam } = require("../utility/validate");
 
 const adminController = require("../controller/admin");
 const adminUsersController = require("../controller/adminUsers");
@@ -7,8 +8,13 @@ const adminFundingRequestController = require("../controller/adminFundingRequest
 const adminRefundsController = require("../controller/adminRefunds");
 const { requireAdmin } = require("../utility/auth");
 
+// Reject malformed ObjectIds with 400 before any handler runs.
+router.param("id", objectIdParam("ID"));
+
 router.post("/login", adminController.adminLogin);
 router.use(requireAdmin);
+// Audit trail for every successful admin mutation (who, what, which record).
+router.use(require("../utility/adminAudit").auditAdminMutations);
 
 router.get("/overview", adminController.getOverviewDetails);
 router.get("/charts", adminController.getChartDetails);
@@ -27,6 +33,7 @@ router.get(
   "/fundingRequest/:id",
   adminFundingRequestController.getSingleFundingRequests
 );
+router.get("/fundingRequest/:id/review", adminFundingRequestController.reviewFundingRequest);
 router.patch(
   "/fundingRequest/approve/:id",
   adminFundingRequestController.approveFundingRequest
@@ -55,5 +62,52 @@ router.get(
   "/refunds/campaign/:query",
   adminRefundsController.getSingleCampaign
 );
+
+// Dispute resolution (unlock or pro-rata refund of the remaining escrow).
+const adminDisputes = require("../controller/adminDisputes");
+router.get("/disputes/frozen", adminDisputes.listFrozenCampaigns);
+
+// Operations: daily integrity checks, ledger anchors, scheduled job history.
+const adminOps = require("../controller/adminOps");
+router.get("/ops/status", adminOps.status);
+router.post("/ops/integrity/run", adminOps.runIntegrity);
+router.post("/disputes/:id/resolve", adminDisputes.resolveDispute);
+
+// Admin audit trail.
+// Matched giving and Gift Aid (controller/giving.js).
+const giving = require("../controller/giving");
+router.put("/campaigns/:id/matching", giving.setMatching);
+router.post("/campaigns/:id/matching/payments", giving.recordMatchPayment);
+router.put("/charities/:id/gift-aid", giving.setCharityGiftAid);
+router.get("/gift-aid/export", giving.giftAidExport);
+router.get("/metrics", giving.adminMetrics);
+
+// Gateway reconciliation reports (controller/adminReconciliation.js).
+const reconciliation = require("../controller/adminReconciliation");
+router.get("/reconciliation", reconciliation.list);
+router.post("/reconciliation/run", reconciliation.run);
+router.post("/reconciliation/:id/resolve", reconciliation.resolve);
+
+// Verified vendor network (controller/vendors.js).
+const vendors = require("../controller/vendors");
+router.get("/vendors", vendors.adminList);
+router.post("/vendors/:id/resolve-bank", vendors.adminResolveBank);
+router.post("/vendors/:id/review", vendors.adminReview);
+
+router.get("/audit", async (req, res) => {
+  try {
+    const { ActivityLog } = require("../models/activityLogModel");
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const filter = { type: /^admin:/ };
+    if (req.query.targetId) filter.targetId = String(req.query.targetId);
+    const [entries, count] = await Promise.all([
+      ActivityLog.find(filter).sort({ createdAt: -1 }).skip((page - 1) * 50).limit(50).maxTimeMS(3000),
+      ActivityLog.countDocuments(filter).maxTimeMS(3000),
+    ]);
+    return res.status(200).json({ data: { entries, count, page } });
+  } catch (error) {
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+});
 
 module.exports = router;

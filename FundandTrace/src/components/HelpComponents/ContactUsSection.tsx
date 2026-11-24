@@ -10,15 +10,15 @@ export default function ContactUsSection() {
       <div className="custom-container d-flex align-items-center justify-content-center flex-column">
         <h1 className="text-heading mb-4">Still can’t find what you need?</h1>
         <Link href="/contact" passHref>
-          <a>
-            <button
-              className={[
-                "d-flex align-items-center justify-content-center px-3 py-2 text-white btn rounded",
-              ].join(" ")}
-            >
-              <p className="mb-0">Contact Support</p>
-            </button>
-          </a>
+
+          <button
+            className={[
+              "d-flex align-items-center justify-content-center px-3 py-2 text-white btn rounded",
+            ].join(" ")}
+          >
+            <p className="mb-0">Contact Support</p>
+          </button>
+
         </Link>
       </div>
     </Wrapper>

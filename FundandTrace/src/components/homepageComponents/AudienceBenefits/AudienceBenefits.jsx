@@ -1,7 +1,6 @@
 import React from "react";
 import Link from "next/link";
 import { useSelector } from "react-redux";
-import { motion } from "framer-motion";
 import { selectAuthStateState } from "../../../../store/slices/authSlice";
 import styles from "./AudienceBenefits.module.scss";
 
@@ -12,134 +11,126 @@ export default function AudienceBenefits() {
     <section className={styles.section} id="benefits">
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
-          <span className={styles.tag}>Built For Both Sides</span>
+          <span className={styles.tag}>For donors and organisers</span>
           <h2>
-            Empowering <span>Donors</span> &amp; <span>Campaign Creators</span>
+            Trust that works <span>both ways</span>
           </h2>
           <p>
-            Whether you want to support a life-changing cause or raise money for what matters,
-            Fund&amp;Trace provides the security and tools you need.
+            Donors can see where their money goes. Organisers get a simple way to prove they&apos;re
+            spending it well.
           </p>
         </div>
 
         <div className={styles.grid}>
           {/* Card 1: For Donors */}
-          <motion.div
-            className={styles.benefitCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+          <div className={`${styles.benefitCard} ft-reveal`}>
             <div>
               <div className={styles.cardTop}>
                 <span className={`${styles.audienceTag} ${styles.donorTag}`}>
-                  For Generous Donors
+                  For donors
                 </span>
-                <h3>Give with 100% Peace of Mind</h3>
+                <h3>Know where your money went</h3>
                 <p>
-                  Never wonder where your money went again. Gain full transparency and traceable
-                  proof for every donation.
+                  Every campaign has a tracker showing each payout, who was paid and the receipt behind it.
                 </p>
               </div>
 
               <ul className={styles.featureList}>
                 <li>
-                  <img src="/images/icons/blueCheck.svg" alt="check" />
+                  <img src="/images/icons/blueCheck.svg" alt="" />
                   <div>
-                    <strong>Track Real-Time Disbursements:</strong> View exact payout dates,
-                    recipient vendors, and audited milestone proof.
+                    <strong>See every payout:</strong> date, amount, who was paid, what it was for and the
+                    receipt.
                   </div>
                 </li>
                 <li>
-                  <img src="/images/icons/blueCheck.svg" alt="check" />
+                  <img src="/images/icons/blueCheck.svg" alt="" />
                   <div>
-                    <strong>Periodic Account Statements:</strong> Receive automated itemized
-                    accounting reports directly in your inbox.
+                    <strong>Get email updates:</strong> choose to hear from us whenever money is paid out from
+                    a campaign you supported.
                   </div>
                 </li>
                 <li>
-                  <img src="/images/icons/blueCheck.svg" alt="check" />
+                  <img src="/images/icons/blueCheck.svg" alt="" />
                   <div>
-                    <strong>Zero Scam Risk:</strong> Milestone releases protect your funds from
-                    being mishandled or drained prematurely.
+                    <strong>Protection if something&apos;s wrong:</strong> report a campaign to freeze payouts
+                    while we review it, or refund your own donation within 30 days while it&apos;s in escrow.
                   </div>
                 </li>
                 <li>
-                  <img src="/images/icons/blueCheck.svg" alt="check" />
+                  <img src="/images/icons/blueCheck.svg" alt="" />
                   <div>
-                    <strong>2-Minute Secure Giving:</strong> Fast checkout with Flutterwave and
-                    Stripe supporting global cards and local banks.
+                    <strong>Pay your way:</strong> card, bank transfer, USSD or mobile money through Stripe,
+                    Paystack and Flutterwave.
                   </div>
                 </li>
               </ul>
             </div>
 
-            <Link href="/Categories" passHref>
-              <a className={styles.actionLink}>
-                <span>Browse Verified Campaigns</span>
-                <span>→</span>
-              </a>
+            <Link href="/Categories" passHref className={styles.actionLink}>
+
+              <span>Browse campaigns</span>
+              <span>→</span>
+
             </Link>
-          </motion.div>
+          </div>
 
           {/* Card 2: For Fundraisers */}
-          <motion.div
-            className={styles.benefitCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-          >
+          <div className={`${styles.benefitCard} ft-reveal`} style={{ animationDelay: "0.15s" }}>
             <div>
               <div className={styles.cardTop}>
                 <span className={`${styles.audienceTag} ${styles.creatorTag}`}>
-                  For Campaign Organizers
+                  For organisers
                 </span>
-                <h3>Raise More with Built-In Donor Trust</h3>
+                <h3>Show donors you&apos;re accountable</h3>
                 <p>
-                  Show donors you have nothing to hide. Transparent campaigns convert up to 3x more
-                  hesitant supporters.
+                  Your Transparency Score and public ledger answer the question every donor asks: where does
+                  the money go?
                 </p>
               </div>
 
               <ul className={styles.featureList}>
                 <li>
-                  <img src="/images/icons/blueCheck.svg" alt="check" />
+                  <img src="/images/icons/blueCheck.svg" alt="" />
                   <div>
-                    <strong>0% Platform Commission:</strong> Keep 100% of the funds raised without
-                    hidden platform cuts.
+                    <strong>No platform fee:</strong> we don&apos;t take a cut of what you raise. Payment
+                    processing fees still apply.
                   </div>
                 </li>
                 <li>
-                  <img src="/images/icons/blueCheck.svg" alt="check" />
+                  <img src="/images/icons/blueCheck.svg" alt="" />
                   <div>
-                    <strong>Instant Milestone Setup:</strong> Launch your campaign in under 10
-                    minutes with guided goal breakdown templates.
+                    <strong>Simple setup:</strong> a guided form for your story, goal, team and payout
+                    details.
                   </div>
                 </li>
                 <li>
-                  <img src="/images/icons/blueCheck.svg" alt="check" />
+                  <img src="/images/icons/blueCheck.svg" alt="" />
                   <div>
-                    <strong>Multi-Currency Payouts:</strong> Withdraw in USD, GBP, or NGN straight
-                    to your verified local bank account.
+                    <strong>Paid where you are:</strong> Stripe in the UK and US, and bank transfers in
+                    Nigeria, Ghana, Kenya, South Africa and more. Or pay suppliers directly.
                   </div>
                 </li>
                 <li>
-                  <img src="/images/icons/blueCheck.svg" alt="check" />
+                  <img src="/images/icons/blueCheck.svg" alt="" />
                   <div>
-                    <strong>Virality &amp; Sharing Tools:</strong> Integrated social sharing for
-                    WhatsApp, Twitter, Facebook, and Instagram.
+                    <strong>Easy sharing:</strong> one tap to WhatsApp, X, Facebook or a copied link, with
+                    referral tracking.
                   </div>
                 </li>
               </ul>
             </div>
 
-            <Link href={authenticated ? "/StartACampaign" : "/SignUp"} passHref>
-              <a className={styles.actionLink}>
-                <span>Start Your Fundraiser Now</span>
-                <span>→</span>
-              </a>
+            <Link
+              href={authenticated ? "/StartACampaign" : "/SignUp"}
+              passHref
+              className={styles.actionLink}>
+
+              <span>Start a campaign</span>
+              <span>→</span>
+
             </Link>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

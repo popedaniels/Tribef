@@ -1,5 +1,5 @@
 import React from "react";
-import AdminSettingsPageLayout from "./settingsLayout";
+import AdminSettingsPageLayout from "../../../layouts/AdminSettingsLayout";
 
 export default function AdminSettingsIndexPage() {
   return (

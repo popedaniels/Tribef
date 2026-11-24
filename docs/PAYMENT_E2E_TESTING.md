@@ -1,5 +1,10 @@
 # Payment E2E Testing Runbook
 
+> The full end-to-end checklist (all three providers, payouts, refunds,
+> disputes, daily jobs) and the automated sandbox script are in
+> [`SANDBOX_TESTING.md`](SANDBOX_TESTING.md). This page keeps the
+> provider-specific CLI commands.
+
 Unit tests cover pure logic (diffing, scoring, PDF layout) with mocked transports. This runbook covers what mocks cannot: real gateway signature verification, webhook delivery, and end-to-end money movement. Run this against a staging deployment before releases that touch payment code.
 
 ## Prerequisites

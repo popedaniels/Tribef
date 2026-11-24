@@ -17,13 +17,14 @@ import {
   grabErrorMessage,
   grabErrorStatus,
 } from "../../../components/helperFunctions/helperFunctions";
-import AdminSettingsPageLayout from "./settingsLayout";
+import AdminSettingsPageLayout from "../../../layouts/AdminSettingsLayout";
 import { config } from "../../../../src/components/helperFunctions/helperFunctions";
 import { useAppDispatch } from "./../../../../store/hooks";
 import {
   getAllCountries as locationGetAllCountries,
   getStates as locationGetStates,
 } from "../../../components/helperFunctions/locationFunctions";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface CountryOption {
   name?: string;
@@ -108,7 +109,7 @@ export default function AdminSettingsIndexPage() {
         update.code
       ) {
         const res = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL +
+          getApiBaseUrl() +
             "/api/admin/updateProfile/" +
             adminProfile?._id,
           { profile: { ...adminProfile, ...update } },
@@ -668,7 +669,7 @@ const Select = styled.div`
     height: 44px !important
   }
   &:disabled {
-    color: #b3b3b3;
+    color: #5f6672;
   }
   position: relative;
   .value{
@@ -764,7 +765,7 @@ const Div = styled.div`
           height: 46px;
           padding: 5px 15px;
           &:disabled {
-            color: #b3b3b3;
+            color: #5f6672;
           }
         }
       }

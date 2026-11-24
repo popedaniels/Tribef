@@ -1,5 +1,5 @@
 import React from "react";
-import DashboardLayout from "../../DashboardLayout";
+import DashboardLayout from "../../../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import SettingsComp from "../../../../components/SettingsComp";
@@ -11,16 +11,19 @@ export default function PersonalCampaigns() {
   return (
     <DashboardLayout hideMobileNav page="Settings">
       <div className="d-flex d-md-none custom-container align-items-center py-4">
-        <Link href="/dashboard/settings/notifications" passHref>
-          <a style={{ textDecoration: "none" }}>
-            <img
-              src="/images/icons/back.svg"
-              width={16}
-              height={16}
-              alt="slideIcon"
-              className="mr-4"
-            />
-          </a>
+        <Link
+          href="/dashboard/settings/notifications"
+          passHref
+          style={{ textDecoration: "none" }}>
+
+          <img
+            src="/images/icons/back.svg"
+            width={16}
+            height={16}
+            alt="slideIcon"
+            className="mr-4"
+          />
+
         </Link>
         <h2 className="mb-0 text-medium-heading">Personal campaigns</h2>
       </div>
@@ -40,16 +43,19 @@ export default function PersonalCampaigns() {
             ></div>
             <Main className="bg-white p-3">
               <div className="align-items-center py-3 d-none d-md-flex">
-                <Link href="/dashboard/settings/notifications" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <img
-                      src="/images/icons/back.svg"
-                      width={16}
-                      height={16}
-                      alt="slideIcon"
-                      className="mr-4"
-                    />
-                  </a>
+                <Link
+                  href="/dashboard/settings/notifications"
+                  passHref
+                  style={{ textDecoration: "none" }}>
+
+                  <img
+                    src="/images/icons/back.svg"
+                    width={16}
+                    height={16}
+                    alt="slideIcon"
+                    className="mr-4"
+                  />
+
                 </Link>
                 <h2 className="mb-0 text-medium-heading">Personal campaigns</h2>
               </div>
@@ -58,7 +64,7 @@ export default function PersonalCampaigns() {
                   <p className="mb-2">Donations</p>
                   <p
                     className="mb-0"
-                    style={{ color: "#A0A2AF", fontSize: 12 }}
+                    style={{ color: "#5f6672", fontSize: 12 }}
                   >
                     {checkDonations
                       ? "You’ll receive notifications from Fund&Trace via emails when someone donates"
@@ -76,7 +82,7 @@ export default function PersonalCampaigns() {
                   <p className="mb-2">Turn On/Off all notifications</p>
                   <p
                     className="mb-0"
-                    style={{ color: "#A0A2AF", fontSize: 12 }}
+                    style={{ color: "#5f6672", fontSize: 12 }}
                   >
                     You’ll receive all updates from Fund&Trace via SMS
                   </p>

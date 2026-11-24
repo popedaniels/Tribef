@@ -1,0 +1,289 @@
+/*
+ * Fund&Trace design system — shared primitives.
+ *
+ * Use these instead of one-off inline styles. Hierarchy rule: a screen has
+ * ONE primary action (.ft-btn--primary). Everything else is secondary,
+ * ghost or a link. Buttons with an `ft-btn` class are exempt from the legacy
+ * "every <button> is solid blue" rule in index.css.
+ */
+
+/* ---------- Metric-matched font fallbacks (no layout shift on font load) ----------
+   While the web fonts download, text uses the phone's own font resized and
+   re-spaced to match them, so nothing moves when they arrive (the hero's
+   big numbers jumped: CLS 0.22). Values computed from the font files
+   (scripts in docs/PERFORMANCE.md). Arial (and the metric-identical
+   Liberation Sans on Linux) covers desktop and iOS; Roboto covers Android. */
+@font-face {
+  font-family: "Poppins Fallback A";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold");
+  font-weight: 800 900;
+  size-adjust: 107.73%; ascent-override: 97.47%; descent-override: 32.49%; line-gap-override: 9.28%;
+}
+@font-face {
+  font-family: "Poppins Fallback A";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold");
+  font-weight: 500 799;
+  size-adjust: 107.05%; ascent-override: 98.09%; descent-override: 32.70%; line-gap-override: 9.34%;
+}
+@font-face {
+  font-family: "Poppins Fallback R";
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 800 900;
+  size-adjust: 113.07%; ascent-override: 92.86%; descent-override: 30.95%; line-gap-override: 8.84%;
+}
+@font-face {
+  font-family: "Poppins Fallback R";
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 500 799;
+  size-adjust: 112.36%; ascent-override: 93.45%; descent-override: 31.15%; line-gap-override: 8.90%;
+}
+@font-face {
+  font-family: "Jakarta Fallback A";
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("LiberationSans-Regular");
+  size-adjust: 105.49%; ascent-override: 98.40%; descent-override: 21.04%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Jakarta Fallback R";
+  src: local("Roboto"), local("Roboto-Regular");
+  size-adjust: 105.90%; ascent-override: 98.02%; descent-override: 20.96%; line-gap-override: 0%;
+}
+
+/* ---------- Unstyled button (link-like, icon, tab) ----------
+   Zero specificity so any component class can style on top of it. */
+:where(button.ft-plain) {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+/* ---------- Buttons ---------- */
+.ft-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-family: var(--font-primary);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+.ft-btn:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+.ft-btn[disabled],
+.ft-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none !important;
+  box-shadow: none !important;
+}
+.ft-btn--block { width: 100%; }
+.ft-btn--lg { min-height: 52px; font-size: 16px; padding: 0 24px; }
+.ft-btn--sm { min-height: 36px; font-size: 14px; padding: 0 14px; }
+
+.ft-btn--primary {
+  background: var(--color-primary);
+  color: #fff !important;
+  box-shadow: 0 6px 16px -6px rgba(79, 91, 213, 0.55);
+}
+.ft-btn--primary:hover:not([disabled]) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -8px rgba(79, 91, 213, 0.6);
+}
+
+.ft-btn--secondary {
+  background: var(--color-surface);
+  color: var(--color-text-heading) !important;
+  border-color: var(--color-border);
+}
+.ft-btn--secondary:hover:not([disabled]) {
+  border-color: var(--color-primary);
+  color: var(--color-primary) !important;
+}
+
+.ft-btn--ghost {
+  background: var(--color-primary-light);
+  color: var(--color-primary) !important;
+}
+.ft-btn--ghost:hover:not([disabled]) { background: #e3e8ff; }
+
+.ft-btn--link {
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--color-primary) !important;
+  font-weight: 600;
+}
+.ft-btn--link:hover { text-decoration: underline !important; }
+
+.ft-btn--quiet {
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--color-text-muted) !important;
+  font-weight: 500;
+  font-size: 14px;
+}
+.ft-btn--quiet:hover { color: var(--color-text-heading) !important; text-decoration: underline !important; }
+
+/* ---------- Filter pills ---------- */
+.ft-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-body);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ft-pill:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.ft-pill[aria-pressed="true"] {
+  background: var(--color-text-heading);
+  border-color: var(--color-text-heading);
+  color: #fff;
+}
+
+/* ---------- Surfaces & type ---------- */
+.ft-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+.ft-eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+.ft-muted { color: var(--color-text-muted); }
+
+.ft-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  background: var(--color-primary-light);
+  color: #3a45b5;
+}
+.ft-chip--ok { background: #e7f6ee; color: #146c43; }
+.ft-chip--warn { background: #fff4e0; color: #8a4b00; }
+.ft-chip--bad { background: #fdecec; color: #b42318; }
+.ft-chip--neutral { background: #f1f3f8; color: #3f4657; }
+
+/* Funding progress */
+.ft-progress {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: #e8ebf6;
+  overflow: hidden;
+}
+.ft-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary), #6979f8);
+  transition: width 0.6s ease;
+}
+
+/* Loading skeletons */
+.ft-skeleton {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef0f6 25%, #f6f7fb 37%, #eef0f6 63%);
+  background-size: 400% 100%;
+  animation: ft-shimmer 1.4s ease infinite;
+}
+@keyframes ft-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) {
+  .ft-skeleton { animation: none; }
+  .ft-btn, .ft-progress > span { transition: none; }
+}
+
+/* Empty states */
+.ft-empty {
+  text-align: center;
+  padding: 40px 24px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  background: var(--color-canvas);
+}
+.ft-empty h3 { font-size: 18px; margin-bottom: 6px; color: var(--color-text-heading); }
+.ft-empty p { margin: 0 auto 16px; max-width: 420px; color: var(--color-text-muted); }
+
+/* Dark theme */
+[data-theme="dark"] .ft-btn--secondary,
+.dark-theme .ft-btn--secondary { background: var(--color-surface); border-color: #334155; }
+[data-theme="dark"] .ft-pill,
+.dark-theme .ft-pill { background: #111827; border-color: #334155; color: #cbd5e1; }
+[data-theme="dark"] .ft-pill[aria-pressed="true"],
+.dark-theme .ft-pill[aria-pressed="true"] { background: var(--color-primary); border-color: var(--color-primary); color: #0b0f19; }
+[data-theme="dark"] .ft-progress,
+.dark-theme .ft-progress { background: #1f2937; }
+[data-theme="dark"] .ft-skeleton,
+.dark-theme .ft-skeleton { background: linear-gradient(90deg, #1f2937 25%, #273244 37%, #1f2937 63%); background-size: 400% 100%; }
+[data-theme="dark"] .ft-chip--neutral,
+.dark-theme .ft-chip--neutral { background: #1f2937; color: #cbd5e1; }
+
+/* On touch screens a link-style button still gets a finger-sized target.
+   Kept last so it wins over the base button sizes above. */
+@media (pointer: coarse), (max-width: 768px) {
+  .ft-btn--link,
+  .ft-btn--quiet { min-height: 44px; }
+}
+
+/* Entrance fade-up (replaces framer-motion on the home page). Content is
+   visible without JavaScript; motion is skipped for reduced-motion users. */
+@keyframes ft-reveal {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+.ft-reveal { animation: ft-reveal 0.5s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .ft-reveal { animation: none; }
+}
+
+/* Data saver: no motion, no decorative backgrounds. */
+html.ft-lowdata *,
+html.ft-lowdata *::before,
+html.ft-lowdata *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Never let the page scroll sideways on phones. `clip` (unlike `hidden`)
+   creates no scroll container, so position: sticky keeps working. */
+html,
+body {
+  overflow-x: clip;
+}

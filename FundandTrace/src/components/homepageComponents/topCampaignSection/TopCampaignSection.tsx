@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import styles from "./TopCampaignSection.module.scss";
 import CampaignCard from "../../CampaignCard/CampaignCard";
-import Spinner from "../../composed/spinner/Spinner";
 import type { Campaign } from "../../../types/campaigns";
 
 interface TopCampaignSectionProps {
@@ -42,21 +41,21 @@ export default function TopCampaignSection({ data, heading, title, tag, loading 
             <span className={styles.tag}>{tag}</span>
             <h2>{heading || title}</h2>
           </div>
-          <Link href="/Categories" passHref>
-            <a className={styles.viewAllLink}>
-              <span>Explore All Causes</span>
-              <span>→</span>
-            </a>
+          <Link href="/Categories" passHref className={styles.viewAllLink}>
+
+            <span>Explore All Causes</span>
+            <span>→</span>
+
           </Link>
         </div>
 
-        <div className={styles.filterBar}>
+        <div className={styles.filterBar} role="group" aria-label="Filter by cause">
           {categories.map((cat) => (
             <button
+              type="button"
               key={cat.value}
-              className={`${styles.filterBtn} ${
-                selectedCategory === cat.value ? styles.filterBtnActive : ""
-              }`}
+              className="ft-pill"
+              aria-pressed={selectedCategory === cat.value}
               onClick={() => setSelectedCategory(cat.value)}
             >
               {cat.label}
@@ -65,8 +64,18 @@ export default function TopCampaignSection({ data, heading, title, tag, loading 
         </div>
 
         {loading ? (
-          <div className="d-flex align-items-center justify-content-center my-5 py-5">
-            <Spinner type="Oval" width={32} height={32} color={"var(--color-primary)"} />
+          <div className={styles.cardGrid} aria-busy="true" aria-label="Loading campaigns">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="ft-card" style={{ overflow: "hidden" }}>
+                <span className="ft-skeleton" style={{ height: 200, borderRadius: 0 }} />
+                <div style={{ padding: 20 }}>
+                  <span className="ft-skeleton" style={{ height: 14, width: "40%", marginBottom: 12 }} />
+                  <span className="ft-skeleton" style={{ height: 20, width: "85%", marginBottom: 10 }} />
+                  <span className="ft-skeleton" style={{ height: 14, width: "70%", marginBottom: 24 }} />
+                  <span className="ft-skeleton" style={{ height: 8 }} />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredCampaigns.length > 0 ? (
           <div className={styles.cardGrid}>
@@ -75,22 +84,31 @@ export default function TopCampaignSection({ data, heading, title, tag, loading 
             ))}
           </div>
         ) : (
-          <div className={styles.emptyState}>
-            <h3>No Campaigns Found</h3>
-            <p>There are currently no active campaigns in this category.</p>
-            <Link href="/Categories" passHref>
-              <a className="btn btn-primary" style={{ background: "var(--color-primary)", border: "none" }}>
-                Browse All Categories
-              </a>
-            </Link>
+          <div className="ft-empty">
+            <h3>{selectedCategory === "all" ? "No live campaigns right now" : `No ${categories.find((c) => c.value === selectedCategory)?.label.toLowerCase()} campaigns yet`}</h3>
+            <p>
+              {selectedCategory === "all"
+                ? "New campaigns appear here as soon as they launch. Have a cause in mind? Every campaign gets escrow and a public ledger from day one."
+                : "Try another cause, or start the first one."}
+            </p>
+            <div className="d-flex justify-content-center flex-wrap" style={{ gap: 12 }}>
+              {selectedCategory !== "all" && (
+                <button type="button" className="ft-btn ft-btn--secondary" onClick={() => setSelectedCategory("all")}>
+                  Show all causes
+                </button>
+              )}
+              <Link href="/StartACampaign" className="ft-btn ft-btn--primary">
+                Start a campaign
+              </Link>
+            </div>
           </div>
         )}
 
         <div className={styles.bottomCtaMobile}>
-          <Link href="/Categories" passHref>
-            <a className={styles.viewAllLink}>
-              <span>Explore All Causes →</span>
-            </a>
+          <Link href="/Categories" passHref className={styles.viewAllLink}>
+
+            <span>Explore All Causes →</span>
+
           </Link>
         </div>
       </div>

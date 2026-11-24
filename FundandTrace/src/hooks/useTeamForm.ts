@@ -8,6 +8,7 @@ import { toast } from "../../store/slices/ToastSlice";
 import axios from "axios";
 import { cloudinaryUploadUrl } from "../utils/cloudinary";
 import { useTeamLocation } from "./useTeamLocation";
+import { getApiBaseUrl } from "../utils/api";
 
 export const useTeamForm = () => {
   const router = useRouter();
@@ -65,7 +66,7 @@ export const useTeamForm = () => {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/team",
+        getApiBaseUrl() + "/api/startCampaign/team",
         { team: startCampaign?.team, id: campaignId },
         { withCredentials: true }
       );

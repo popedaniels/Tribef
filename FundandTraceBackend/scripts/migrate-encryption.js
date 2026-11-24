@@ -2,7 +2,13 @@
 // randomized-IV AES-256-GCM scheme (utility/encryption v2 format).
 //
 // Usage:
-//   MONGOURL=... node scripts/migrate-encryption.js [--dry-run]
+//   MONGOURL=... node scripts/migrate-encryption.js [--dry-run] [--encrypt-plaintext]
+//
+// --encrypt-plaintext also encrypts sensitive fields that were stored as
+// PLAINTEXT. Third-party funding-request bank details were never encrypted
+// because the API compared fundingType against "thirdParty" while the web app
+// sends "third-party" (fixed in utility/fundingType.js). Run this once after
+// deploying that fix. It also normalizes stored fundingType values.
 //
 // Requires SECURITY_KEY (same key as production) and INIT_VECTOR (to decrypt
 // the legacy records). Safe to re-run: already-migrated (v2) values are
@@ -15,22 +21,28 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const logger = require("../utility/logger");
 const { encrypt, decrypt, isLegacyCiphertext } = require("../utility/encryption");
+const { THIRD_PARTY } = require("../utility/fundingType");
 
-require("../models/campaignModel");
-require("../models/fundingRequestModel");
-require("../models/users");
+// Import the models directly. The previous mongoose.model("Campaign" |
+// "FundingRequest" | "Users") lookups did not match the registered names
+// ("campaign", "fundingRequest", "User") and threw MissingSchemaError.
+const { Campaign } = require("../models/campaignModel");
+const { FundingRequests } = require("../models/fundingRequestModel");
+const { Users } = require("../models/users");
 
 const DRY_RUN = process.argv.includes("--dry-run");
+const ENCRYPT_PLAINTEXT = process.argv.includes("--encrypt-plaintext");
+const V2_PREFIX = "v2:";
 const BATCH = 200;
 
-const targets = {
-  Campaign: [
+const targets = [
+  [Campaign, [
     "funding.accountNumber",
     "funding.accountName",
     "funding.bankName",
     "funding.sortCode",
-  ],
-  FundingRequest: [
+  ]],
+  [FundingRequests, [
     "thirdPartyAccountName",
     "thirdPartyAccountNumber",
     "thirdPartyBankName",
@@ -39,9 +51,9 @@ const targets = {
     "disbursement.bankName",
     "disbursement.accountName",
     "disbursement.accountNumber",
-  ],
-  Users: ["twoFactor.secret"],
-};
+  ]],
+  [Users, ["twoFactor.secret"]],
+];
 
 async function migrateCollection(Model, fields) {
   const collection = Model.collection.name;
@@ -55,21 +67,30 @@ async function migrateCollection(Model, fields) {
     const updates = {};
     for (const field of fields) {
       const value = field.split(".").reduce((acc, part) => acc && acc[part], doc);
-      if (!isLegacyCiphertext(value)) continue;
+      if (typeof value !== "string" || value === "" || value.startsWith(V2_PREFIX)) continue;
 
-      if (DRY_RUN) {
-        migrated += 1;
-        continue;
+      let plaintext = null;
+      if (isLegacyCiphertext(value)) {
+        try {
+          plaintext = decrypt(value);
+        } catch (err) {
+          // Hex-looking but not decryptable: a plaintext number (e.g. an
+          // account number) rather than legacy ciphertext.
+          plaintext = ENCRYPT_PLAINTEXT ? value : null;
+          if (!ENCRYPT_PLAINTEXT) {
+            logger.error(
+              { collection, id: String(doc._id), field },
+              `Skipping unreadable legacy value (re-run with --encrypt-plaintext if it is plaintext): ${err.message}`
+            );
+          }
+        }
+      } else if (ENCRYPT_PLAINTEXT) {
+        plaintext = value;
       }
-      try {
-        updates[field] = encrypt(decrypt(value));
-        migrated += 1;
-      } catch (err) {
-        logger.error(
-          { collection, id: String(doc._id), field },
-          `Skipping unreadable legacy value: ${err.message}`
-        );
-      }
+      if (plaintext === null) continue;
+
+      migrated += 1;
+      if (!DRY_RUN) updates[field] = encrypt(plaintext);
     }
 
     if (!DRY_RUN && Object.keys(updates).length > 0) {
@@ -87,7 +108,7 @@ async function migrateCollection(Model, fields) {
     logger.error("MONGOURL is required");
     process.exit(1);
   }
-  if (!process.env.INIT_VECTOR) {
+  if (!process.env.INIT_VECTOR && !ENCRYPT_PLAINTEXT) {
     logger.error(
       "INIT_VECTOR is required to decrypt legacy records during migration"
     );
@@ -97,9 +118,15 @@ async function migrateCollection(Model, fields) {
   await mongoose.connect(process.env.MONGOURL);
 
   const results = [];
-  for (const [modelName, fields] of Object.entries(targets)) {
-    const Model = mongoose.model(modelName);
+  for (const [Model, fields] of targets) {
     results.push(await migrateCollection(Model, fields));
+  }
+
+  if (ENCRYPT_PLAINTEXT) {
+    const filter = { fundingType: { $in: ["thirdParty", "third_party", "ThirdParty", "Third Party"] } };
+    const count = await FundingRequests.countDocuments(filter);
+    if (!DRY_RUN && count) await FundingRequests.updateMany(filter, { $set: { fundingType: THIRD_PARTY } });
+    logger.info({ count, dryRun: DRY_RUN }, "Normalized fundingType values to 'third-party'");
   }
 
   for (const r of results) {

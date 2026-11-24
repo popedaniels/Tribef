@@ -10,22 +10,25 @@ import Spinner from "../../components/composed/spinner/Spinner";
 import { toast } from "../../../store/slices/ToastSlice";
 import Layout from "../../components/Layout";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Verify() {
   const { profile, authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
     profile?.verified && router.push("/");
-    !authenticated && router.push("/");
-  }, [authenticated, profile?.verified, router]);
+    rehydrated && !authenticated && router.push("/");
+  }, [rehydrated, authenticated, profile?.verified, router]);
   const handleSubmit = async () => {
     setLoading(true);
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/auth/signup/verifyEmail/" +
           profile?.email
       );
@@ -41,14 +44,14 @@ export default function Verify() {
         <div className="w-100 bg-white">
           <header className="header d-md-flex justify-content-between align-items-center custom-container d-none">
             <Link href="/" passHref>
-              <a>
-                <img
-                  src="/images/logo.png"
-                  alt="fundandtraceLogo"
-                  width={78}
-                  height={55}
-                />
-              </a>
+
+              <img
+                src="/images/logo.png"
+                alt="fundandtraceLogo"
+                width={78}
+                height={55}
+              />
+
             </Link>
           </header>
           <div className="d-block d-md-none">

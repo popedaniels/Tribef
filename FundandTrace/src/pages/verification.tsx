@@ -13,6 +13,7 @@ import { toast } from "../../store/slices/ToastSlice";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { useAppDispatch } from "./../../store/hooks";
+import { getApiBaseUrl } from "../utils/api";
 
 export default function Verification() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function Verification() {
       );
       dispatch(authStateActions.setLoggingIn(true));
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/auth/login",
+        getApiBaseUrl() + "/api/auth/login",
         {
           email,
           password,
@@ -76,14 +77,14 @@ export default function Verification() {
         <div className="w-100 bg-white">
           <header className="header d-md-flex justify-content-between align-items-center custom d-none">
             <Link href="/" passHref>
-              <a>
-                <img
-                  src="/images/logo.png"
-                  alt="fundandtraceLogo"
-                  width={78}
-                  height={55}
-                />
-              </a>
+
+              <img
+                src="/images/logo.png"
+                alt="fundandtraceLogo"
+                width={78}
+                height={55}
+              />
+
             </Link>
           </header>
           <div className="d-block d-md-none">

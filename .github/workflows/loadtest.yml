@@ -1,0 +1,72 @@
+# Load + concurrency test (FundandTraceBackend/scripts/loadtest.js) against a
+# real API process and MongoDB on the runner. Weekly and on demand; it also
+# runs when the payment or ledger code changes.
+name: Load test
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration: { description: "Read-load seconds", default: "30" }
+      connections: { description: "Concurrent connections", default: "50" }
+      donations: { description: "Webhook donations (each delivered 3x)", default: "200" }
+  schedule:
+    - cron: "23 5 * * 3" # weekly, Wednesday
+  push:
+    branches: [stage]
+    paths:
+      - "FundandTraceBackend/controller/donations/**"
+      - "FundandTraceBackend/services/ledger.js"
+      - "FundandTraceBackend/services/donationExtras.js"
+      - "FundandTraceBackend/scripts/loadtest.js"
+      - ".github/workflows/loadtest.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+    defaults:
+      run:
+        working-directory: FundandTraceBackend
+    env:
+      NODE_ENV: development
+      PORT: "5000"
+      MONGOURL: mongodb://127.0.0.1:27017/fundandtrace_load
+      TOKEN_SECRET: load_test_token_secret_not_real_0123456789abcdef0123456789abcdef
+      RESET_TOKEN_SECRET: load_test_reset_secret_not_real_0123456789abcdef0123456789ab
+      INTERNAL_WEBHOOK_SECRET: load_test_internal_webhook_secret_0123456789
+      PAYSTACK_SECRET: sk_test_load_test_only
+      MAINURL: http://localhost:3000
+      BACKENDURL: http://localhost:5000
+      RATE_LIMIT_DISABLED: "true"
+      LOG_LEVEL: warn
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: FundandTraceBackend/package-lock.json
+      - run: npm ci
+      - name: Keys and seed data
+        run: |
+          echo "SECURITY_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "INIT_VECTOR=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
+      - name: Seed
+        run: echo "CAMPAIGN_ID=$(node scripts/drill-seed.js | tail -1 | awk '{print $2}')" >> "$GITHUB_ENV"
+      - name: Start API
+        run: |
+          nohup node server.js > /tmp/api.log 2>&1 &
+          for i in $(seq 1 30); do curl -fs http://localhost:5000/api/health && break; sleep 1; done
+          test -n "$CAMPAIGN_ID"
+      - name: Load + concurrency test
+        run: node scripts/loadtest.js --duration "${{ inputs.duration || 30 }}" --connections "${{ inputs.connections || 50 }}" --donations "${{ inputs.donations || 200 }}"
+      - name: API log on failure
+        if: failure()
+        run: tail -200 /tmp/api.log

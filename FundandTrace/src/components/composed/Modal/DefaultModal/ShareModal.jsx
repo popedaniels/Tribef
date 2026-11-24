@@ -5,13 +5,14 @@ import { useState } from "react";
 import CopyToClipboard from "react-copy-to-clipboard";
 
 export default function ShareModal({ onModalClose, showModal, campaign }) {
+  // One canonical, correctly encoded link. The old code built it with
+  // title.split(" ").join("%") (invalid URLs) and crashed when the title was missing.
+  const shareUrl = `https://fundandtrace.com/campaign/${campaign?._id || ""}`;
   const socials1 = [
     {
       social: "facebook",
       icon: "/images/icons/facebook2.svg",
-      link: `https://fundandtrace.com/campaign/${
-        campaign?._id
-      }/${campaign?.basicInformation?.campaignTitle.split(" ").join("%")}`,
+      link: `${shareUrl}`,
     },
   ];
 
@@ -52,11 +53,7 @@ export default function ShareModal({ onModalClose, showModal, campaign }) {
           </a>
           <a
             target="_blank" rel="noopener noreferrer"
-            href={`https://twitter.com/intent/tweet?text=Please Donate to this cause - https://fundandtrace.com/campaign/${
-              campaign?._id
-            }?title=${campaign?.basicInformation?.campaignTitle
-              .split(" ")
-              .join("")}`}
+            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Please donate to this cause - ${shareUrl}`)}`}
           >
             <div
               className="d-flex flex-column align-items-center "
@@ -73,11 +70,7 @@ export default function ShareModal({ onModalClose, showModal, campaign }) {
           </a>
           <a
             target="_blank" rel="noopener noreferrer"
-            href={`https://api.whatsapp.com/send?text=Please Donate to this cause - https://fundandtrace.com/campaign/${
-              campaign?._id
-            }?title=${campaign?.basicInformation?.campaignTitle
-              .split(" ")
-              .join("")}`}
+            href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Please donate to this cause - ${shareUrl}`)}`}
           >
             <div
               className="d-flex flex-column align-items-center "
@@ -97,24 +90,19 @@ export default function ShareModal({ onModalClose, showModal, campaign }) {
         <p className="text-small text-center mb-0">
           Share this link to your friends!
         </p>
+        <label htmlFor="share-link" className="sr-only">
+          Campaign link
+        </label>
         <input
           type="text"
-          name=""
-          id=""
+          id="share-link"
+          readOnly
           className="my-3"
-          value={`https://fundandtrace.com/campaign/${
-            campaign?._id
-          }?title=${campaign?.basicInformation?.campaignTitle
-            .split(" ")
-            .join("%")}`}
+          value={`${shareUrl}`}
         />
         <div className="d-flex">
           <CopyToClipboard
-            text={`https://fundandtrace.com/campaign/${
-              campaign?._id
-            }?title=${campaign?.basicInformation?.campaignTitle
-              .split(" ")
-              .join("%")}`}
+            text={`${shareUrl}`}
             onCopy={() => {
               setCopied(true);
               setTimeout(() => setCopied(false), 4000);

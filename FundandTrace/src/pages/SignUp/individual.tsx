@@ -23,6 +23,7 @@ import {
   getStates as locationGetStates,
   getCountries as locationGetCountries,
 } from "../../components/helperFunctions/locationFunctions";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 interface CountryOption {
   name: string;
@@ -49,6 +50,7 @@ export default function StepOne() {
   const dispatch = useAppDispatch();
   const signUpState = useSelector(selectSignUpState);
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const router = useRouter();
   const [states, setStates] = useState<StateOption[]>([]);
   const [allStates, setAllStates] = useState<StateOption[]>([]);
@@ -143,8 +145,8 @@ export default function StepOne() {
   }, [dispatch]);
 
   useEffect(() => {
-    authenticated && router.push("/");
-  }, [authenticated, router]);
+    rehydrated && authenticated && router.push("/");
+  }, [rehydrated, authenticated, router]);
 
   const getStates = useCallback(async () => {
     try {
@@ -231,21 +233,25 @@ export default function StepOne() {
         <div className="w-100 bg-white">
           <header className="header d-md-flex justify-content-between align-items-center custom-container d-none">
             <Link href="/" passHref>
-              <a>
-                <img
-                  src="/images/logo.png"
-                  alt="fundandtraceLogo"
-                  width={78}
-                  height={55}
-                />
-              </a>
+
+              <img
+                src="/images/logo.png"
+                alt="fundandtraceLogo"
+                width={78}
+                height={55}
+              />
+
             </Link>
             <div className="d-flex align-items-center">
               <p className="mb-0 mr-3">Already have an account?</p>
-              <Link href="/SignUp/SignIn" passHref>
-                <a className="mb-0" style={{ color: "var(--color-primary)" }}>
+              <Link
+                href="/SignUp/SignIn"
+                passHref
+                className="mb-0"
+                style={{ color: "var(--color-primary)" }}>
+                
                   Sign in
-                </a>
+                
               </Link>
             </div>
           </header>
@@ -727,10 +733,14 @@ export default function StepOne() {
           </article>
           <div className="d-flex align-items-center justify-content-center mt-4 ">
             <p className="mb-0 mr-3">Already have an account?</p>
-            <Link href="/SignUp/SignIn" passHref>
-              <a className="mb-0" style={{ color: "var(--color-primary)" }}>
+            <Link
+              href="/SignUp/SignIn"
+              passHref
+              className="mb-0"
+              style={{ color: "var(--color-primary)" }}>
+              
                 Sign In
-              </a>
+              
             </Link>
           </div>
         </main>

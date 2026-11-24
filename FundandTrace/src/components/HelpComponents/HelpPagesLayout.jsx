@@ -16,13 +16,14 @@ export default function HelpPagesLayout({ description, page, children }) {
           <p className="text-blue">
             <span className="text-blue">
               {" "}
-              <Link href="/help" passHref>
-                <a
-                  className="text-blue text-underline"
-                  style={{ textDecoration: "underline" }}
-                >
+              <Link
+                href="/help"
+                passHref
+                className="text-blue text-underline"
+                style={{ textDecoration: "underline" }}>
+                
                   Frequently asked questions
-                </a>
+                
               </Link>
             </span>{" "}
             <span>{"/"} </span>

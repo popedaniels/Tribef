@@ -45,7 +45,7 @@
 
   .titleCol {
     .tag {
-      color: #4b5df5;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 1px;
@@ -74,10 +74,11 @@
   .viewAllLink {
     display: inline-flex;
     align-items: center;
+    min-height: 44px;
     gap: 6px;
     font-size: 15px;
     font-weight: 700;
-    color: #4b5df5;
+    color: var(--color-primary);
     text-decoration: none;
     transition: all 0.2s ease;
 
@@ -129,7 +130,7 @@
 
   &:hover {
     background: #eef1fe;
-    color: #4b5df5;
+    color: var(--color-primary);
 
     :global([data-theme="dark"]) &,
     :global(.dark-theme) & {
@@ -184,7 +185,7 @@
 
   p {
     font-size: 14px;
-    color: #788099;
+    color: #565d6d;
     margin: 0 0 20px 0;
 
     :global([data-theme="dark"]) &,
@@ -200,6 +201,12 @@
   @media screen and (max-width: 767px) {
     display: block;
     width: 100%;
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+    }
 
     button {
       width: 100%;

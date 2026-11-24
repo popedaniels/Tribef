@@ -4,8 +4,9 @@ import Link from "next/link";
 import type { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 import axios from "axios";
-import CampaignDashboardLayout from "../campaignDashboardLayout";
+import CampaignDashboardLayout from "../../../../layouts/CampaignDashboardLayout";
 import type { Campaign } from "../../../../types/campaign";
+import { getApiBaseUrl } from "../../../../utils/api";
 
 interface SingleMessageProps {
   campaign: Campaign | null;
@@ -16,7 +17,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
     const campaigndata = await axios.get(
-    process.env.NEXT_PUBLIC_API_URL + "/api/campaigns/campaign/" + campaignId
+    getApiBaseUrl() + "/api/campaigns/campaign/" + campaignId
   );
     const campaign = campaigndata?.data?.data;
 
@@ -174,7 +175,7 @@ const Wrapper = styled.div`
     line-height: 24px;
     /* identical to box height, or 171% */
 
-    color: #b3b3b3;
+    color: #5f6672;
     opacity: 0.9;
   }
   .whitebtn {

@@ -1,8 +1,9 @@
+import { youtubeEmbedUrl } from "../../utils/video";
 import Link from "next/link";
 import React, { useState } from "react";
 import styled from "styled-components";
 import DonationsModal from "../composed/Modal/DefaultModal/DonationsModal";
-import { getTimeDiff } from "../helperFunctions/helperFunctions";
+import { getTimeDiff, currencyPrefix } from "../helperFunctions/helperFunctions";
 
 export default function AdminCampaignContent({ campaign }) {
   const [showDonationModal, setShowDonationModal] = useState(false);
@@ -12,11 +13,11 @@ export default function AdminCampaignContent({ campaign }) {
       <div className="w-100 stories">
         {campaign?.content?.campaignVideo && (
           <div style={{ position: "relative", marginBottom: 30 }}>
-            {campaign?.content?.campaignVideo?.includes("youtube.com") ? (
+            {youtubeEmbedUrl(campaign?.content?.campaignVideo) ? (
               <Iframe style={{ marginBottom: 40 }}>
                 <iframe
                   className="iframe"
-                  src={campaign?.content?.campaignVideo}
+                  src={youtubeEmbedUrl(campaign?.content?.campaignVideo) || undefined}
                 ></iframe>
               </Iframe>
             ) : (
@@ -61,7 +62,7 @@ export default function AdminCampaignContent({ campaign }) {
                     height: 50,
                     borderRadius: "50%",
                     background: "#F0F0F0",
-                    color: "#A0A2AF",
+                    color: "#5f6672",
                     opacity: 0.9,
                   }}
                 >
@@ -143,11 +144,7 @@ export default function AdminCampaignContent({ campaign }) {
                   </div>
 
                   <p className="mb-0 text-small mt-3">
-                    {campaign?.funding?.currency == "USD"
-                      ? "$"
-                      : campaign?.funding?.currency == "GBP"
-                      ? "£"
-                      : "₦"}
+                    {currencyPrefix(campaign?.funding?.currency)}
                     {Math.round(donation?.amount)}
                   </p>
                 </div>

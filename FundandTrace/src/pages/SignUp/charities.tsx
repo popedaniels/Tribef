@@ -18,6 +18,8 @@ import {
   getStates as locationGetStates,
   getCountries as locationGetCountries,
 } from "../../components/helperFunctions/locationFunctions";
+import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 interface CharityForm {
   charityName: string;
@@ -48,6 +50,9 @@ interface UploadedFileInfo {
 
 export default function StepOne() {
   const [email, setEmail] = useState("");
+  // Registry used to verify the charity: UK Charity Commission, US IRS (EIN),
+  // or manual review by our team for countries without a public registry API.
+  const [registryCountry, setRegistryCountry] = useState("GB");
   const [fName, setFName] = useState("");
   const [lName, setLName] = useState("");
   const [country, setCountry] = useState("");
@@ -59,6 +64,7 @@ export default function StepOne() {
   const [confirmPassWordError, setConfirmPasswordError] = useState(false);
   const dispatch = useAppDispatch();
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const router = useRouter();
   const [states, setStates] = useState<StateOption[]>([]);
   const [allStates, setAllStates] = useState<StateOption[]>([]);
@@ -166,20 +172,16 @@ export default function StepOne() {
         };
 
         if (confirmPassword == password) {
-          const config = {
-            headers: {
-              "Cache-Control": "no-cache",
-              "Ocp-Apim-Subscription-Key": process.env.CHARITIES_API,
-            },
-          };
           try {
             const charityCheck = await axios.get(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/charities/charity/checkCharity/${charity.registrationNumber}`
+              `${getApiBaseUrl()}/api/charities/charity/checkCharity/${encodeURIComponent(
+                charity.registrationNumber.trim()
+              )}?country=${registryCountry}`
             );
 
             if (charityCheck.data) {
               const res = await axios.post(
-                process.env.NEXT_PUBLIC_API_URL + "/api/auth/signup/charity",
+                getApiBaseUrl() + "/api/auth/signup/charity",
                 data
               );
 
@@ -208,8 +210,8 @@ export default function StepOne() {
   };
 
   useEffect(() => {
-    authenticated && router.push("/");
-  }, [authenticated, router]);
+    rehydrated && authenticated && router.push("/");
+  }, [rehydrated, authenticated, router]);
 
   const getStates = useCallback(async () => {
     try {
@@ -319,21 +321,25 @@ export default function StepOne() {
         <div className="w-100 bg-white">
           <header className="header d-md-flex justify-content-between align-items-center custom-container d-none">
             <Link href="/" passHref>
-              <a>
-                <img
-                  src="/images/logo.png"
-                  alt="fundandtraceLogo"
-                  width={78}
-                  height={55}
-                />
-              </a>
+
+              <img
+                src="/images/logo.png"
+                alt="fundandtraceLogo"
+                width={78}
+                height={55}
+              />
+
             </Link>
             <div className="d-flex align-items-center">
               <p className="mb-0 mr-3">Already have an account?</p>
-              <Link href="/SignUp/SignIn" passHref>
-                <a className="mb-0" style={{ color: "var(--color-primary)" }}>
+              <Link
+                href="/SignUp/SignIn"
+                passHref
+                className="mb-0"
+                style={{ color: "var(--color-primary)" }}>
+                
                   Sign in
-                </a>
+                
               </Link>
             </div>
           </header>
@@ -382,6 +388,22 @@ export default function StepOne() {
                   />
                 </div>
 
+                <label htmlFor="registryCountry" className="sr-only">
+                  Country of registration
+                </label>
+                <select
+                  id="registryCountry"
+                  className="form-select mb-3"
+                  value={registryCountry}
+                  onChange={(e) => setRegistryCountry(e.target.value)}
+                >
+                  <option value="GB">Registered in England &amp; Wales (charity number)</option>
+                  <option value="US">Registered in the United States (EIN)</option>
+                  <option value="NG">Registered in Nigeria (CAC number, reviewed by our team)</option>
+                  <option value="KE">Registered in Kenya (reviewed by our team)</option>
+                  <option value="GH">Registered in Ghana (reviewed by our team)</option>
+                  <option value="OTHER">Registered elsewhere (reviewed by our team)</option>
+                </select>
                 <input
                   type="text"
                   name="registrationNumber"
@@ -1015,10 +1037,14 @@ export default function StepOne() {
           </article>
           <div className="d-flex align-items-center justify-content-center mt-4 ">
             <p className="mb-0 mr-3">Already have an account?</p>
-            <Link href="/SignUp/SignIn" passHref>
-              <a className="mb-0" style={{ color: "var(--color-primary)" }}>
+            <Link
+              href="/SignUp/SignIn"
+              passHref
+              className="mb-0"
+              style={{ color: "var(--color-primary)" }}>
+              
                 Sign In
-              </a>
+              
             </Link>
           </div>
         </main>

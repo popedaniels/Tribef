@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import DashboardLayout from "./DashboardLayout";
+import DashboardLayout from "../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import {
@@ -23,6 +23,7 @@ import {
   getAllCountries as locationGetAllCountries,
   getStates as locationGetStates,
 } from "../../components/helperFunctions/locationFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface Country {
   name: string;
@@ -109,7 +110,7 @@ export default function EditProfile() {
         update.code
       ) {
         const res = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL +
+          getApiBaseUrl() +
             "/api/auth/updateprofile/" +
             profile._id,
           { profile: { ...profile, ...update } },
@@ -214,21 +215,21 @@ export default function EditProfile() {
           style={{ maxWidth: 1140 }}
         >
           <Link href="account" passHref>
-            <a>
-              <div
-                className="d-flex align-items-center mb-3"
-                style={{ width: "max-content" }}
-              >
-                <img
-                  src="/images/icons/back.svg"
-                  width={16}
-                  height={16}
-                  alt="backIcon"
-                  className="mr-4"
-                />
-                <h2 className="text-medium mb-0">Edit Profile</h2>
-              </div>
-            </a>
+
+            <div
+              className="d-flex align-items-center mb-3"
+              style={{ width: "max-content" }}
+            >
+              <img
+                src="/images/icons/back.svg"
+                width={16}
+                height={16}
+                alt="backIcon"
+                className="mr-4"
+              />
+              <h2 className="text-medium mb-0">Edit Profile</h2>
+            </div>
+
           </Link>
           <Div className="mx-auto d-flex flex-column justify-content-center align-items-center">
             <div
@@ -678,7 +679,7 @@ const Select = styled.div`
   height: 46px;
   padding: 5px 15px;
   &:disabled {
-    color: #b3b3b3;
+    color: #5f6672;
   }
   position: relative;
   .value{
@@ -774,7 +775,7 @@ const Div = styled.div`
           height: 46px;
           padding: 5px 15px;
           &:disabled {
-            color: #b3b3b3;
+            color: #5f6672;
           }
         }
       }

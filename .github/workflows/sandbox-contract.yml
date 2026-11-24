@@ -1,0 +1,59 @@
+name: Provider sandbox contract
+
+# Runs the app's payment code against the real Stripe / Paystack / Flutterwave
+# TEST-mode APIs (FundandTraceBackend/scripts/sandbox-e2e.js). Needs test keys
+# as repository secrets; the script refuses live keys.
+# Ready for keys: until the SANDBOX_* secrets exist, every job reports
+# "skipped: no sandbox keys" and passes, so the schedule never goes red.
+#
+# Secrets (test mode only): SANDBOX_STRIPE_SECRET, SANDBOX_PAYSTACK_SECRET,
+#   SANDBOX_FLUTTERWAVE_SECRET, SANDBOX_SECURITY_KEY, SANDBOX_INIT_VECTOR
+# Variables (optional): SANDBOX_NG_BANK_CODE, SANDBOX_NG_ACCOUNT,
+#   STAGING_API_URL, SANDBOX_CAMPAIGN_ID (for the manual checkout run)
+on:
+  schedule:
+    - cron: "17 6 * * 1" # weekly, Monday
+  workflow_dispatch:
+    inputs:
+      checkout:
+        description: "Also start checkouts on staging (you pay the printed links with test cards)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FundandTraceBackend
+    env:
+      NODE_ENV: test
+      STRIPESECRET: ${{ secrets.SANDBOX_STRIPE_SECRET }}
+      PAYSTACK_SECRET: ${{ secrets.SANDBOX_PAYSTACK_SECRET }}
+      FLUTTERWAVE: ${{ secrets.SANDBOX_FLUTTERWAVE_SECRET }}
+      SECURITY_KEY: ${{ secrets.SANDBOX_SECURITY_KEY }}
+      INIT_VECTOR: ${{ secrets.SANDBOX_INIT_VECTOR }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: FundandTraceBackend/package-lock.json
+      - name: Sandbox keys present?
+        id: keys
+        run: |
+          if [ -n "$STRIPESECRET$PAYSTACK_SECRET$FLUTTERWAVE" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+          else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::notice::skipped: no sandbox keys (add the SANDBOX_* repository secrets)"; fi
+      - run: npm ci
+        if: steps.keys.outputs.ok == 'true'
+      - name: Contract checks (Nigeria)
+        if: steps.keys.outputs.ok == 'true'
+        run: node scripts/sandbox-e2e.js contract --country NG ${{ vars.SANDBOX_NG_BANK_CODE && format('--bank-code {0} --account {1}', vars.SANDBOX_NG_BANK_CODE, vars.SANDBOX_NG_ACCOUNT) || '' }}
+      - name: Checkout end to end on staging (manual)
+        if: steps.keys.outputs.ok == 'true' && inputs.checkout && vars.STAGING_API_URL != '' && vars.SANDBOX_CAMPAIGN_ID != ''
+        timeout-minutes: 20
+        run: node scripts/sandbox-e2e.js checkout --api "${{ vars.STAGING_API_URL }}" --campaign "${{ vars.SANDBOX_CAMPAIGN_ID }}" --wait 15

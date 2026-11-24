@@ -1,3 +1,5 @@
+import Head from "next/head";
+import { jsonLd, organizationLd } from "../utils/structuredData";
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import api from "../utils/api";
@@ -5,6 +7,7 @@ import { useRouter } from "next/router";
 import Layout from "../components/Layout";
 import HeroSection from "../components/homepageComponents/heroSection/HeroSection";
 import type { FallbackCampaigns } from "../types/campaigns";
+import { visitorCountry } from "../utils/geo";
 
 // Below-fold sections — dynamically imported to split framer-motion and
 // heavy UI out of the initial bundle. ssr:true preserves SEO while still
@@ -21,28 +24,12 @@ const TopCampaignSection = dynamic(
   () => import("../components/homepageComponents/topCampaignSection/TopCampaignSection"),
   { ssr: true }
 );
-const FeaturesGrid = dynamic(
-  () => import("../components/homepageComponents/FeaturesGrid/FeaturesGrid"),
-  { ssr: true }
-);
-const GlobalImpact = dynamic(
-  () => import("../components/homepageComponents/GlobalImpact/GlobalImpact"),
-  { ssr: true }
-);
 const ComparisonMatrix = dynamic(
   () => import("../components/homepageComponents/ComparisonMatrix/ComparisonMatrix"),
   { ssr: true }
 );
-const LiveActivityTicker = dynamic(
-  () => import("../components/homepageComponents/LiveActivityTicker/LiveActivityTicker"),
-  { ssr: true }
-);
 const EscrowWorkflowSimulator = dynamic(
   () => import("../components/homepageComponents/EscrowWorkflowSimulator/EscrowWorkflowSimulator"),
-  { ssr: true }
-);
-const Stories = dynamic(
-  () => import("../components/homepageComponents/StoriesSection/Stories"),
   { ssr: true }
 );
 const StartFunding = dynamic(
@@ -52,17 +39,25 @@ const StartFunding = dynamic(
 
 export default function Home() {
   const [campaigns, setCampaigns] = useState<FallbackCampaigns>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [localName, setLocalName] = useState("");
   const router = useRouter();
 
   const getAllCampaigns = async () => {
     try {
       const res = await api.get("/api/campaigns");
       if (res?.data?.data && res.data.data.length > 0) {
-        setCampaigns(res.data.data);
+        // Campaigns from the visitor's own country first (stable order otherwise).
+        const here = visitorCountry()?.name?.toLowerCase();
+        const list: FallbackCampaigns = res.data.data;
+        const local = here ? list.filter((c: FallbackCampaigns[number]) => c?.basicInformation?.locationCountry?.toLowerCase() === here) : [];
+        setLocalName(local.length ? visitorCountry()?.name || "" : "");
+        setCampaigns(local.length ? [...local, ...list.filter((c: FallbackCampaigns[number]) => !local.includes(c))] : list);
       }
     } catch (error) {
       setCampaigns([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,48 +87,39 @@ export default function Home() {
 
   return (
     <Layout
-      description="The 1st trackable and transparent crowdfunding platform. Donors verify where every dollar goes in real-time with milestone-audited statements, and creators raise funds with 0% platform fees."
-      title="FundandTrace | The 1st Trackable & Transparent Crowdfunding Platform"
+      description="Crowdfunding with escrow and a public ledger. Donations are released in reviewed stages, receipts are published, and anyone can verify where the money went. No platform fee."
+      title="Fund&Trace | Crowdfunding you can verify"
       showFooter
       url="https://fundandtrace.com"
       ogImage="/og-image.jpg"
     >
-      {/* 1. Hero with Dual CTAs, Live Audit Timeline, and Trust Badges */}
+      <Head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(organizationLd()) }} />
+      </Head>
+      {/* 1. Value proposition */}
       <HeroSection />
 
-      {/* 2. Real-Time Verified Escrow Disbursals Marquee Stream */}
-      <LiveActivityTicker />
-
-      {/* 3. 4-Step Traceability Engine */}
-      <TraceabilitySteps />
-
-      {/* 4. Dual Persona Value Section */}
-      <AudienceBenefits />
-
-      {/* 5. Verified Campaigns Showcase */}
+      {/* 2. Real campaigns, early: what people came to see */}
       <TopCampaignSection
         data={campaigns}
-        heading="Verified Campaigns Making Real Impact"
-        tag="DISCOVER & SUPPORT"
+        heading={localName ? `Campaigns in ${localName} and beyond` : "Campaigns you can support today"}
+        tag={localName ? `Near you · ${localName}` : "Live campaigns"}
         loading={loading}
       />
 
-      {/* 6. Platform Pillars Grid */}
-      <FeaturesGrid />
+      {/* 3. How it works */}
+      <TraceabilitySteps />
 
-      {/* 7. Institutional Comparison Matrix */}
-      <ComparisonMatrix />
-
-      {/* 8. Interactive Proof-of-Escrow Workflow Simulator */}
+      {/* 4. One donation, step by step */}
       <EscrowWorkflowSimulator />
 
-      {/* 9. Global Impact Narrative */}
-      <GlobalImpact />
+      {/* 5. Donors and organisers */}
+      <AudienceBenefits />
 
-      {/* 10. Verified Stories & Testimonials */}
-      <Stories />
+      {/* 6. Honest comparison with the usual model */}
+      <ComparisonMatrix />
 
-      {/* 11. Closing High-Conversion Banner */}
+      {/* 7. Closing call to action */}
       <StartFunding />
     </Layout>
   );

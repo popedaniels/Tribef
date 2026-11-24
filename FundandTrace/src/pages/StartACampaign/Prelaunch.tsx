@@ -1,7 +1,8 @@
+import { youtubeEmbedUrl } from "../../utils/video";
 import React, { useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
 import Link from "next/link";
 import styled from "styled-components";
 import { useSelector } from "react-redux";
@@ -19,8 +20,9 @@ import {
   addCommaToNumber,
   getDaysRemaining,
   grabErrorMessage,
-  grabErrorStatus,
-} from "../../components/helperFunctions/helperFunctions";
+  grabErrorStatus, currencyPrefix } from "../../components/helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Prelauch() {
   const [view, setView] = useState("story");
@@ -29,28 +31,34 @@ export default function Prelauch() {
   const [campaignId, setCampaignId] = useState("");
   const router = useRouter();
   const { authenticated, profile } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const [errorBasic, setErrorBasic] = useState(false);
   const [errorContent, setErrorContent] = useState(false);
   const [errorTeam, setErrorTeam] = useState(false);
   const [errorFunding, setErrorFunding] = useState(false);
   const [kycStatus, setKycStatus] = useState("unverified");
-  const [kycLoading, setKycLoading] = useState(false);
+  const [kycSubmitted, setKycSubmitted] = useState(false);
+  // Matches the backend default (services/kycGate.js): a submitted live ID
+  // check is enough to launch; payouts wait until it's verified.
+  const canLaunch = kycStatus === "verified" || (kycStatus === "pending" && kycSubmitted);
+  const verifyHref = "/dashboard/verify-identity?return=" + encodeURIComponent("/StartACampaign/Prelaunch");
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   const checkKyc = useCallback(async () => {
     if (!profile?._id) return;
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/identity/status/${profile._id}`,
+        `${getApiBaseUrl()}/api/identity/status/${profile._id}`,
         // Session cookie must ride along: without it the backend's requireAuth
         // rejects the call and KYC status silently stays "unverified".
         { withCredentials: true }
       );
       if (res.data?.data?.status) {
         setKycStatus(res.data.data.status);
+        setKycSubmitted(Boolean(res.data.data.submittedAt));
       }
     } catch (err) {
     }
@@ -60,26 +68,6 @@ export default function Prelauch() {
     checkKyc();
   }, [checkKyc]);
 
-  const handleStartKyc = async () => {
-    if (!profile?._id) return;
-    setKycLoading(true);
-    try {
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/identity/create-session`,
-        { userId: profile._id, campaignId },
-        { withCredentials: true }
-      );
-      if (res.data?.data?.url) {
-        window.open(res.data.data.url, "_blank");
-        dispatch(toast(true, "Identity verification session opened in a new tab.", "info"));
-        setKycStatus("pending");
-      }
-    } catch (err) {
-      dispatch(toast(true, grabErrorMessage(err) || "Failed to start KYC verification.", "error"));
-    } finally {
-      setKycLoading(false);
-    }
-  };
 
   const checkBasic = () => {
     for (let key in startCampaign?.basicInformation) {
@@ -132,14 +120,9 @@ export default function Prelauch() {
 
   const handleSubmit = async () => {
     try {
-      if (kycStatus !== "verified") {
-        dispatch(
-          toast(
-            true,
-            "Identity Verification (KYC) Required before publishing your campaign.",
-            "error"
-          )
-        );
+      if (!canLaunch) {
+        dispatch(toast(true, "Verify your identity before launching. It takes about two minutes.", "info"));
+        router.push(verifyHref);
         return;
       }
 
@@ -149,7 +132,7 @@ export default function Prelauch() {
       checkFunding();
       if (checkTeam() && checkBasic() && checkContent() && checkFunding()) {
         const res = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/launch",
+          getApiBaseUrl() + "/api/startCampaign/launch",
           { launch: true, id: campaignId },
           { withCredentials: true }
         );
@@ -168,7 +151,12 @@ export default function Prelauch() {
       }
     } catch (error) {
       dispatch(toast(true, grabErrorMessage(error), "error"));
-      if (grabErrorStatus(error) == 403) {
+      const code = axios.isAxiosError(error) ? error.response?.data?.code : "";
+      if (code === "identity_required") {
+        router.push(verifyHref);
+      } else if (grabErrorStatus(error) == 401) {
+        // Session expired. (403s are permission/business-rule refusals and
+        // must not sign the organiser out.)
         dispatch(logout());
       }
     }
@@ -197,8 +185,7 @@ export default function Prelauch() {
             className="btn text-white mt-auto d-none d-md-flex"
             onClick={handleSubmit}
             style={{
-              opacity: kycStatus === "verified" ? 1 : 0.6,
-              cursor: kycStatus === "verified" ? "pointer" : "not-allowed",
+              opacity: canLaunch ? 1 : 0.6,
             }}
           >
             Launch Campaign
@@ -239,36 +226,27 @@ export default function Prelauch() {
                 />
                 <h5 className="mb-0 font-weight-bold" style={{ fontSize: 16 }}>
                   {kycStatus === "verified"
-                    ? "Identity Verified (KYC Passed)"
-                    : kycStatus === "pending"
-                    ? "Verification Under Review"
-                    : "Identity Verification Required (Anti-Fraud Protocol)"}
+                    ? "Identity verified"
+                    : kycStatus === "pending" && kycSubmitted
+                    ? "Identity check under review"
+                    : kycStatus === "requires_input"
+                    ? "Your identity check needs another try"
+                    : "Verify your identity to launch"}
                 </h5>
               </div>
               <p className="mb-0 text-muted" style={{ fontSize: 13.5 }}>
                 {kycStatus === "verified"
-                  ? "Your government ID and facial biometric liveness checks are active. Your campaign is ready for live launch."
-                  : "To protect donors and eliminate fraudulent campaigns, all organizers must complete a quick 1-minute government ID verification via Stripe."}
+                  ? "Your ID and live video were checked. Donors will see that a verified person runs this campaign."
+                  : kycStatus === "pending" && kycSubmitted
+                  ? "You can launch now. Payouts start once the check passes (usually within one working day)."
+                  : "To protect donors, every organiser takes a photo of their ID and a short selfie video with their camera. It takes about two minutes."}
               </p>
             </div>
 
-            {kycStatus !== "verified" && (
-              <button
-                onClick={handleStartKyc}
-                disabled={kycLoading}
-                className="btn btn-primary mt-3 mt-md-0 ml-md-3 px-4 py-2 font-weight-bold"
-                style={{
-                  background: "var(--color-primary)",
-                  border: "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {kycLoading
-                  ? "Opening..."
-                  : kycStatus === "pending"
-                  ? "Re-verify ID"
-                  : "Verify Identity with Stripe"}
-              </button>
+            {!canLaunch && (
+              <Link href={verifyHref} className="ft-btn ft-btn--primary mt-3 mt-md-0 ml-md-3">
+                {kycStatus === "requires_input" ? "Try again" : "Verify identity"}
+              </Link>
             )}
           </div>
         </div>
@@ -349,16 +327,12 @@ export default function Prelauch() {
               </p>
               <div className="d-flex align-items-baseline">
                 <h3 className="text-heading mr-2">
-                  {startCampaign?.funding?.currency == "USD"
-                    ? "$"
-                    : startCampaign?.funding?.currency == "GBP"
-                    ? "£"
-                    : "₦"}
+                  {currencyPrefix(startCampaign?.funding?.currency)}
                   {addCommaToNumber(startCampaign?.funding?.amountRaised)}
                 </h3>
                 <p
                   className="mb-0"
-                  style={{ fontWeight: "300", color: "#B3B3B3" }}
+                  style={{ fontWeight: "300", color: "#5f6672" }}
                 >
                   raised of {startCampaign?.funding?.currency}{" "}
                   {startCampaign?.funding?.amountExpected}
@@ -388,7 +362,7 @@ export default function Prelauch() {
                   height="17.5px"
                   className="mr-2"
                 />
-                <p className="mb-0" style={{ color: "#807373" }}>
+                <p className="mb-0" style={{ color: "#565d6d" }}>
                   {getDaysRemaining(startCampaign)} days left
                 </p>
               </div>
@@ -453,13 +427,11 @@ export default function Prelauch() {
                   <div style={{ position: "relative", marginBottom: 30 }}>
                     {startCampaign?.content?.campaignVideo && (
                       <div>
-                        {startCampaign?.content?.campaignVideo?.includes(
-                          "youtube.com"
-                        ) ? (
+                        {youtubeEmbedUrl(startCampaign?.content?.campaignVideo) ? (
                           <Iframe style={{ marginBottom: 40 }}>
                             <iframe
                               className="iframe"
-                              src={startCampaign?.content?.campaignVideo}
+                              src={youtubeEmbedUrl(startCampaign?.content?.campaignVideo) || undefined}
                             ></iframe>
                           </Iframe>
                         ) : (

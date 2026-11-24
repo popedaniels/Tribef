@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
-import DashboardLayout from "./DashboardLayout";
+import DashboardLayout from "../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
+import OrganiserTodos from "../../components/dashboard/OrganiserTodos";
 import { useSelector } from "react-redux";
 import { logout, selectAuthStateState } from "../../../store/slices/authSlice";
 import ActiveCampaignCard from "../../components/ActiveCampaignCard/ActiveCampaignCard";
@@ -15,6 +16,7 @@ import {
 import { toast } from "../../../store/slices/ToastSlice";
 import router from "next/router";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Dashboard() {
   const [view, setView] = useState("activeCampaign");
@@ -31,7 +33,7 @@ export default function Dashboard() {
       setLoading(true);
       if (!profileId) return;
       const campaigns = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL + "/api/campaigns/" + profileId,
+        getApiBaseUrl() + "/api/campaigns/" + profileId,
         { withCredentials: true }
       );
       campaigns && setCampaigns(campaigns?.data?.data?.active);
@@ -55,24 +57,25 @@ export default function Dashboard() {
       <Wrapper className="d-flex flex-column align-items-center justify-content-center mx-auto">
         <div className="d-flex flex-md-row flex-column align-items-center justify-content-between w-100 mb-4">
           <div>
-            <h2 className="mb-1 text-heading">Campaigns & Escrow Overview</h2>
-            <p className="text-muted mb-0" style={{ fontSize: 14 }}>Manage your active milestone fundraisers and review real-time audit requests.</p>
+            <h2 className="mb-1 text-heading">Your campaigns</h2>
+            <p className="text-muted mb-0" style={{ fontSize: 14 }}>Track what you&apos;ve raised, request payouts and keep donors up to date.</p>
           </div>
           <Link
             href={authenticated ? `/StartACampaign` : `/SignUp/SignIn`}
             passHref
           >
-            <a>
-              <button
-                className={[
-                  "d-flex align-items-center justify-content-center px-4 py-3 text-white btn rounded mt-3 mt-md-0",
-                ].join(" ")}
-              >
-                <p className="mb-0">Create a campaign</p>
-              </button>
-            </a>
+
+            <button
+              className={[
+                "d-flex align-items-center justify-content-center px-4 py-3 text-white btn rounded mt-3 mt-md-0",
+              ].join(" ")}
+            >
+              <p className="mb-0">Create a campaign</p>
+            </button>
+
           </Link>
         </div>
+        <OrganiserTodos />
 
         {/* Bento Overview Stats */}
         <div className="w-100 mb-4" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
@@ -94,10 +97,10 @@ export default function Dashboard() {
             </h4>
           </div>
           <div className="bento-elevation-card p-3">
-            <span className="badge-escrow-verified mb-2">Platform Standard</span>
-            <p className="text-muted mb-1" style={{ fontSize: 12, fontWeight: 600 }}>ESCROW PROTECTION</p>
-            <h4 className="mb-0" style={{ fontSize: 22, fontWeight: 800, color: "#10B981" }}>
-              100% Audited
+            <span className="badge-escrow-verified mb-2">How payouts work</span>
+            <p className="text-muted mb-1" style={{ fontSize: 12, fontWeight: 600 }}>ESCROW</p>
+            <h4 className="mb-0" style={{ fontSize: 16, fontWeight: 700, color: "#146c43" }}>
+              Released in reviewed stages
             </h4>
           </div>
         </div>
@@ -224,7 +227,7 @@ const Wrapper = styled.div`
       .inactive {
         background: white;
         padding: 15px 25px;
-        color: #b3b3b3;
+        color: #5f6672;
         border-radius: 4px;
         cursor: pointer;
       }

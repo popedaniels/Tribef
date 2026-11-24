@@ -6,7 +6,7 @@ export default function EventsCard({ event }) {
   if (!event) return null;
 
   return (
-    <Link href={`/events/${event.slug || event.id}`} passHref>
+    <Link href={`/events/${event.slug || event.id}`} passHref legacyBehavior>
       <CardLink>
         <Wrapper className="w-100 h-100 d-flex flex-column">
           <div className="img-container position-relative">

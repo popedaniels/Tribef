@@ -1,51 +1,51 @@
 import React, { useState } from "react";
 import styles from "./EscrowWorkflowSimulator.module.scss";
 
+// Describes what the platform actually does. The panel on the right is an
+// example ledger entry (labelled as such), in the same shape as the real
+// public ledger at /api/ledger/:campaignId.
 const steps = [
   {
     id: 1,
-    title: "1. Multi-Sig Escrow Lock",
-    badge: "Stage 01: Secure Deposit",
-    subtitle: "Donor capital enters audited smart escrow contracts instantly.",
+    title: "1. Held in escrow",
+    badge: "Step 1 · Donation",
+    subtitle: "Your donation is held for the campaign, not paid to the organiser.",
     description:
-      "When you donate to a verified cause, 100% of your funds are placed into an institutional milestone escrow. The campaign organizer cannot withdraw money in advance.",
+      "The moment you give, it's recorded on the campaign's public ledger. The organiser can't withdraw it all at once, and you can refund it yourself within 30 days while it's still in escrow.",
     metrics: [
-      { label: "Escrow Status", value: "Locked & Audited", highlight: true },
-      { label: "Intermediary Cut", value: "0% Hidden Fees" },
-      { label: "Donor Guarantee", value: "Cryptographic Escrow" },
+      { label: "Status", value: "Held in escrow", highlight: true },
+      { label: "Platform fee", value: "0%" },
+      { label: "Your record", value: "Public ledger entry" },
     ],
-    hash: "0x8f2a...7c91e",
-    visualIcon: "🔒",
+    entry: { seq: 41, type: "credit", label: "Donation received", amount: "+$50.00", prev: "9c1e04b7…", hash: "4b71a93d…" },
   },
   {
     id: 2,
-    title: "2. Geotagged Proof & Hash Verification",
-    badge: "Stage 02: Evidence Validation",
-    subtitle: "Invoices, clinic bills, and photo evidence are validated.",
+    title: "2. Request and review",
+    badge: "Step 2 · Funding request",
+    subtitle: "The organiser asks for money for a stated purpose.",
     description:
-      "Before any milestone disbursement is approved, verified hospital receipts, doctor sign-offs, or contractor progress photos are audited against strict milestone objectives.",
+      "Each request says what the money is for and who will be paid. Our team reviews it, the organiser must have verified their identity, and donor reports can freeze payouts while we look into a problem.",
     metrics: [
-      { label: "Audit Verification", value: "Proof Verified", highlight: true },
-      { label: "Evidence Type", value: "Hospital Invoice + Photo" },
-      { label: "Disbursement Check", value: "Multi-Signature Match" },
+      { label: "Review", value: "Before any payout", highlight: true },
+      { label: "Identity", value: "Verified first" },
+      { label: "Disputes", value: "Can freeze payouts" },
     ],
-    hash: "0x4b71...a93de",
-    visualIcon: "📑",
+    entry: { seq: 42, type: "review", label: "Request approved: Stage 2 invoice", amount: "—", prev: "4b71a93d…", hash: "—" },
   },
   {
     id: 3,
-    title: "3. Direct Settlement to Providers",
-    badge: "Stage 03: Direct Disbursal",
-    subtitle: "Funds are released directly to hospitals, contractors, and clinics.",
+    title: "3. Paid and proven",
+    badge: "Step 3 · Payout",
+    subtitle: "Money goes out, ideally straight to the supplier, and proof follows.",
     description:
-      "Upon milestone approval, funds bypass intermediaries and disburse directly to the verified service provider or clinic with real-time public ledger updates.",
+      "The payout is written to the ledger. The organiser uploads the receipt within 14 days, and it shows on the tracker. If a bank transfer fails, the money returns to escrow and that's recorded too.",
     metrics: [
-      { label: "Disbursal Mode", value: "Direct-to-Vendor", highlight: true },
-      { label: "Settlement Speed", value: "Instant Automated" },
-      { label: "Public Ledger", value: "100% Traceable" },
+      { label: "Paid to", value: "Supplier where possible", highlight: true },
+      { label: "Receipt due", value: "Within 14 days" },
+      { label: "Ledger", value: "Verifiable by anyone" },
     ],
-    hash: "0x1e88...b25ff",
-    visualIcon: "⚡",
+    entry: { seq: 43, type: "payout", label: "Payout to St. Mary's Clinic", amount: "−$9,000.00", prev: "4b71a93d…", hash: "e88b25ff…" },
   },
 ];
 
@@ -57,20 +57,24 @@ export default function EscrowWorkflowSimulator() {
     <section className={styles.section} id="how-escrow-works">
       <div className={styles.container}>
         <div className={styles.header}>
-          <span className={styles.tag}>Zero-Fraud Architecture</span>
+          <span className={styles.tag}>Escrow, step by step</span>
           <h2 className={styles.heading}>
-            How Milestone Escrow <span>Protects Every Dollar</span>
+            Follow a donation <span>from you to the clinic</span>
           </h2>
           <p className={styles.subheading}>
-            Explore our 3-stage cryptographic verification pipeline. No advance cashouts, no hidden diversions.
+            No lump-sum cash-outs. Every step leaves a record you can check.
           </p>
         </div>
 
         {/* Stepper Navigation Pills */}
-        <div className={styles.stepperNav}>
+        <div className={styles.stepperNav} role="tablist" aria-label="Escrow steps">
           {steps.map((s) => (
             <button
               key={s.id}
+              type="button"
+              role="tab"
+              aria-selected={activeStep === s.id}
+              aria-controls="escrow-step-panel"
               onClick={() => setActiveStep(s.id)}
               className={[
                 styles.stepButton,
@@ -84,13 +88,12 @@ export default function EscrowWorkflowSimulator() {
         </div>
 
         {/* Interactive Simulator Stage Card */}
-        <div className={styles.simulatorCard}>
+        <div className={styles.simulatorCard} id="escrow-step-panel" role="tabpanel">
           <div className={styles.cardLeft}>
             <div className={styles.stageBadge}>
-              <span className="live-pulse-dot" />
               <span>{current.badge}</span>
             </div>
-            <h3 className={styles.stageHeadline}>{current.title}</h3>
+            <h3 className={styles.stageHeadline}>{current.title.split(". ")[1]}</h3>
             <p className={styles.stageSubtitle}>{current.subtitle}</p>
             <p className={styles.stageDesc}>{current.description}</p>
 
@@ -112,25 +115,24 @@ export default function EscrowWorkflowSimulator() {
                 <span className={styles.terminalDotRed} />
                 <span className={styles.terminalDotYellow} />
                 <span className={styles.terminalDotGreen} />
-                <span className={styles.terminalTitle}>ESCROW_AUDIT_LOG_v2.6</span>
+                <span className={styles.terminalTitle}>Example ledger entry</span>
               </div>
               <div className={styles.terminalBody}>
                 <div className={styles.logLine}>
-                  <span className={styles.logTime}>[18:42:01 UTC]</span>{" "}
-                  <span className={styles.logKey}>STAGE:</span> {current.badge}
+                  <span className={styles.logKey}>#</span> {current.entry.seq} · <span className={styles.logKey}>{current.entry.type}</span>
+                </div>
+                <div className={styles.logLine}>{current.entry.label}</div>
+                <div className={styles.logLine}>
+                  <span className={styles.logKey}>amount</span> {current.entry.amount}
                 </div>
                 <div className={styles.logLine}>
-                  <span className={styles.logTime}>[18:42:03 UTC]</span>{" "}
-                  <span className={styles.logKey}>HASH:</span> {current.hash}
+                  <span className={styles.logKey}>prevHash</span> <span className={styles.logTime}>{current.entry.prev}</span>
                 </div>
                 <div className={styles.logLine}>
-                  <span className={styles.logTime}>[18:42:04 UTC]</span>{" "}
-                  <span className={styles.logKey}>STATUS:</span>{" "}
-                  <span className={styles.statusOk}>VERIFIED & ENFORCED</span>
+                  <span className={styles.logKey}>hash</span> <span className={styles.statusOk}>{current.entry.hash}</span>
                 </div>
-                <div className={styles.terminalBigIcon}>{current.visualIcon}</div>
                 <div className={styles.securitySeal}>
-                  🛡️ 100% Cryptographically Protected by Fund&amp;Trace Escrow
+                  Each entry includes the previous entry&apos;s hash, so a change anywhere breaks the chain.
                 </div>
               </div>
             </div>

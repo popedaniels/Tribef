@@ -1,10 +1,12 @@
 # Fund&Trace — Launch Runbook
 
 This is the operational checklist for the remaining go-live work. The code and
-build gates are green (frontend production build passes, backend tests 12/12,
-strict type/lint gates restored). What remains is **credential rotation,
-history purge, production secret population, staging E2E verification, and
-production operations hardening**.
+build gates are green (November 2026: backend 200+ unit and 64 integration
+tests, frontend 156 tests, type and lint gates, production build, no high or
+critical dependency advisories, WCAG 2.1 AA audit clean). What remains is
+**credential rotation, history purge, production secrets, the one-off
+migrations, staging end-to-end tests with the payment providers, operations
+setup, and legal sign-off** (§7).
 
 > Treat every previously exposed value as compromised. Even though the
 > plaintext values were removed from the working tree and `.env` is now
@@ -33,6 +35,10 @@ history does not revoke a still-valid secret.
 | 11 | `CHARITIES_API` | Charity registry lookup key | Regenerate in the provider portal (Ocp-Apim-Subscription-Key). |
 | 12 | `EMAIL` / `OAUTH_CLIENTID` / `OAUTH_CLIENT_SECRET` / `OAUTH_REFRESH_TOKEN` | Gmail OAuth2 email sending | Google Cloud Console → APIs & Services → Credentials → reset client secret, re-run OAuth consent to obtain a new refresh token. |
 | 13 | `INTERNAL_WEBHOOK_SECRET` | Internal server-to-server webhook auth | Generate `openssl rand -hex 32`. |
+| 14a | `PAYSTACK_SECRET` | Paystack payments, transfers, webhook HMAC | Paystack Dashboard → Settings → API Keys & Webhooks → generate new secret key. |
+| 14b | `FLUTTERWAVE_VERIF_HASH` | Flutterwave webhook verification | Flutterwave Dashboard → Settings → Webhooks → set a new secret hash. |
+| 14c | `STRIPE_CONNECT_WEBHOOK_SECRET` | Stripe Connect (organiser payouts) webhook | Stripe Dashboard → Webhooks → Connect endpoint → roll secret. |
+| 14d | `ANCHOR_GITHUB_TOKEN` | Publishing daily ledger anchors | GitHub → fine-grained token, *contents: write* on the public anchors repo only; rotate yearly. |
 | 14 | Mongo root / Mongo-Express credentials (`root`/`fundandtrace`) | Local Docker Mongo admin | Generate new passwords, set `MONGO_ROOT_USERNAME/PASSWORD` and `MONGO_EXPRESS_USERNAME/PASSWORD`. The compose files now read them from env (no hardcoded values remain). |
 
 ### 1.1 AES key rotation (items 4–5)
@@ -112,12 +118,94 @@ Notes:
 4. Confirm production URLs use HTTPS (`MAINURL`, `BACKENDURL`,
    `NEXT_PUBLIC_API_URL`) — the validator rejects non-HTTPS public URLs.
 
+5. **Go/no-go preflight** with the production environment loaded, before
+   launch and before every major deploy:
+
+   ```bash
+   cd FundandTraceBackend
+   npm run preflight -- --env-file /secure/prod.env --frontend-env ../FundandTrace/.env.production
+   npm run preflight:online -- --env-file /secure/prod.env   # also hits the DB, processors, webhooks, URLs
+   ```
+
+   It fails on test keys in production, live/test key mixing between frontend
+   and backend, a mandatory Stripe surcharge, missing webhook secrets or
+   evidence signing key, placeholder values, unregistered Stripe webhooks,
+   a missing ledger index and unreachable URLs; it warns on everything that
+   needs a decision (Redis, Sentry, alerts, object storage, KYC gate, second
+   payout approver). Secret values are never printed. Exit code 1 = not ready.
+
+---
+
+## 3a. One-off steps for the November 2026 release
+
+Do these once, in this order, when deploying the `fix/audit-hardening-ui-polish` work.
+
+1. **Back up the database** (Atlas snapshot or `scripts/backup-mongo.sh`).
+2. **Encrypt legacy plaintext bank details:** dry run, check the counts, then
+   run for real:
+   ```bash
+   node scripts/migrate-encryption.js            # dry run
+   node scripts/migrate-encryption.js --encrypt-plaintext
+   ```
+3. **Set `LEDGER_START_DATE`** to the deploy date. Campaigns created before the
+   public ledger existed have balances with no ledger history, and the nightly
+   integrity check skips their balance comparison.
+4. **Anchoring:** create an empty **public** GitHub repo (e.g.
+   `fundandtrace/ledger-anchors`), set `ANCHOR_GITHUB_REPO`, `ANCHOR_GITHUB_TOKEN`
+   and `ANCHOR_OPENTIMESTAMPS=true`. In this repo's GitHub settings add the
+   variable `PRODUCTION_API_URL` so the *Ledger watchdog* workflow re-verifies
+   each anchor daily. See `docs/LEDGER_ANCHORING.md`.
+5. **Alerts:** set `ALERT_WEBHOOK_URL` (Slack/Teams/Discord) and `SENTRY_DSN`.
+6. **Email:** move transactional email to a provider with SMTP (Amazon SES,
+   Postmark, Resend…) and set `SMTP_URL` and `EMAIL_FROM`. Gmail OAuth is capped
+   at a few hundred to ~2,000 messages a day, and its refresh token expires
+   after 7 days while the OAuth app is in "testing", which would stop donation
+   receipts without any error a donor sees.
+7. **Webhooks:** register all five endpoints in each provider's live dashboard
+   (table in `docs/SANDBOX_TESTING.md` §2), including **Stripe Connect**, which
+   never verified before this release.
+8. **Process manager:** deploy with the updated `processes.json` (16 s kill
+   timeout so payouts in flight finish during a deploy) or the updated
+   Kubernetes manifests (30 s grace period, pre-stop pause, PodDisruptionBudget).
+   **Use immutable image tags** (git SHA), not `:latest`.
+9. **Live evidence & identity checks** (`docs/LIVE_EVIDENCE.md`). Generate and
+   set `EVIDENCE_SIGNING_KEY` (`node scripts/generate-evidence-key.js`).
+   Without it, capture is refused in production. Then:
+   - Allow 31 MB request bodies on the evidence upload route at the ingress.
+   - Restrict the app's database role to insert + find on `evidencerecords`.
+   - Pass the CDN's visitor-country header through to the API.
+   - Agree the retention period with counsel, then set `ID_MEDIA_RETENTION_DAYS`.
+   - Organisers now need a submitted live ID check to launch
+     (`REQUIRE_KYC_TO_LAUNCH=submitted`). Staff the `/admin/identity` queue
+     before switching it on.
+10. **Card and processing fees** (no platform fee; see `services/fees.js`).
+    The donor's total = donation + optional tip + processing fee, and the
+    server recomputes the fee and rejects a checkout that doesn't match.
+    - **Paystack dashboard → Settings → Preferences → "Pass fees to
+      customers" must stay OFF.** We already add the fee; if Paystack adds it
+      too, the donor is charged twice and every webhook total fails to match.
+    - **Flutterwave dashboard → Settings → "Who should pay the transaction
+      fees?" must be set to the merchant**, for the same reason.
+    - Defaults: `FEE_MODE_PAYSTACK=required`, `FEE_MODE_FLUTTERWAVE=required`,
+      `FEE_MODE_STRIPE=optional`. **Don't set `FEE_MODE_STRIPE=required`**:
+      the Consumer Rights (Payment Surcharges) Regulations 2012 ban card
+      surcharges for UK consumers (EU equivalent: PSD2 Art. 62(4)), and they
+      cover donations. Stripe's "cover the fee" box must stay unticked by
+      default (Consumer Contracts Regulations 2013 reg. 40). Ask counsel to
+      confirm both, and whether the pass-through wording on `/fees` is enough
+      in Nigeria, Kenya and Ghana.
+    - Rates live in `RULES` and were checked on 24 Nov 2026. When a processor
+      changes its pricing, override without a deploy using `FEE_SCHEDULE_JSON`
+      (same shape as `RULES`) and update the `/fees` page table.
+
 ---
 
 ## 4. Staging end-to-end test checklist
 
 Run on a staging deployment with test-mode payment keys before any production
-traffic.
+traffic. **The payment flows have their own detailed checklist and automated
+script: `docs/SANDBOX_TESTING.md`.** Complete it in full; the unit tests only
+use simulated providers.
 
 ### 4.1 Deployment smoke test
 
@@ -158,6 +246,138 @@ Expect all five checks to PASS (readiness requires MongoDB reachable).
 - [ ] **Rollback** — publish immutable image tags (git SHA/semver); keep `helm rollback` / previous image tag documented and tested.
 - [ ] **Webhook delivery** — verify Stripe and Flutterwave endpoints show successful delivery in the provider dashboards; confirm signatures are verified server-side; set up monitoring for failed webhook deliveries.
 
+- [ ] **Daily jobs** — the morning after deploy, `GET /api/admin/ops/status` shows a succeeded `integrity-check` and `ledger-anchor`, the anchor appears in the public repo, and the *Ledger watchdog* workflow is green.
+- [ ] **Gateway reconciliation** — set `RECONCILE_DAILY=true` once live keys are in place; review its first week of output.
+- [ ] **Uptime** — external monitor on `https://api…/live` and `https://api…/ready`, plus the donate page.
+- [ ] **Logs** — every response carries `X-Request-Id`; make sure your log store indexes `requestId` so support can trace a donor's failed payment from the id in the error.
+
+---
+
+### 5.1 Backup-restore drill (monthly, and before launch)
+
+A backup you haven't restored is a hope, not a backup.
+
+```bash
+# Restore last night's real backup into a scratch database and verify it:
+DRILL_MONGOURL="mongodb://localhost:27017/fundandtrace_drill" \
+  ./scripts/backup-restore-drill.sh ./backups/mongo-YYYYMMDDTHHMMSSZ.tar.gz
+# …or take a fresh dump from a read-only production user first:
+SOURCE_MONGOURL="mongodb+srv://readonly@…/fundandtrace" DRILL_MONGOURL=… ./scripts/backup-restore-drill.sh
+```
+
+Run it on your own infrastructure with the production `.env` loaded (the
+verifier decrypts nothing but needs the same config). It refuses any target
+database whose name doesn't end in `_drill`, restores, then checks: every
+collection and count, the ledger unique index, every ledger hash chain, the
+sealed-evidence chain, balances against the ledger, and backup age (RPO,
+default ≤ 26 h). It writes `drill-reports/drill-<time>.md` with the restore
+time (RTO). File the report; a FAIL is a P1.
+
+The *Backup drill* GitHub workflow runs the same scripts monthly against a
+seeded throwaway database and also proves a tampered ledger entry is caught.
+It deliberately never touches production data.
+
+### 5.2 Load, FX and end-to-end checks
+
+- **Load + concurrency** (*Load test* workflow, weekly): read load on the public
+  campaign endpoints with a p95 budget, then a storm of signed Paystack
+  webhooks, each delivered 3× concurrently; the campaign must be credited
+  exactly once per donation and the ledger must verify. Run it against
+  staging before launch with `--connections` set to your expected peak.
+- **Live FX** (*FX check* workflow, daily; `fx-check` job in the app): the
+  provider must answer with fresh rates that an independent source agrees
+  with within 5%; the app refuses a feed that moves a core currency >25% in
+  one refresh and alerts. FX is display-only, money never converts.
+- **End-to-end** (*E2E* workflow, every PR): Playwright on desktop and a
+  Pixel 7 profile against a production build.
+
+## 6. Incident playbooks
+
+**Integrity alert: `balance_mismatch` or `negative_balance` (critical).**
+Freeze payouts for that campaign (admin → Disputes, or set
+`disputeGovernance.isLocked`). Compare the campaign's ledger
+(`GET /api/ledger/:id`) with the gateway records for the same period. A
+mismatch usually means a credit, payout or refund that changed the balance but
+failed to write its ledger entry (look for "Ledger append failed" in the logs
+with that campaign id). Correct it with a new compensating ledger entry; never
+edit or delete entries. Record what happened in the campaign's admin notes.
+
+**Integrity alert: `ledger_broken` (critical).** Someone or something edited
+the ledger collection directly. The anchor job will refuse to run until it's
+resolved. Restore the affected entries from backup and compare with the last
+anchor (`node scripts/verify-anchor.js`). Treat it as a security incident:
+rotate database credentials and review database access logs.
+
+**`balance_mismatch_in_flight`, `payout_stuck`, `refund_stuck` (warning).**
+A payout or refund was interrupted (deploy, crash, provider timeout). Check the
+provider dashboard for the reference. If the money moved, complete the record;
+if it didn't, release the reservation (`payoutLockedAt` / refund `processing`)
+and let the organiser or admin retry.
+
+**`bank_transfer_unconfirmed` (warning).** The provider never sent the
+transfer webhook. Look up the reference in the Paystack/Flutterwave dashboard;
+replay the webhook from there, or apply the outcome manually.
+
+**Provider outage.** Donations on the affected rail fail with "you haven't been
+charged"; donors can pick another payment method. Post a status note. Nothing to
+reconcile unless the provider later delivers late webhooks (they're idempotent).
+
+**Suspected fraudulent campaign.** Freeze it (Disputes), decline pending
+funding requests with a reason, and if confirmed resolve the dispute with a
+pro-rata refund. Keep the evidence; you may have reporting obligations (§7).
+
+**Leaked secret.** Rotate it immediately (§1), invalidate sessions with
+`TOKEN_SECRET` rotation if it was an auth secret, and check the integrity report
+and provider dashboards for anything unusual since the leak.
+
+---
+
+## 7. Legal and licensing: questions for your lawyer
+
+This isn't legal advice. These are the questions a lawyer in each country you
+operate in needs to answer **before** you hold donor money at scale or promise
+donors that their money is "protected". Holding funds for others and releasing
+them later is regulated in most places.
+
+- **Holding and releasing funds.** Does holding donations and paying them out
+  later need a licence or an exemption? For example: UK — FCA authorisation
+  under the Payment Services Regulations 2017 / Electronic Money Regulations
+  2011, or reliance on a regulated partner; US — state money transmitter
+  licences unless a licensed processor holds the funds; Nigeria — CBN licensing
+  for payment service providers; Kenya — National Payment System Act; Ghana —
+  Payment Systems and Services Act 2019. Can the structure rely on Stripe,
+  Paystack and Flutterwave holding the funds (e.g. Stripe Connect with delayed
+  payouts) rather than Fund&Trace holding them?
+- **Safeguarding.** If you do hold funds: segregated accounts, what happens to
+  escrowed money if Fund&Trace becomes insolvent, and whether "escrow" is a
+  word you're allowed to use without a licensed escrow agent.
+- **Donor promises.** Review the wording of the 30-day self-refund, the
+  pro-rata dispute refund and every "protected" claim on the site, so they're
+  enforceable and not misleading under consumer-protection law.
+- **AML/KYC.** What identity checks and transaction monitoring are required for
+  organisers and for large or unusual donations, and do you need to report
+  suspicious activity?
+- **Charitable fundraising.** Registration requirements for soliciting on
+  behalf of charities (UK Fundraising Regulator, US state charitable
+  solicitation registration, local rules elsewhere).
+- **Data protection.** UK/EU GDPR, Nigeria Data Protection Act 2023, Kenya
+  Data Protection Act 2019: lawful basis, retention, cross-border transfers
+  (data stored outside Africa), and the public ledger (it shows amounts and
+  dates but no donor names; confirm that's acceptable).
+- **Biometric identity data.** Selfie videos and ID photos captured for
+  identity checks are special-category/biometric data (UK GDPR Art. 9, NDPA
+  2023). Questions for counsel:
+  - Which lawful basis and condition apply?
+  - Is a DPIA required?
+  - What should the consent wording on the verification screen say?
+  - How long must ID evidence be kept for AML before it is deleted? This sets
+    `ID_MEDIA_RETENTION_DAYS`.
+  - Is storing it in our database region acceptable for each country?
+- **Tax.** Receipts for tax relief, Gift Aid (UK) if you add it, and whether
+  tips are taxable revenue.
+- **Terms of service and privacy policy.** Have both rewritten to match how the
+  product now works (escrow, staged release, ledger, refunds, disputes).
+
 ---
 
 ## Definition of done
@@ -166,4 +386,8 @@ Expect all five checks to PASS (readiness requires MongoDB reachable).
 - [ ] History purged and force-pushed on both repos; collaborators re-cloned.
 - [ ] `npm run validate-env` exits 0 against the real production `.env`.
 - [ ] All §4 staging flows pass.
+- [ ] §3a one-off steps done.
+- [ ] `docs/SANDBOX_TESTING.md` checklist passed on staging.
 - [ ] §5 production ops items confirmed.
+- [ ] §7 legal questions answered in writing, and site wording updated to match.
+- [ ] A small, real pilot (a few campaigns paying hospitals or schools directly) has completed a full cycle: donations → payout → receipt → anchor.

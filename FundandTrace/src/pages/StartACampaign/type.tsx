@@ -19,20 +19,23 @@ import {
 } from "../../components/helperFunctions/helperFunctions";
 import axios from "axios";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function StepOne() {
   const [view, setView] = useState("");
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { authenticated, profile } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   useEffect(() => {
-    !profile?.verified && router.push("/SignUp/Verify");
-  }, [profile, router]);
+    rehydrated && authenticated && !profile?.verified && router.push("/SignUp/Verify");
+  }, [rehydrated, authenticated, profile, router]);
 
   const handleSubmit = async (
     type: "Individual" | "non-profit" | "for-profit"
@@ -46,7 +49,7 @@ export default function StepOne() {
         organizerId: profile._id,
       };
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/",
+        getApiBaseUrl() + "/api/startCampaign/",
         startCampaign,
         { withCredentials: true }
       );
@@ -75,14 +78,14 @@ export default function StepOne() {
         <div className="w-100 bg-white">
           <header className="header d-md-flex justify-content-between align-items-center custom-container d-none">
             <Link href="/" passHref>
-              <a>
-                <img
-                  src="/images/logo.png"
-                  alt="fundandtraceLogo"
-                  width={78}
-                  height={55}
-                />
-              </a>
+
+              <img
+                src="/images/logo.png"
+                alt="fundandtraceLogo"
+                width={78}
+                height={55}
+              />
+
             </Link>
             <div className="d-flex align-items-center">
               <a

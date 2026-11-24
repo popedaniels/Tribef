@@ -140,3 +140,35 @@ describe("fraud scoring helpers", () => {
     });
   });
 });
+
+describe("card signals", () => {
+  const { cardFingerprint, cardScore, withCardSignals, getClientIp } = require("../../utility/fraud");
+
+  it("fingerprints a card without keeping card data, per gateway", () => {
+    const a = cardFingerprint("paystack", { authorization: { signature: "SIG_abc", bin: "408408", last4: "4081" } });
+    expect(a).toMatch(/^[0-9a-f]{32}$/);
+    expect(a).not.toContain("4081");
+    expect(cardFingerprint("paystack", { authorization: { signature: "SIG_abc" } })).toBe(a);
+    expect(cardFingerprint("flutterwave", { card: { first_6digits: "553188", last_4digits: "2950", expiry: "09/32" } })).toMatch(/^[0-9a-f]{32}$/);
+    expect(cardFingerprint("paystack", { authorization: {} })).toBe("");
+  });
+
+  it("scores one card across many identities and in bursts", () => {
+    expect(cardScore({ distinctEmails: 1, recent: 1 }).score).toBe(0);
+    expect(cardScore({ distinctEmails: 3, recent: 1 })).toMatchObject({ score: 40, reasons: ["card_shared:3emails"] });
+    expect(cardScore({ distinctEmails: 4, recent: 6 }).score).toBe(70);
+  });
+
+  it("flags a confirmed payment whose card was used by other donors", async () => {
+    Donations.distinct.mockReturnValueOnce({ maxTimeMS: async () => ["x@a.com", "y@a.com"] });
+    Donations.countDocuments.mockReturnValueOnce({ maxTimeMS: async () => 2 });
+    const out = await withCardSignals({ score: 20, reasons: ["init_attempts:9"], flagged: false }, "paystack", { authorization: { signature: "S1" } }, "z@a.com");
+    expect(out).toMatchObject({ score: 60, flagged: true });
+    expect(out.reasons).toEqual(["init_attempts:9", "card_shared:3emails"]);
+    expect(out.card).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("uses the proxy-resolved IP, not a client-supplied X-Forwarded-For", () => {
+    expect(getClientIp({ ip: "203.0.113.9", headers: { "x-forwarded-for": "1.2.3.4, 203.0.113.9" } })).toBe("203.0.113.9");
+  });
+});

@@ -18,56 +18,39 @@ export default function GeneralHelp() {
             />
             <h3 className="ml-3 mb-0">Popular Questions</h3>
           </article>
-          <HelpDropdown title="Question One">
+          <HelpDropdown title="How is Fund&Trace different from other crowdfunding sites?">
             <p>
-              Answer one
-              <Link href="/contact" passHref>
-                <a>please contact us</a>
-              </Link>
-              <ul>
-                <li>
-                  Select the "Forgot your password?" link on our{" "}
-                  <Link href="/SignUp/SignIn" passHref>
-                    <a>sign in page</a>
-                  </Link>
-                  .
-                </li>
-                <li>
-                  Enter the email address you used to set up your Fund&Trace
-                  account and click “Request new password” Click on the "Reset
-                  my password" link in the email you get.
-                </li>
-                <li>
-                  You will be taken to the screen where your new password can be
-                  entered to validate the change.
-                </li>
-              </ul>
+              Donations are not paid straight to the organiser. They are held in
+              escrow and released milestone by milestone: the organiser submits a
+              funding request with what the money is for, our team reviews it,
+              and only approved amounts are paid out — sometimes directly to the
+              hospital, school or supplier.
+            </p>
+            <p className="mb-0">
+              Every approved payout appears on the campaign&rsquo;s public
+              tracker, so donors can see exactly where their money went.{" "}
+              <Link href="/workings">See how it works</Link>.
             </p>
           </HelpDropdown>
-          <HelpDropdown title="Question Two?">
-            <ul>
-              <li>Go to “My Account” in the dropdown at the top right.</li>
-              <li>Click on “Edit Profile”.</li>
-              <li>
-                You can now change your profile picture by clicking “Choose
-                profile picture”.
-              </li>
-            </ul>
-          </HelpDropdown>
-          <HelpDropdown title="Question three?">
-            <p>
-              Fund&Trace provides you with the option of unsubscribing to emails
-              of campaign updates and funding statements. This can be done by
-              clicking the link below any email you get and it takes you to a
-              subscription page where you can choose to stop receiving emails.
-              Also note that when signing up, you have the option not to receive
-              emails from Fund&Trace.
+          <HelpDropdown title="Does Fund&Trace charge fees?">
+            <p className="mb-0">
+              Fund&Trace charges no platform fee. Payment providers (card
+              networks, Stripe, Flutterwave, Paystack) charge their own processing
+              fees. See our <Link href="/fees">fees page</Link> for the details.
             </p>
-            <img
-              src="/images/help/manageEmails.png"
-              alt="manage Emails"
-              style={{ width: "100%", maxWidth: 385, height: "100%" }}
-            />
+          </HelpDropdown>
+          <HelpDropdown title="What happens if a campaign looks fraudulent?">
+            <p>
+              Use &ldquo;Report this campaign&rdquo; at the bottom of any campaign
+              page. Donors can also file a dispute on a campaign they supported.
+            </p>
+            <p className="mb-0">
+              If enough verified donors (or a large enough share of the money
+              raised) raise disputes, the campaign&rsquo;s escrow is frozen
+              automatically: no further payouts can be approved until our trust
+              and safety team has investigated. If fraud is confirmed, remaining
+              funds are refunded to donors.
+            </p>
           </HelpDropdown>
         </section>
 
@@ -82,33 +65,27 @@ export default function GeneralHelp() {
             />
             <h3 className="ml-3 mb-0">Account</h3>
           </article>
-          <HelpDropdown title="Password Reset">
+          <HelpDropdown title="How do I reset my password?">
             <p>
-              If you don’t remember your Fund&Trace password, you can request a
-              new one and sign back in, as long as you have access to the email
-              address on file. If you have the correct password but are having
-              trouble signing in,{" "}
-              <Link href="/contact" passHref>
-                <a>please contact us</a>
-              </Link>
-              <ul>
-                <li>
-                  Select the "Forgot your password?" link on our{" "}
-                  <Link href="/SignUp/SignIn" passHref>
-                    <a>sign in page</a>
-                  </Link>
-                  .
-                </li>
-                <li>
-                  Enter the email address you used to set up your Fund&Trace
-                  account and click “Request new password” Click on the "Reset
-                  my password" link in the email you get.
-                </li>
-                <li>
-                  You will be taken to the screen where your new password can be
-                  entered to validate the change.
-                </li>
-              </ul>
+              As long as you can access the email address on your account, you
+              can set a new password yourself:
+            </p>
+            <ol>
+              <li>
+                Select &ldquo;Forgot your password?&rdquo; on the{" "}
+                <Link href="/SignUp/SignIn">sign in page</Link>.
+              </li>
+              <li>
+                Enter the email address you signed up with and request a reset
+                link.
+              </li>
+              <li>
+                Open the link in the email and choose a new password.
+              </li>
+            </ol>
+            <p className="mb-0">
+              If you know your password but still can&rsquo;t sign in,{" "}
+              <Link href="/contact">contact us</Link>.
             </p>
           </HelpDropdown>
           <HelpDropdown title="How do I change my profile photo?">
@@ -148,14 +125,11 @@ export default function GeneralHelp() {
             <h3 className="ml-3 mb-0">Trust & Safety</h3>
           </article>
           <HelpDropdown title="Policy updates">
-            <p>
-              If you don’t remember your Fund&Trace password, you can request a
-              new one and sign back in, as long as you have access to the email
-              address on file. If you have the correct password but are having
-              trouble signing in,{" "}
-              <Link href="/contact" passHref>
-                <a>please contact us</a>
-              </Link>
+            <p className="mb-0">
+              When we change our <Link href="/terms">terms</Link> or{" "}
+              <Link href="/privacy">privacy policy</Link>, we update the date at
+              the top of the page and email account holders about material
+              changes before they take effect.
             </p>
           </HelpDropdown>
           <HelpDropdown title="Fundraisers: Why do you ask for my ID?">

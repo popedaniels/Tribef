@@ -147,3 +147,92 @@ Fund&Trace uses **JWT Bearer Tokens** and **HTTP-only Cookies** for user and adm
 | `POST` | `/api/admin/declineFundingRequest/:id`| Admin | Rejects milestone request and sends notification email with reason. |
 | `POST` | `/api/admin/refunds/create` | Admin | Issues full or partial donor refunds via Stripe API. |
 | `POST` | `/api/admin/suspendUser/:id` | Admin | Suspends user account and freezes active campaigns. |
+
+---
+
+## 🧾 Trust, ledger & payouts (added November 2026)
+
+### Public ledger (`/api/ledger`)
+
+| Method | Route | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/api/ledger/:campaignId?page=&limit=` | Public | Hash-chained entries (credit, payout, payout_reversal, refund), oldest first |
+| GET | `/api/ledger/:campaignId/verify` | Public | Server-side chain check: `{ valid, length, headHash, balance }` or `{ valid:false, brokenAt, reason }` |
+
+Each entry's `hash = SHA-256(JSON.stringify([campaignId, seq, type, amount.toFixed(2), CURRENCY, refId, memo, atISO, prevHash]))`; the first `prevHash` is 64 zeros. The tracker page re-verifies the chain in the visitor's browser.
+
+### Transparency Score
+
+| Method | Route | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/api/campaigns/:id/transparency` | Public | `{ score 0–100, grade, factors[{key,label,points,max,detail}], proofOverdue[] }` |
+
+### Proof of spend
+
+| Method | Route | Auth | Description |
+| --- | --- | --- | --- |
+| POST | `/api/fundingRequests/:id/receipt` | Campaign owner | `{ receiptUrl }` (https, host in `RECEIPT_HOSTS`); only after the payout was made |
+
+### Payout rails (`/api/payouts`)
+
+| Method | Route | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/api/payouts/options?currency=NGN` | Public | Which rail pays this currency: `{ rail: "flutterwave"\|"paystack"\|null, country }` |
+| GET | `/api/payouts/banks?country=NG` | Public | `[{ code, name }]`, cached 12h |
+| POST | `/api/payouts/resolve-account` | Signed in | `{ bankCode, accountNumber }` → `{ accountName }` |
+
+Bank transfers settle asynchronously; Flutterwave `transfer.completed` and Paystack `transfer.success|failed|reversed` webhooks (same signed endpoints as charges) finalise them. A failed transfer returns funds to escrow, writes a `payout_reversal` ledger entry and reopens the request.
+
+### Refunds
+
+| Method | Route | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/api/donations/refund-policy` | Public | `{ enabled, windowDays }` |
+| POST | `/api/donations/:donationId/refund` | Donor (owner) | Self-service refund within the window; 409 with a `code` when ineligible (`window_closed`, `insufficient_escrow`, `campaign_frozen`, …). Rate limit 5/day |
+| POST | `/api/admin/refunds/stripeRefund/:campaignId/:donationId` | Admin | Any gateway (name kept for compatibility) |
+| POST | `/api/admin/refunds/stripeRefundBatch/:campaignId` | Admin | Pro-rata refund of everything left in escrow (207 if some failed) |
+
+### Disputes & audit (admin)
+
+| Method | Route | Description |
+| --- | --- | --- |
+| GET | `/api/admin/disputes/frozen` | Campaigns frozen by the circuit-breaker, with reports |
+| POST | `/api/admin/disputes/:id/resolve` | `{ action: "unlock"\|"refund", note (≥10 chars) }`; refund suspends the campaign and returns the remaining escrow pro-rata |
+| GET | `/api/admin/audit?page=&targetId=` | Admin audit trail (actor, action, target) |
+
+### Sessions
+
+| Method | Route | Auth | Description |
+| --- | --- | --- | --- |
+| POST | `/api/auth/logout-all` | Signed in | Revokes every session (sessionVersion bump) |
+
+Password reset and change also revoke existing sessions; change keeps the current device signed in.
+
+### Status codes used
+
+`400` invalid input · `401` not signed in / session revoked · `403` not allowed (incl. `code: "kyc_required"`) · `404` not found · `409` conflict or already processed · `422` business rule · `423` campaign frozen (`code: "campaign_frozen"`) · `502` payment provider rejected · `503` dependency unavailable.
+
+## 🔐 Ledger anchors, operations and review (added November 2026)
+
+| Method & path | Auth | Purpose |
+| --- | --- | --- |
+| `GET /api/ledger/anchors?limit=30` | public | Recent daily anchors: date, Merkle root, digest, previous digest, where published |
+| `GET /api/ledger/anchors/:date` (`latest` allowed) | public | One anchor with every leaf `{campaignId, seq, head}` |
+| `GET /api/ledger/anchors/:date?format=txt` | public | The exact statement that was published (its SHA-256 is the digest) |
+| `GET /api/ledger/anchors/:date?format=ots` | public | OpenTimestamps proof for that statement |
+| `GET /api/ledger/:campaignId/proof?date=` | public | Inclusion proof: `{included, anchor, leaf, leafHash, path:[{hash, side}]}` |
+| `GET /api/admin/ops/status` | admin | Last 14 integrity checks and anchors, last 30 scheduled job runs |
+| `POST /api/admin/ops/integrity/run` | admin | Run the integrity check now and return the full report (no alert sent) |
+| `GET /api/admin/fundingRequest/:id/review` | admin | Review checklist: `{verdict: ready|review|blocked, checks[], campaign, history[]}` |
+| `GET /api/fundingRequests/me/todos` | organiser | What the signed-in organiser should do next, most urgent first |
+
+Every response now carries an `X-Request-Id` header (an upstream id is kept if
+it's 8–64 word characters). 500 responses include `requestId` in the body.
+
+Payment-provider webhooks are exempt from rate limiting. Paystack and
+Flutterwave signatures are checked against the raw request body.
+
+Checkout endpoints (`createStripeSession`, `initializePaystack`, `initialize`,
+`recurring`) return **400 `currency_mismatch`** when the requested currency
+isn't the campaign's. `amount` is always the **total charged** (donation + tip);
+the campaign is credited `amount − meta.tip`.

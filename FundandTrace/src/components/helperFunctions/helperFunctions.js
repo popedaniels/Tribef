@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getApiBaseUrl } from "../../utils/api";
 
 const getTimeDiff = (timestamp) => {
   let currentTime = new Date().getTime();
@@ -133,6 +134,16 @@ const DEFAULT_RATES_TO_USD = {
   CAD: 0.74,
   AUD: 0.65,
   ZAR: 0.055,
+  UGX: 0.00027,
+  TZS: 0.00038,
+  RWF: 0.00072,
+  XOF: 0.0016,
+  XAF: 0.0016,
+  EGP: 0.02,
+  SEK: 0.095,
+  CHF: 1.13,
+  AED: 0.27,
+  INR: 0.012,
 };
 
 const parseEnvRates = () => {
@@ -157,16 +168,26 @@ const APPROX_RATES_TO_USD = { ...DEFAULT_RATES_TO_USD, ...(parseEnvRates() || {}
 
 // Allow runtime live-rate refresh without rebuild (best-effort, no await in sync helpers).
 let liveRatesLoaded = false;
+// Date of the rates in use, shown next to estimates ("rate from 24 Nov").
+let ratesAsOf = "2026-01-15";
+const getRatesAsOf = () => ratesAsOf;
+/** Load live display rates once; resolves when done (or immediately if unavailable). */
+const loadLiveRates = () => {
+  maybeLoadLiveRates();
+  return liveRatesPromise || Promise.resolve();
+};
+let liveRatesPromise = null;
 const maybeLoadLiveRates = () => {
   if (liveRatesLoaded || typeof window === "undefined" || typeof fetch === "undefined") return;
   liveRatesLoaded = true;
-  const endpoint = process.env.NEXT_PUBLIC_FX_RATES_URL;
-  if (!endpoint) return;
-  fetch(endpoint, { cache: "no-store" })
+  // Default: our API's daily rates (GET /api/fx/rates → { data: { ratesToUsd, asOf } }).
+  const endpoint = process.env.NEXT_PUBLIC_FX_RATES_URL || `${getApiBaseUrl()}/api/fx/rates`;
+  liveRatesPromise = fetch(endpoint)
     .then((r) => (r.ok ? r.json() : null))
     .then((data) => {
       if (!data || typeof data !== "object") return;
-      const src = data.rates || data;
+      if (data.data?.asOf) ratesAsOf = data.data.asOf;
+      const src = data.data?.ratesToUsd || data.rates || data;
       for (const [k, v] of Object.entries(src)) {
         const key = String(k).toUpperCase().trim();
         const num = Number(v);
@@ -180,6 +201,17 @@ const getCurrency = (currency) => {
   if (!currency) return "$";
   const upper = String(currency).toUpperCase().trim();
   return CURRENCY_SYMBOLS[upper] || upper;
+};
+
+/**
+ * Symbol to put before an amount: "₦", "$", "£", "KSh ", "GH₵", "XOF ".
+ * Missing currency keeps the historical default (₦): older campaigns were
+ * created before currency was stored and are all NGN.
+ */
+const currencyPrefix = (currency) => {
+  if (!currency) return "₦";
+  const sym = String(getCurrency(currency)).trim();
+  return /[A-Za-z]$/.test(sym) ? `${sym} ` : sym;
 };
 
 const formatCurrencyAmount = (amount, currency = "USD") => {
@@ -200,8 +232,10 @@ const getDualCurrencyEstimate = (amount, baseCurrency = "USD", targetCurrency = 
   const target = String(targetCurrency).toUpperCase();
   if (base === target) return null;
 
-  const baseRate = APPROX_RATES_TO_USD[base] || 1.0;
-  const targetRate = APPROX_RATES_TO_USD[target] || 1.0;
+  // Unknown currency → no estimate (it used to be treated as USD, so UGX 50,000 showed as ~$50,000).
+  const baseRate = APPROX_RATES_TO_USD[base];
+  const targetRate = APPROX_RATES_TO_USD[target];
+  if (!baseRate || !targetRate) return null;
 
   // Convert amount from base to USD, then from USD to target
   const inUSD = num * baseRate;
@@ -305,6 +339,36 @@ const selectPaymentRail = (countryName) => {
   return "stripe";
 };
 
+/**
+ * Format money for display: "₦12,640,000", "$11,870", "£9.40", "KSh 384,000".
+ * Never returns NaN/undefined — bad input renders as 0 in the given currency.
+ * Whole amounts drop decimals; `compact` gives "₦12.6M" for tight spaces.
+ */
+// exact: never drop pence/kobo (use for anything a donor is charged).
+const formatMoney = (amount, currency = "USD", { compact = false, exact = false } = {}) => {
+  const num = Number(amount);
+  const value = Number.isFinite(num) ? num : 0;
+  const code = String(currency || "USD").toUpperCase().trim();
+  const symbol = CURRENCY_SYMBOLS[code] ?? `${code} `;
+  const whole = Number.isInteger(Math.round(value * 100) / 100) || (!exact && Math.abs(value) >= 1000);
+  const formatted = new Intl.NumberFormat("en-US", compact
+    ? { notation: "compact", maximumFractionDigits: 1 }
+    : { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(Math.abs(value));
+  return `${value < 0 ? "−" : ""}${symbol}${formatted}`;
+};
+
+/** Short relative time: "just now", "5m ago", "3h ago", "2d ago", or a date. */
+const timeAgo = (date, now = Date.now()) => {
+  const t = new Date(date).getTime();
+  if (!Number.isFinite(t)) return "";
+  const s = Math.max(0, Math.round((now - t) / 1000));
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 30 * 86400) return `${Math.floor(s / 86400)}d ago`;
+  return new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+
 const grabErrorMessage = (error) => {
   const message = error?.response?.data?.error;
   return message;
@@ -326,8 +390,13 @@ export {
   getProcessorFeeEstimate,
   getPresetDonationAmounts,
   addCommaToNumber,
+  formatMoney,
+  currencyPrefix,
+  timeAgo,
   selectPaymentRail,
   grabErrorMessage,
   grabErrorStatus,
+  getRatesAsOf,
+  loadLiveRates,
 };
 

@@ -17,11 +17,15 @@ export interface FundingRequestBody {
   amount: number;
   purposeOfFunding: string;
   proofOfFunding: string;
-  thirdPartyAccountNumber: number;
+  /** String: account numbers can start with 0. */
+  thirdPartyAccountNumber: string;
+  thirdPartyBankCode?: string;
   thirdPartyAccountName: string;
   thirdPartyBankName: string;
   thirdPartyNameOfRef: string;
   thirdPartyContact: string;
+  /** Paying a vendor from the verified network (FT-038). */
+  vendorDisbursement?: { vendorId: string; vendorName?: string; last4?: string };
   mobileFieldVerification?: {
     captureTimestampNTP: Date;
     geolocation: {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import ForgotPasswordLayout from "./ForgotPasswordLayout";
+import ForgotPasswordLayout from "../../layouts/ForgotPasswordLayout";
 import styled from "styled-components";
 import Spinner from "../../components/composed/spinner/Spinner";
 import axios from "axios";
@@ -7,6 +7,7 @@ import axios from "axios";
 import { useRouter } from "next/router";
 import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function CreatePassword() {
   const [password, setPassword] = useState("");
@@ -24,7 +25,7 @@ export default function CreatePassword() {
       setLoading(true);
       if (password === confirmPassword && typeof email === "string" && typeof resetToken === "string") {
         const res = await axios.post(
-          process.env.NEXT_PUBLIC_API_URL + "/api/resetPassword",
+          getApiBaseUrl() + "/api/resetPassword",
           {
             email,
             password,

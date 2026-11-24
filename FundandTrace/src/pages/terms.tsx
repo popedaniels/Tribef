@@ -993,8 +993,7 @@ export default function TermsPage() {
               By building a FundandTrace Crowdfunding page you represent,
               warrant and undertake to FundandTrace and the users of the Website
               that:
-            </li>
-            <ul>
+              <ul>
               <li>
                 Each time you use the Website or associated services, and in
                 particular when you create a FundandTrace Crowdfunding page, you
@@ -1019,6 +1018,7 @@ export default function TermsPage() {
                 Crowdfunding page.
               </li>
             </ul>
+            </li>
           </ul>
         </section>
         <section className="mb-4 custom-container">

@@ -1,6 +1,19 @@
+import { I18nProvider } from "../i18n";
+import { LowDataProvider } from "../utils/lowData";
 import React, { useEffect } from "react";
+// Self-hosted fonts (bundled, same origin, latin subsets load on demand via
+// unicode-range). Google Fonts used to be a render-blocking third-party
+// stylesheet asking for 27 variants; these are the ones the design uses.
+import "@fontsource-variable/plus-jakarta-sans/wght.css";
+import "@fontsource/poppins/500.css";
+import "@fontsource/poppins/600.css";
+import "@fontsource/poppins/700.css";
+import "@fontsource/poppins/800.css";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "../../styles/bootstrap4-compat.css";
 import "../../styles/index.css";
+import "../../styles/polish.css";
+import "../../styles/design-system.css";
 import { Provider, useSelector } from "react-redux";
 import store from "../../store/index";
 import Toast from "../components/Toast/Toast";
@@ -24,13 +37,25 @@ Router.events.on("routeChangeStart", () => NProgress.start());
 Router.events.on("routeChangeComplete", () => NProgress.done());
 Router.events.on("routeChangeError", () => NProgress.done());
 
-persistStore(store);
+// Restore the saved session only AFTER React has hydrated the server HTML.
+// Restoring it at module load made the first client render differ from the
+// server's (signed-in vs signed-out), which threw a hydration error on every
+// page for signed-in visitors and made React discard the server HTML.
+// Redirects that depend on auth wait for it via useRehydrated().
+const persistor = persistStore(store, { manualPersist: true } as unknown as undefined);
 
 function MyApp({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    persistor.persist();
+  }, []);
   return (
     <Provider store={store}>
-      <Content Component={Component} pageProps={pageProps} />
-      <Toast />
+      <I18nProvider>
+        <LowDataProvider>
+          <Content Component={Component} pageProps={pageProps} />
+          <Toast />
+        </LowDataProvider>
+      </I18nProvider>
     </Provider>
   );
 }
@@ -95,16 +120,6 @@ function Content({ Component, pageProps }: ContentProps) {
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=5, minimum-scale=1, viewport-fit=cover, user-scalable=yes"
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
         />
       </Head>
       {process.env.LOCK === "true" && router.pathname !== "/" ? (

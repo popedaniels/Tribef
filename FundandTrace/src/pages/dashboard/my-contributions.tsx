@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import DashboardLayout from "./DashboardLayout";
+import DashboardLayout from "../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import axios from "axios";
@@ -14,13 +14,16 @@ import {
 import {
   addCommaToNumber,
   grabErrorMessage,
-  grabErrorStatus,
-} from "../../components/helperFunctions/helperFunctions";
+  grabErrorStatus, currencyPrefix } from "../../components/helperFunctions/helperFunctions";
 import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
 import type { Campaign } from "../../types/campaign";
+import { getApiBaseUrl } from "../../utils/api";
+import { downloadFile } from "../../utils/download";
+import RefundAction, { type RefundPolicy } from "../../components/trust/RefundAction";
 
 interface Contribution {
+  _id?: string;
   amount: number;
   createdAt: string | Date;
   refund?: {
@@ -37,7 +40,10 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
   ).toString();
 
   return (
-    <Link href={`contribution/${campaign?.campaignId?._id}`} passHref>
+    <Link
+      href={`contribution/${campaign?.campaignId?._id}`}
+      passHref
+      legacyBehavior>
       <Card
         className="w-100  d-flex bg-white flex-column flex-md-row align-items-center justify-content-between mb-5"
         style={{ cursor: "pointer" }}
@@ -71,11 +77,7 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
             </div>
             <div className="d-flex align-items-baseline">
               <h3 className="text-heading mr-2 mb-0" style={{ fontSize: 14 }}>
-                {campaign?.campaignId?.funding?.currency == "USD"
-                  ? "$"
-                  : campaign?.campaignId?.funding?.currency == "GBP"
-                  ? "£"
-                  : "₦"}
+                {currencyPrefix(campaign?.campaignId?.funding?.currency)}
                 {addCommaToNumber(campaign?.campaignId?.funding?.amountRaised)}
               </h3>
               <p
@@ -87,11 +89,7 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
                 }}
               >
                 raised of{" "}
-                {campaign?.campaignId?.funding?.currency == "USD"
-                  ? "$"
-                  : campaign?.campaignId?.funding?.currency == "GBP"
-                  ? "£"
-                  : "₦"}
+                {currencyPrefix(campaign?.campaignId?.funding?.currency)}
                 {addCommaToNumber(
                   campaign?.campaignId?.funding?.amountExpected
                 )}
@@ -117,11 +115,7 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
                 : "Donated"}
             </p>
             <h2 className="mb-3">
-              {campaign?.campaignId?.funding?.currency == "USD"
-                ? "$"
-                : campaign?.campaignId?.funding?.currency == "GBP"
-                ? "£"
-                : "₦"}
+              {currencyPrefix(campaign?.campaignId?.funding?.currency)}
               {addCommaToNumber(campaign?.amount)}
             </h2>
             <p className="mb-0">
@@ -148,11 +142,7 @@ function ContributionCard({ campaign }: { campaign: Contribution }) {
                 : "Donated"}
             </p>
             <h2 className="mb-3">
-              {campaign?.campaignId?.funding?.currency == "USD"
-                ? "$"
-                : campaign?.campaignId?.funding?.currency == "GBP"
-                ? "£"
-                : "₦"}
+              {currencyPrefix(campaign?.campaignId?.funding?.currency)}
               {addCommaToNumber(campaign?.amount)}
             </h2>
             <p className="mb-0">
@@ -188,7 +178,7 @@ const Card = styled.div`
         line-height: 24px;
         /* identical to box height, or 171% */
 
-        color: #807373;
+        color: #565d6d;
       }
       width: 255px;
       @media screen and (max-width: 767px) {
@@ -205,7 +195,7 @@ const Card = styled.div`
       line-height: 18px;
       /* identical to box height, or 150% */
 
-      color: #a3a3a3;
+      color: #5f6672;
     }
     h2 {
       font-style: normal;
@@ -231,7 +221,7 @@ const Card = styled.div`
       line-height: 18px;
       /* identical to box height, or 150% */
 
-      color: #a3a3a3;
+      color: #5f6672;
     }
     h2 {
       font-style: normal;
@@ -249,18 +239,27 @@ export default function MyContributions() {
   const [campaigns, setCampaigns] = useState<Contribution[]>([]);
   const { profile } = useSelector(selectAuthStateState);
   const [loading, setLoading] = useState(false);
+  const [refundPolicy, setRefundPolicy] = useState<RefundPolicy | null>(null);
+
+  useEffect(() => {
+    axios
+      .get(getApiBaseUrl() + "/api/donations/refund-policy")
+      .then((r) => setRefundPolicy(r.data?.data || null))
+      .catch(() => setRefundPolicy(null));
+  }, []);
   const [NGN, setNGN] = useState(0);
   const [USD, setUSD] = useState(0);
   const [GBP, setGBP] = useState(0);
   const dispatch = useAppDispatch();
 
   const getContributions = useCallback(async () => {
+    if (!profile?.email) return; // session not restored yet
     try {
       setLoading(true);
       const campaigns = await axios.get<{ contributions: Contribution[] }>(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/auth/contributions/" +
-          profile.email,
+          encodeURIComponent(profile.email),
         { withCredentials: true }
       );
       campaigns && setCampaigns(campaigns.data.contributions);
@@ -316,6 +315,10 @@ export default function MyContributions() {
       <div className="custom-container">
         <Section className="my-5 d-flex flex-column align-items-center justify-content-center mx-auto">
           <h2 className="mb-3">My Contributions</h2>
+          <Link href="/dashboard/subscriptions" className="mb-3" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+            Manage monthly giving →
+          </Link>
+          <StatementLinks />
           {USD > 0 && (
             <h3 className="text-medium">TOTAL: USD {addCommaToNumber(USD)}</h3>
           )}
@@ -329,8 +332,34 @@ export default function MyContributions() {
             <Spinner type="Oval" width={50} height={50} color={" var(--color-primary)"} />
           ) : campaigns.length ? (
             <div className="mt-4 card-wrapper">
-              {campaigns.reverse().map((campaign, i) => (
-                <ContributionCard key={i} campaign={campaign} />
+              {/* Copy before reversing: reverse() mutated state on every render. */}
+              {[...campaigns].reverse().map((campaign, i) => (
+                <React.Fragment key={campaign?._id || i}>
+                  <ContributionCard campaign={campaign} />
+                  {campaign?._id && (
+                    <button
+                      type="button"
+                      className="ft-btn ft-btn--link mb-2"
+                      style={{ fontSize: 14 }}
+                      onClick={async () => {
+                        if (!(await downloadFile(`/api/donations/${campaign._id}/receipt`, `receipt-${campaign._id}.pdf`))) {
+                          dispatch(toast(true, "Couldn't download the receipt. Please try again.", "error"));
+                        }
+                      }}
+                    >
+                      Download receipt (PDF)
+                    </button>
+                  )}
+                  <RefundAction
+                    donationId={campaign?._id}
+                    amount={campaign?.amount}
+                    currency={campaign?.campaignId?.funding?.currency}
+                    createdAt={campaign?.createdAt}
+                    refundStatus={campaign?.refund?.status}
+                    policy={refundPolicy}
+                    onRefunded={getContributions}
+                  />
+                </React.Fragment>
               ))}
             </div>
           ) : (
@@ -377,3 +406,33 @@ const Section = styled.section`
     max-width: 500px;
   }
 `;
+
+// Annual statements (FT-016): a PDF of every donation in the year, for
+// records and tax returns. UK donors can use the April–April tax year.
+function StatementLinks() {
+  const dispatch = useAppDispatch();
+  const now = new Date();
+  const years = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
+  // Last complete UK tax year (6 April – 5 April).
+  const ukYear = now.getMonth() > 3 || (now.getMonth() === 3 && now.getDate() >= 6) ? now.getFullYear() - 1 : now.getFullYear() - 2;
+  const get = async (path: string, name: string) => {
+    if (!(await downloadFile(`/api/giving/statement/${path}`, name))) dispatch(toast(true, "Couldn't download the statement. Please try again.", "error"));
+  };
+  return (
+    <nav aria-label="Annual statements" className="mb-3 text-center" style={{ fontSize: 15 }}>
+      <span className="ft-muted">Download a statement: </span>
+      {years.map((y, i) => (
+        <span key={y}>
+          {i > 0 && " · "}
+          <button type="button" className="ft-btn ft-btn--link p-0" onClick={() => get(String(y), `statement-${y}.pdf`)}>
+            {y}
+          </button>
+        </span>
+      ))}
+      <span className="ft-muted"> · </span>
+      <button type="button" className="ft-btn ft-btn--link p-0" onClick={() => get(`${ukYear}?basis=uk`, `statement-${ukYear}-uk.pdf`)}>
+        UK tax year {ukYear}–{String(ukYear + 1).slice(-2)}
+      </button>
+    </nav>
+  );
+}

@@ -6,7 +6,7 @@ export default function StoriesCard({ story }) {
   if (!story) return null;
 
   return (
-    <Link href={`/stories/${story.slug || story.id}`} passHref>
+    <Link href={`/stories/${story.slug || story.id}`} passHref legacyBehavior>
       <CardLink>
         <Wrapper className="w-100 h-100 d-flex flex-column">
           <div className="img-container position-relative">
@@ -210,7 +210,7 @@ const Wrapper = styled.article`
     color: #4b5563;
 
     .stat-label {
-      color: #717688;
+      color: #565d6d;
     }
 
     .stat-val {
@@ -243,7 +243,7 @@ const Wrapper = styled.article`
 
   .author-role {
     font-size: 11.5px;
-    color: #717688;
+    color: #565d6d;
   }
 
   .read-more-link {

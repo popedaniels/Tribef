@@ -50,10 +50,6 @@ export default function SEOHead({
       <meta name="msapplication-config" content="/browserconfig.xml" />
       <meta name="msapplication-TileColor" content="#ffffff" />
       <meta name="msapplication-tap-highlight" content="yes" />
-      <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/animate.css@3.5.2/animate.min.css"
-      />
       <link rel="manifest" href="/manifest.json" />
       <meta name="theme-color" content="#6979F8" />
       <link rel="shortcut icon" href="/favicon72x72.png" />

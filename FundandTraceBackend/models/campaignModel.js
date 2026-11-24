@@ -68,8 +68,40 @@ const campaignSchema = new mongoose.Schema({
     sortCode: { type: String, default: "" },
     accountName: { type: String, default: "" },
     accountNumber: { type: String, default: "" },
+    // Bank/branch code for African bank payouts (Flutterwave/Paystack). Not secret.
+    bankCode: { type: String, default: "" },
+    // Set whenever an organiser changes their payout bank account; bank
+    // payouts wait BANK_CHANGE_COOLDOWN_HOURS after it (account-takeover defence).
+    bankChangedAt: { type: Date, default: null },
+    // Keyed hash of bank code + account number (services/organiserRisk.js):
+    // finds one payout account shared by several organisers.
+    accountHash: { type: String, default: "", index: true },
     availableBalance: { type: Number, default: 0 },
     refunded: { type: Boolean, default: false },
+  },
+  // Fundraising teams (FT-042): supporters fundraise under a team name;
+  // donations carry teamId and the campaign page shows a leaderboard.
+  teams: [
+    {
+      name: { type: String, required: true, maxlength: 60 },
+      slug: { type: String, required: true, maxlength: 60 },
+      captainName: { type: String, default: "", maxlength: 60 },
+      goal: { type: Number, default: 0 },
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
+  // Matched giving (FT-042). A sponsor PLEDGES to match donations up to a cap.
+  // Pledged money is not in escrow: it is shown as "pledged", never added to
+  // amountRaised/availableBalance, until the sponsor pays and an admin records
+  // the payment (ledger credit "match-payment:...").
+  matching: {
+    active: { type: Boolean, default: false },
+    sponsorName: { type: String, default: "", maxlength: 80 },
+    ratio: { type: Number, default: 1, min: 0.1, max: 5 },
+    cap: { type: Number, default: 0 },
+    pledged: { type: Number, default: 0 },
+    received: { type: Number, default: 0 },
+    endsAt: { type: Date, default: null },
   },
   settings: {
     postFunding: { type: Boolean, default: true },
@@ -96,6 +128,9 @@ const campaignSchema = new mongoose.Schema({
       image: String,
       video: String,
       addedBy: String,
+      // Live-captured, sealed evidence (services/evidence.js).
+      evidenceSessionId: String,
+      evidenceIds: [String],
     },
   ],
   // Stripe Express Connect — payout account for the campaign organizer.
@@ -105,10 +140,26 @@ const campaignSchema = new mongoose.Schema({
     detailsSubmitted: { type: Boolean, default: false },
     updatedAt: { type: Date, default: null },
   },
+  // Organiser risk at launch (services/organiserRisk.js); admin-only.
+  riskAssessment: {
+    score: { type: Number, default: null },
+    level: { type: String, default: "" },
+    reasons: [{ type: String }],
+    at: { type: Date, default: null },
+  },
   disputeGovernance: {
     isLocked: { type: Boolean, default: false, index: true },
     lockedAt: { type: Date, default: null },
     lockReason: { type: String, default: "" },
+    // Set when an admin resolves the dispute (unlock or pro-rata refund).
+    resolution: {
+      action: { type: String, default: "" }, // "unlock" | "refund"
+      note: { type: String, default: "" },
+      adminId: { type: String, default: "" },
+      adminName: { type: String, default: "" },
+      resolvedAt: { type: Date, default: null },
+      refundedAmount: { type: Number, default: 0 },
+    },
     disputeReports: [
       {
         donorId: { type: ObjectId, ref: "users" },

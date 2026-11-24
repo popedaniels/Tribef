@@ -44,7 +44,7 @@ export const Wrapper = styled.div`
     font-weight: 300;
     font-size: 14px;
     line-height: 24px;
-    color: #b3b3b3;
+    color: #5f6672;
     opacity: 0.9;
   }
   .whitebtn {
@@ -130,7 +130,7 @@ export const Main = styled.div`
       line-height: 17px;
       /* identical to box height */
 
-      color: #a0a2af;
+      color: #5f6672;
     }
   }
   .idCard {

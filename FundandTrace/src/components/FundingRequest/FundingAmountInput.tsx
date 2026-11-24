@@ -1,4 +1,5 @@
 import React from "react";
+import { currencyPrefix } from "../helperFunctions/helperFunctions";
 
 interface Props {
   value: number;
@@ -18,7 +19,7 @@ export const FundingAmountInput: React.FC<Props> = ({ value, currency, max, onCh
         background: "#fafafa",
       }}
     >
-      {currency == "USD" ? "$" : currency == "GBP" ? "£" : "₦"}
+      {currencyPrefix(currency)}
     </div>
     <input
       type="number"

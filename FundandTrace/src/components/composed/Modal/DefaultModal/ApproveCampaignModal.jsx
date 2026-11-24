@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import Spinner from "../../spinner/Spinner";
 import { config } from "../../../helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../../../utils/api";
 
 export default function ApproveCampaignModal({
   onModalClose,
@@ -17,20 +18,32 @@ export default function ApproveCampaignModal({
   const [step, setStep] = useState("0");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  // The bank's name for the destination account didn't match: the admin can
+  // still approve after checking, with a note that is recorded.
+  const [nameMismatch, setNameMismatch] = useState(false);
+  const [overrideNote, setOverrideNote] = useState("");
+  const first = fundingRequest?.firstApproval?.adminId ? fundingRequest.firstApproval : null;
 
   const handleApprove = async () => {
     setLoading(true);
 
     try {
       const res = await axios.patch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/fundingRequest/approve/${fundingRequest?._id}`,
-        { campaignId: fundingRequest?.campaign?._id },
+        `${getApiBaseUrl()}/api/admin/fundingRequest/approve/${fundingRequest?._id}`,
+        { campaignId: fundingRequest?.campaign?._id, ...(nameMismatch && overrideNote.trim() ? { nameCheckOverride: overrideNote.trim() } : {}) },
         config()
       );
-      res && setStep("1");
-      res && setLoading(false);
-    } catch (error) {
       setLoading(false);
+      setError("");
+      // 202 = first of two approvals recorded; no money has moved yet.
+      setMessage(res.status === 202 ? res.data?.data || "First approval recorded. A second admin must approve." : "Funding Request has been approved");
+      setStep("1");
+    } catch (err) {
+      setLoading(false);
+      if (err?.response?.data?.code === "bank_name_mismatch") setNameMismatch(true);
+      setError(err?.response?.data?.error || "Approval failed. Nothing was paid. Please try again.");
     }
   };
 
@@ -54,11 +67,37 @@ export default function ApproveCampaignModal({
               {`“${fundingRequest?.campaign?.basicInformation?.campaignTitle}"`}{" "}
               campaign?
             </p>
+            {first && (
+              <p className="text-small mb-4" style={{ background: "#fff7ed", padding: "8px 12px", borderRadius: 8 }}>
+                First approval by <b>{first.adminName || "another admin"}</b>
+                {first.at ? ` on ${new Date(first.at).toLocaleString("en-GB")}` : ""}. Your approval releases the payout.
+              </p>
+            )}
+            {error && (
+              <p className="text-small mb-4" role="alert" style={{ color: "#b91c1c" }}>
+                {error}
+              </p>
+            )}
+            {nameMismatch && (
+              <div className="mb-4">
+                <label htmlFor="name-override" className="text-small d-block mb-1">
+                  Approve anyway: how did you confirm the account is right? (recorded with your name)
+                </label>
+                <textarea
+                  id="name-override"
+                  className="form-control"
+                  rows={2}
+                  value={overrideNote}
+                  onChange={(e) => setOverrideNote(e.target.value)}
+                  placeholder="e.g. Called the hospital on its published number; account confirmed on letterhead"
+                />
+              </div>
+            )}
             <div className="d-flex ml-auto">
               <button className="btn cancelBtn" onClick={onModalClose}>
                 Cancel
               </button>
-              <button className="btn approveBtn ml-4" onClick={handleApprove}>
+              <button className="btn approveBtn ml-4" onClick={handleApprove} disabled={loading || (nameMismatch && overrideNote.trim().length < 10)}>
                 {loading ? (
                   <Spinner
                     type="TailSpin"
@@ -74,8 +113,8 @@ export default function ApproveCampaignModal({
           </>
         ) : (
           <div className="d-flex flex-column justify-content-center align-items-center">
-            <h2 className="text-center text-medium-heading my-5">
-              Funding Request has been approved
+            <h2 className="text-center text-medium-heading my-5" role="status">
+              {message || "Funding Request has been approved"}
             </h2>
             <button
               className="text-white btn"

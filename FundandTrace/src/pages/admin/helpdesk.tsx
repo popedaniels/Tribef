@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "../../layouts/AdminLayout";
 import Layout from "../../components/Layout";
 import CampaignSearch from "../../components/adminCampaignPageComponents/campaignSearch";
 import { FormEvent, useState } from "react";
@@ -12,6 +12,7 @@ import dayjs from "dayjs";
 
 import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 const filters = ["Time"];
 
@@ -41,7 +42,7 @@ export default function AdminCampaignPage() {
   const handleDelete = async () => {
     try {
       const res = await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/supports/support/delete/${displaySupport?._id}`,
+        `${getApiBaseUrl()}/api/supports/support/delete/${displaySupport?._id}`,
         config()
       );
       res && dispatch(toast(true, res?.data?.data, "success"));
@@ -55,7 +56,7 @@ export default function AdminCampaignPage() {
     e.preventDefault();
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/supports/support/reply/${displaySupport?._id}`,
+        `${getApiBaseUrl()}/api/supports/support/reply/${displaySupport?._id}`,
         { message: replyMessage },
         config()
       );
@@ -110,12 +111,12 @@ export default function AdminCampaignPage() {
 
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/supports`,
+        `${getApiBaseUrl()}/api/supports`,
         config()
       );
       //   const res = await axios.get(
       //     `${
-      //       process.env.NEXT_PUBLIC_API_URL
+      //       getApiBaseUrl()
       //     }/api/supports/campaigns/${query}?queries=${getQuery()}`,
       //     config()
       //   );
@@ -377,7 +378,7 @@ const Wrapper = styled.section`
           font-weight: normal;
           font-size: 14px;
           line-height: 30px;
-          color: #a3a3a3;
+          color: #5f6672;
         }
       }
     }

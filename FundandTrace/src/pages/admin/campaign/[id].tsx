@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../../../layouts/AdminLayout";
 import Layout from "../../../components/Layout";
 import CampaignSearch from "../../../components/adminCampaignPageComponents/campaignSearch";
 import { useCallback, useState } from "react";
@@ -15,8 +15,7 @@ import AdminFundingDetails from "../../../components/adminCampaignPageComponents
 import {
   addCommaToNumber,
   config,
-  getDaysRemaining,
-} from "../../../components/helperFunctions/helperFunctions";
+  getDaysRemaining, currencyPrefix } from "../../../components/helperFunctions/helperFunctions";
 import UpdateComponent from "../../../components/composed/UpdatesComponent";
 import AdminSendEmailModal from "../../../components/composed/Modal/DefaultModal/AdminSendEmailModal";
 
@@ -30,6 +29,7 @@ import type {
   CampaignTeam,
   CampaignUpdate,
 } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 const navs = [
   "FUNDING REQUESTS",
@@ -71,7 +71,7 @@ export default function CampaignDetailsPage() {
 
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/campaign/${router.query.id}`,
+        `${getApiBaseUrl()}/api/admin/campaign/${router.query.id}`,
         config()
       );
       res && setCampaign(res?.data?.data);
@@ -158,20 +158,12 @@ export default function CampaignDetailsPage() {
                             className="text-heading mr-2"
                             style={{ fontSize: 16, lineHeight: "28px" }}
                           >
-                            {campaign?.funding?.currency == "USD"
-                              ? "$"
-                              : campaign?.funding?.currency == "GBP"
-                              ? "£"
-                              : "₦"}
+                            {currencyPrefix(campaign?.funding?.currency)}
                             {addCommaToNumber(campaign?.funding?.amountRaised)}
                           </h3>
                           <p className="mb-0" style={{ fontWeight: "300" }}>
                             raised of{" "}
-                            {campaign?.funding?.currency == "USD"
-                              ? "$"
-                              : campaign?.funding?.currency == "GBP"
-                              ? "£"
-                              : "₦"}
+                            {currencyPrefix(campaign?.funding?.currency)}
                             {addCommaToNumber(
                               campaign?.funding?.amountExpected
                             )}
@@ -208,7 +200,7 @@ export default function CampaignDetailsPage() {
                             height="17.5px"
                             className="mr-2"
                           />
-                          <p className="mb-0" style={{ color: "#807373" }}>
+                          <p className="mb-0" style={{ color: "#565d6d" }}>
                             {getDaysRemaining(campaign)} days left
                           </p>
                         </div>
@@ -249,10 +241,7 @@ export default function CampaignDetailsPage() {
                       >
                         Send Email
                       </button>
-                      <Link
-                        href={`/campaign/${campaign?._id}/tracker`}
-                        passHref
-                      >
+                      <Link href={`/campaign/${campaign?._id}/tracker`} passHref legacyBehavior>
                         <button className="btn sendBtn">Track Campaign</button>
                       </Link>
                     </div>

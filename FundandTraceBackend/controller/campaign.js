@@ -6,24 +6,43 @@ const { addActivity } = require("../services/activityLog");
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
 
+// `queries` arrives as a JSON *string* in the query string, so validate the
+// envelope first and the decoded payload second. (The old schema validated it
+// as an object and rejected `addCount`, so every search returned 400.)
 const searchByNameSchema = Joi.object({
-  queries: Joi.object({
-    sort: Joi.object().pattern(Joi.string(), Joi.object()),
-    query: Joi.object({
-      title: Joi.string(),
-      category: Joi.string(),
-    }),
-  }),
+  queries: Joi.string().max(2000),
+  addCount: Joi.any(),
   page: Joi.number().integer().min(1).default(1),
 });
-const { decrypt } = require("../utility/encryption");
+const SEARCH_SORT_FIELDS = ["_id", "createdAt", "funding.amountRaised"];
+const searchQueriesSchema = Joi.object({
+  sort: Joi.object()
+    .pattern(
+      Joi.string().valid(...SEARCH_SORT_FIELDS),
+      Joi.alternatives().try(Joi.number().valid(1, -1), Joi.string().valid("asc", "desc"))
+    )
+    .unknown(false),
+  query: Joi.object({
+    title: Joi.string().allow("").max(200),
+    location: Joi.string().allow("").max(100),
+    category: Joi.string().allow("").max(100),
+  }),
+});
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const { revealSensitive } = require("../utility/encryption");
+const { authenticate, getAuthUserId } = require("../utility/auth");
+const {
+  CAMPAIGN_PUBLIC_PROJECTION,
+  toPublicCampaign,
+  DONATION_PUBLIC_FIELDS,
+  toPublicDonation,
+} = require("../utility/publicViews");
 const { safeProfile } = require("../utility/safeProfile");
 const logger = require("../utility/logger");
 
 const {
   fetchPublicCampaigns,
   fetchCampaignsByOrganizer,
-  fetchSingleCampaignById,
 } = require("../services/campaignService");
 
 exports.getAllCampaigns = async (req, res, next) => {
@@ -32,7 +51,8 @@ exports.getAllCampaigns = async (req, res, next) => {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
 
-    const result = await fetchPublicCampaigns({ page, limit });
+    const country = typeof req.query.country === "string" ? req.query.country.trim().slice(0, 60) : "";
+    const result = await fetchPublicCampaigns({ page, limit, country });
 
     if (addCount == "true") {
       return res.status(200).json({ data: result });
@@ -108,23 +128,44 @@ exports.getSingleCampaign = async (req, res, next) => {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
 
-    const funding = camp._doc ? { ...camp._doc.funding } : { ...camp.funding };
-
-    if (funding && funding.accountName) {
-      funding.accountNumber = decrypt(funding.accountNumber);
-      funding.accountName = decrypt(funding.accountName);
-      funding.bankName = decrypt(funding.bankName);
-      funding.sortCode = decrypt(funding.sortCode);
+    // Full detail (decrypted payout account, team contacts) only for the
+    // signed-in owner, e.g. the campaign wizard prefilling its forms.
+    // Everyone else gets the public view; this endpoint previously decrypted
+    // and returned the organizer's bank details to any visitor.
+    let isOwner = false;
+    try {
+      // authenticate() also rejects revoked sessions and suspended users.
+      const authUserId = getAuthUserId(await authenticate(req));
+      isOwner = Boolean(authUserId) && String(camp.organizerId) === String(authUserId);
+    } catch {
+      isOwner = false;
     }
-    camp._doc.funding = funding;
+
+    let campaignView;
+    if (isOwner) {
+      campaignView = { ...camp._doc };
+      const funding = { ...(camp._doc.funding || {}) };
+      if (funding.accountName) {
+        funding.accountNumber = revealSensitive(funding.accountNumber);
+        funding.accountName = revealSensitive(funding.accountName);
+        funding.bankName = revealSensitive(funding.bankName);
+        funding.sortCode = revealSensitive(funding.sortCode);
+      }
+      campaignView.funding = funding;
+      // Admin-only signals, even for the owner.
+      delete campaignView.riskAssessment;
+      delete campaignView.funding.accountHash;
+    } else {
+      campaignView = toPublicCampaign(camp);
+    }
 
     const donations = await Donations.find({
       campaignId: id,
       "refund.status": { $ne: "succeeded" },
     })
-      .select("-donorEmail")
+      .select(DONATION_PUBLIC_FIELDS)
       .maxTimeMS(3000);
-    const campaign = { ...camp._doc, donations: donations };
+    const campaign = { ...campaignView, donations: donations.map(toPublicDonation) };
 
     return res.status(200).json({
       data: campaign,
@@ -174,7 +215,16 @@ exports.addUpdate = async (req, res, next) => {
         message: "Campaign Not found",
       });
     }
-    const update = { ...req.body.update, datePosted: Date.now() };
+    // Whitelist: never copy the body, so evidence fields can't be forged and
+    // the author is the organiser on record, not whatever the client sends.
+    const body = req.body.update || {};
+    const update = {
+      story: String(body.story || "").trim(),
+      image: body.image || "",
+      video: body.video || "",
+      addedBy: campaign.organizer || "Organiser",
+      datePosted: Date.now(),
+    };
     campaign.updates = [...campaign.updates, update];
 
     await campaign.save();
@@ -235,7 +285,12 @@ exports.searchByCategory = async (req, res, next) => {
     const filter = { category: normalized, launched: true, suspended: false };
     const [count, campaigns] = await Promise.all([
       Campaign.countDocuments(filter).maxTimeMS(3000),
-      Campaign.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).maxTimeMS(3000),
+      Campaign.find(filter)
+        .select(CAMPAIGN_PUBLIC_PROJECTION)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .maxTimeMS(3000),
     ]);
 
     return res.status(200).json({
@@ -270,42 +325,43 @@ exports.searchByName = async (req, res, next) => {
     let query = { launched: true };
 
     if (req.query.queries) {
+      let parsed;
       try {
-        const parsed = typeof req.query.queries === "string" 
-          ? JSON.parse(req.query.queries) 
-          : req.query.queries;
-        if (parsed.sort && typeof parsed.sort === "object" && !Array.isArray(parsed.sort)) {
-          const allowedSortKeys = new Set(["_id", "createdAt", "funding.amountRaised"]);
-          const sanitized = {};
-          for (const [k, v] of Object.entries(parsed.sort)) {
-            if (allowedSortKeys.has(k) && (v === 1 || v === -1)) sanitized[k] = v;
-          }
-          if (Object.keys(sanitized).length) sort = sanitized;
-        }
-        if (parsed.query && typeof parsed.query === "object" && !Array.isArray(parsed.query)) {
-          // Only allow known query fields to prevent NoSQL operator injection via JSON parsing.
-          const allowed = {};
-          if (typeof parsed.query.title === "string") allowed.title = parsed.query.title.slice(0, 200);
-          if (typeof parsed.query.category === "string") allowed.category = parsed.query.category.slice(0, 100).toLowerCase();
-          if (Object.keys(allowed).length) {
-            // Map title to text search safely
-            query = { launched: true, ...allowed };
-            if (query.title) {
-              query["basicInformation.campaignTitle"] = { $regex: query.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
-              delete query.title;
-            }
-            if (query.category) {
-              query.category = query.category;
-            }
-          }
-        }
+        parsed = JSON.parse(req.query.queries);
       } catch (e) {
-        logger.warn({ err: e }, "Could not parse query JSON");
+        return res.status(400).json({ status: 400, error: "queries must be valid JSON" });
+      }
+      const { error: payloadError, value } = searchQueriesSchema.validate(parsed, {
+        abortEarly: false,
+      });
+      if (payloadError) {
+        return res.status(400).json({
+          status: 400,
+          error: payloadError.details.map((detail) => detail.message).join(", "),
+        });
+      }
+      if (value.sort && Object.keys(value.sort).length) {
+        sort = Object.fromEntries(
+          Object.entries(value.sort).map(([key, dir]) => [key, dir === "asc" || dir === 1 ? 1 : -1])
+        );
+      }
+      const { title, location, category } = value.query || {};
+      // Operators are built here from plain strings only — client JSON can
+      // never inject Mongo operators.
+      if (title) {
+        query["basicInformation.campaignTitle"] = { $regex: escapeRegex(title), $options: "i" };
+      }
+      if (location) {
+        query["basicInformation.locationCountry"] = { $regex: escapeRegex(location), $options: "i" };
+      }
+      if (category && category.toLowerCase() !== "all") {
+        query.category = category.toLowerCase();
       }
     }
 
     const count = await Campaign.countDocuments({ ...query, suspended: false }).maxTimeMS(3000);
     const campaigns = await Campaign.find({ ...query, suspended: false })
+      .select(CAMPAIGN_PUBLIC_PROJECTION)
       .sort(sort)
       .skip((page - 1) * limit)
       .limit(limit)
@@ -327,99 +383,6 @@ exports.searchByName = async (req, res, next) => {
   }
 };
 
-exports.searchForCharity = async (req, res, next) => {
-  try {
-    const page = Math.max(parseInt(req.params.query, 10) || 1, 1);
-    let sort = { _id: -1 };
-    let queries = { launched: true };
-    if (req.query.queries) {
-      try {
-        const parsed = typeof req.query.queries === "string" ? JSON.parse(req.query.queries) : req.query.queries;
-        if (parsed.sort && typeof parsed.sort === "object" && !Array.isArray(parsed.sort)) {
-          const allowedSortKeys = new Set(["_id", "createdAt", "funding.amountRaised"]);
-          const sanitized = {};
-          for (const [k, v] of Object.entries(parsed.sort)) {
-            if (allowedSortKeys.has(k) && (v === 1 || v === -1)) sanitized[k] = v;
-          }
-          if (Object.keys(sanitized).length) sort = sanitized;
-        }
-        if (parsed.queries && typeof parsed.queries === "object") queries = parsed.queries;
-        else if (parsed.query && typeof parsed.query === "object") queries = parsed.query;
-      } catch (e) {
-        logger.warn({ err: e }, "Could not parse queries JSON");
-      }
-    }
-    const safeQueries = { ...queries, suspended: false };
-    const count = await Campaign.countDocuments(safeQueries).maxTimeMS(3000);
-    const campaigns = await Campaign.find(safeQueries)
-      .sort(sort)
-      .skip((page - 1) * 12)
-      .limit(12)
-      .maxTimeMS(3000);
-
-    return res.status(200).json({
-      status: "successful",
-      data: { campaigns, count, page, limit: 12 },
-    });
-  } catch (error) {
-    logger.error({ err: error });
-    return res.status(500).json({ status: 500, error: "Server error." });
-  }
-};
-
-exports.searchForUsers = async (req, res, next) => {
-  try {
-    const page = Math.max(parseInt(req.params.query, 10) || 1, 1);
-    let sort = { _id: -1 };
-    let queries = {};
-    if (req.query.queries) {
-      try {
-        const parsed = typeof req.query.queries === "string" ? JSON.parse(req.query.queries) : req.query.queries;
-        if (parsed.sort && typeof parsed.sort === "object" && !Array.isArray(parsed.sort)) {
-          const allowedSortKeys = new Set(["_id", "joined", "firstName"]);
-          const sanitized = {};
-          for (const [k, v] of Object.entries(parsed.sort)) {
-            if (allowedSortKeys.has(k) && (v === 1 || v === -1)) sanitized[k] = v;
-          }
-          if (Object.keys(sanitized).length) sort = sanitized;
-        }
-        if (parsed.queries && typeof parsed.queries === "object") queries = parsed.queries;
-      } catch (e) {
-        logger.warn({ err: e }, "Could not parse queries JSON");
-      }
-    }
-    // Prevent NoSQL operator injection via queries JSON
-    const { Users } = require("../models/users");
-    const safeQueries = {};
-    for (const [k, v] of Object.entries(queries)) {
-      if (typeof k === "string" && !k.startsWith("$") && !k.includes(".") && typeof v !== "object") {
-        safeQueries[k] = v;
-      } else if (typeof v === "string") {
-        safeQueries[k] = v.slice(0, 200);
-      }
-    }
-    safeQueries.suspended = false;
-    const count = await Users.countDocuments(safeQueries).maxTimeMS(3000);
-    const users = await Users.find(safeQueries)
-      .sort(sort)
-      .skip((page - 1) * 12)
-      .limit(12)
-      .maxTimeMS(3000);
-
-    return res.status(200).json({
-      status: "successful",
-      data: { users, count, page, limit: 12 },
-    });
-  } catch (error) {
-    logger.error({ err: error });
-    return res.status(500).json({ status: 500, error: "Server error." });
-  }
-};
-
-/**
- * Verified Donor Dispute & Circuit-Breaker Freeze
- * POST /api/campaigns/:id/dispute
- */
 exports.fileDispute = async (req, res) => {
   try {
     const { id } = req.params;

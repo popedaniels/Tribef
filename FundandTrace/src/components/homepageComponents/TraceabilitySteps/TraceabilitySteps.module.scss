@@ -67,7 +67,7 @@
 
   .tag {
     display: inline-block;
-    color: #4b5df5;
+    color: var(--color-primary);
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 1px;
@@ -177,8 +177,11 @@
   .iconWrap {
     width: 56px;
     height: 56px;
-    background: #eef1fe;
-    border-radius: 4px;
+    /* The step icons are white glyphs; on the old pale #eef1fe tile they were
+       effectively invisible. */
+    background: linear-gradient(135deg, #7d8bff 0%, var(--color-primary, #6979f8) 55%, #5562e6 100%);
+    box-shadow: 0 8px 20px -8px rgba(85, 98, 230, 0.55);
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -186,12 +189,12 @@
 
     :global([data-theme="dark"]) &,
     :global(.dark-theme) & {
-      background: rgba(105, 121, 248, 0.15) !important;
+      background: linear-gradient(135deg, #6f7cf0 0%, #4f5bd5 100%) !important;
     }
 
     img {
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
     }
   }
 

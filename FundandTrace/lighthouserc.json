@@ -1,0 +1,24 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "npm run start -- -p 3100",
+      "startServerReadyPattern": "Ready",
+      "url": ["http://localhost:3100/", "http://localhost:3100/fees", "http://localhost:3100/workings"],
+      "numberOfRuns": 3,
+      "settings": { "onlyCategories": ["performance", "accessibility"], "chromeFlags": "--no-sandbox --headless=new" }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.75, "aggregationMethod": "median-run" }],
+        "categories:accessibility": ["error", { "minScore": 0.9, "aggregationMethod": "median-run" }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1, "aggregationMethod": "median-run" }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 3000, "aggregationMethod": "median-run" }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 400, "aggregationMethod": "median-run" }],
+        "total-byte-weight": ["error", { "maxNumericValue": 1600000, "aggregationMethod": "median-run" }],
+        "render-blocking-resources": ["warn", { "maxLength": 0 }],
+        "uses-responsive-images": ["warn", { "maxLength": 0 }]
+      }
+    },
+    "upload": { "target": "temporary-public-storage" }
+  }
+}

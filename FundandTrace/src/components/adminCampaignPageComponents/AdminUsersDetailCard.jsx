@@ -14,7 +14,7 @@ export default function AdminUsersDetailCard({ user, count, index }) {
       <div className="check mr-2" style={{ width: 20 }}>
         <input type="checkbox" name="campaign" id="campaign" />
       </div>
-      <Link href={`/admin/users/${user?._id}`} passHref>
+      <Link href={`/admin/users/${user?._id}`} passHref legacyBehavior>
         <div className="d-flex align-items-center">
           <div className="id mx-3" style={{ width: 140 }}>
             <p className="mb-0">{user?.firstName}</p>

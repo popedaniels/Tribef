@@ -10,7 +10,7 @@ const {
 } = require("../services/suspendUserMailService");
 const {
   unsuspendUserMailService,
-} = require("../services/unsuspendUserMailService ");
+} = require("../services/unsuspendUserMailService");
 const logger = require("../utility/logger");
 const { safeProfile } = require("../utility/safeProfile");
 

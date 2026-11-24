@@ -15,6 +15,7 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { selectAuthStateState } from "../../../store/slices/authSlice";
 import Layout from "../../components/Layout";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Category() {
   const router = useRouter();
@@ -126,18 +127,19 @@ export default function Category() {
 
   const [selected, setSelected] = useState("");
   const { profile, authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
 
   const handleSubmit = async () => {
     router.push(`/StartACampaign/type?category=${selected}`);
   };
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   useEffect(() => {
-    !profile?.verified && router.push("/SignUp/Verify");
-  }, [profile, router]);
+    rehydrated && authenticated && !profile?.verified && router.push("/SignUp/Verify");
+  }, [rehydrated, authenticated, profile, router]);
 
   return (
     <Layout title="Start a campaign | Category" showFooter>

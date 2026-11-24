@@ -9,6 +9,7 @@ require("./controllers/flutterwaveWebhook.test");
 require("./controllers/stripeWebhook.test");
 require("./controllers/admin.test");
 require("./controllers/stripeConnect.test");
+require("./controllers/evidence.test");
 
 const chai = require("chai");
 const chaiHttp = require("chai-http");
@@ -21,3 +22,4 @@ after(() => {
     server.close();
   }
 });
+require("./controllers/giving.test");

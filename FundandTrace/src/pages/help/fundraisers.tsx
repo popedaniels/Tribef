@@ -40,70 +40,78 @@ export default function FundraisersHelp() {
                 Click on “Start a campaign” button. If you have an account
                 already, click on the “Sign in” button.{" "}
               </li>
-              <img
-                src="/images/help/fundraisers1.png"
-                alt="start a campaign image"
-                style={{ width: "100%", maxWidth: "773px", height: "100%" }}
-                className="my-3"
-              />
+              <li style={{ listStyle: "none" }}>
+                <img
+                  src="/images/help/fundraisers1.jpg"
+                  alt="start a campaign image"
+                  style={{ width: "100%", maxWidth: "773px", height: "100%" }}
+                  className="my-3"
+                />
+              </li>
 
               <li>
                 Fill out the necessary details to get signed up! Thereafter, a
                 mail will be sent to you to verify your account.
               </li>
-              <div className="d-flex flex-md-row flex-column align-items-center my-3">
-                <img
-                  src="/images/help/fundraisers2.png"
-                  alt="start a campaign image"
-                  style={{ width: "42%", maxWidth: "396px", height: "100%" }}
-                  className="fundraiserImage"
-                />
-                <img
-                  src="/images/icons/slidefrontdark.svg"
-                  alt="arrow"
-                  style={{
-                    width: "33px",
-                    maxWidth: "33px",
-                    height: "20px",
-                    transform: "rotate(90deg",
-                  }}
-                  className="d-md-none my-3"
-                />
-                <img
-                  src="/images/icons/slidefrontdark.svg"
-                  alt="arrow"
-                  style={{ width: "33px", maxWidth: "33px", height: "20px" }}
-                  className="d-none d-md-block "
-                />
-                <img
-                  src="/images/help/fundraisers3.png"
-                  alt="start a campaign image"
-                  style={{ width: "42%", maxWidth: "396px", height: "100%" }}
-                  className="fundraiserImage"
-                />
-              </div>
+              <li style={{ listStyle: "none" }}>
+                <div className="d-flex flex-md-row flex-column align-items-center my-3">
+                  <img
+                    src="/images/help/fundraisers2.png"
+                    alt="start a campaign image"
+                    style={{ width: "42%", maxWidth: "396px", height: "100%" }}
+                    className="fundraiserImage"
+                  />
+                  <img
+                    src="/images/icons/slidefrontdark.svg"
+                    alt="arrow"
+                    style={{
+                      width: "33px",
+                      maxWidth: "33px",
+                      height: "20px",
+                      transform: "rotate(90deg",
+                    }}
+                    className="d-md-none my-3"
+                  />
+                  <img
+                    src="/images/icons/slidefrontdark.svg"
+                    alt="arrow"
+                    style={{ width: "33px", maxWidth: "33px", height: "20px" }}
+                    className="d-none d-md-block "
+                  />
+                  <img
+                    src="/images/help/fundraisers3.png"
+                    alt="start a campaign image"
+                    style={{ width: "42%", maxWidth: "396px", height: "100%" }}
+                    className="fundraiserImage"
+                  />
+                </div>
+              </li>
               <li>
                 You have an account now! The next step is to start creating your
                 campaign
               </li>
-              <img
-                src="/images/help/fundraisers4.png"
-                alt="start a campaign image"
-                style={{ width: "100%", maxWidth: "484px", height: "100%" }}
-                className="my-3"
-              />
+              <li style={{ listStyle: "none" }}>
+                <img
+                  src="/images/help/fundraisers4.png"
+                  alt="start a campaign image"
+                  style={{ width: "100%", maxWidth: "484px", height: "100%" }}
+                  className="my-3"
+                />
+              </li>
               <li>
                 Fill out the necessary baisc information: Basics, Content,
                 Funding and Settings. Preview how your campaign would look like
                 on the Pre-Launch page. When you’re sure about the information
                 you filled, you can now launch your campaign!{" "}
               </li>
-              <img
-                src="/images/help/fundraisers5.png"
-                alt="start a campaign image"
-                style={{ width: "100%", maxWidth: "713px", height: "100%" }}
-                className="my-3"
-              />
+              <li style={{ listStyle: "none" }}>
+                <img
+                  src="/images/help/fundraisers5.png"
+                  alt="start a campaign image"
+                  style={{ width: "100%", maxWidth: "713px", height: "100%" }}
+                  className="my-3"
+                />
+              </li>
             </ul>
           </HelpDropdown>
           <HelpDropdown title="How do I share my campaign?">
@@ -220,21 +228,23 @@ export default function FundraisersHelp() {
               </li>
               <li>Click on the campaign you want to access</li>
 
-              <div className="d-flex flex-md-row flex-column align-items-center my-3">
-                <img
-                  src="/images/help/dashboard1.png"
-                  alt="start a campaign image"
-                  style={{ width: "42%", maxWidth: "396px", height: "100%" }}
-                  className="fundraiserImage mb-md-0 mb-3"
-                />
-
-                <img
-                  src="/images/help/dashboard2.png"
-                  alt="start a campaign image"
-                  style={{ width: "42%", maxWidth: "396px", height: "100%" }}
-                  className="fundraiserImage"
-                />
-              </div>
+              <li style={{ listStyle: "none" }}>
+                <div className="d-flex flex-md-row flex-column align-items-center my-3">
+                  <img
+                    src="/images/help/dashboard1.png"
+                    alt="start a campaign image"
+                    style={{ width: "42%", maxWidth: "396px", height: "100%" }}
+                    className="fundraiserImage mb-md-0 mb-3"
+                  />
+  
+                  <img
+                    src="/images/help/dashboard2.png"
+                    alt="start a campaign image"
+                    style={{ width: "42%", maxWidth: "396px", height: "100%" }}
+                    className="fundraiserImage"
+                  />
+                </div>
+              </li>
             </ul>
           </HelpDropdown>
         </section>
@@ -284,10 +294,10 @@ export default function FundraisersHelp() {
           <HelpDropdown title="Fees for Campaigners: How much does Fund&Trace cost?">
             <p className="mb-0">
               You can check the fees for campaigns in the Fees section{" "}
-              <Link href="/fees" passHref>
-                <a target="_blank" rel="noreferrer">
+              <Link href="/fees" passHref target="_blank" rel="noreferrer">
+                
                   here
-                </a>
+                
               </Link>
               .
             </p>

@@ -38,11 +38,18 @@ const addCommentSchema = Joi.object({
   amount: Joi.number().min(0).optional(),
 });
 
+// The dashboard posts { update: { story, image?, video?, addedBy? } }. (The
+// schema used to validate the top level, so every update was rejected with
+// "story is required".) Sealed-evidence fields are not accepted here: only
+// live capture (controller/evidence.js) can mark an update as sealed.
+const httpsUrl = Joi.string().uri({ scheme: ["https"] }).max(2048).allow("", null);
 const addUpdateSchema = Joi.object({
-  story: Joi.string().min(1).required(),
-  image: Joi.string().allow("", null).optional(),
-  video: Joi.string().allow("", null).optional(),
-  addedBy: Joi.string().allow("", null).optional(),
+  update: Joi.object({
+    story: Joi.string().trim().min(1).max(5000).required(),
+    image: httpsUrl.optional(),
+    video: httpsUrl.optional(),
+    addedBy: Joi.string().max(120).allow("", null).optional(),
+  }).required(),
 });
 
 const disputeSchema = Joi.object({

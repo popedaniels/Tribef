@@ -1,85 +1,57 @@
 import React from "react";
 import { motion } from "framer-motion";
-import InkObject from "../../canvasui/InkObject";
 import styles from "./FeaturesGrid.module.scss";
 
 const features = [
   {
     icon: "/images/icons/payment.svg",
-    title: "0% Platform Commission",
+    title: "No platform fee",
     description:
-      "Unlike other platforms taking 5% to 10% cuts, Fund&Trace charges 0% platform fee so your full donation creates impact.",
+      "We don't take a cut of what campaigns raise. Donors can add an optional tip, and card and bank processing fees still apply.",
   },
   {
     icon: "/images/icons/tracking.svg",
-    title: "Milestone-Based Releases",
+    title: "Released in stages",
     description:
-      "Funds are released in phased milestones only after verified proof, invoices, and progress reports are submitted.",
+      "Money stays in escrow until the organiser requests it for a stated purpose and our team approves it. Often it goes straight to the supplier.",
   },
   {
     icon: "/images/icons/accountable.svg",
-    title: "Itemized Audit Statements",
+    title: "Receipts and a public ledger",
     description:
-      "Receive automated, transparent periodic financial accounts of every disbursement sent straight to your email.",
+      "Receipts are published after each payout, and every payment is on a hash-chained ledger anyone can verify.",
   },
   {
     icon: "/images/icons/lock.svg",
-    title: "Bank-Grade Encryption",
+    title: "Secure payments",
     description:
-      "Every payment is encrypted with industry-standard 256-bit SSL via PCI-DSS certified partners (Flutterwave & Stripe).",
+      "Payments run through Stripe, Paystack and Flutterwave. We never see card details, and payout bank details are encrypted.",
   },
   {
     icon: "/images/icons/reach.svg",
-    title: "Global Multi-Currency",
+    title: "Built for Africa and beyond",
     description:
-      "Donate or receive funds seamlessly across USD, GBP, and NGN with immediate local bank and mobile money payouts.",
+      "Give by card, bank transfer, USSD or mobile money. Organisers are paid by bank transfer in Nigeria, Ghana, Kenya, South Africa and more, or through Stripe.",
   },
   {
     icon: "/images/icons/consultation.svg",
-    title: "24/7 Dedicated Support",
+    title: "Protection if something's wrong",
     description:
-      "Our team provides round-the-clock guidance to assist with campaign setup, disbursement verification, and donor inquiries.",
+      "Donor reports can freeze a campaign's payouts while we review it, and what's left in escrow can be refunded to donors.",
   },
 ];
 
 export default function FeaturesGrid() {
   return (
     <section className={styles.section} id="features">
-      {/* 3D ink globe — pure WebGL, works in every browser */}
-      <div className={styles.inkAccent}>
-        <InkObject
-          style={{ width: "100%", height: "100%" }}
-          src="/images/icons/globe.svg"
-          ink
-          inkColor="#1f244a"
-          lineSpacing={5.5}
-          strokeWeight={1.3}
-          variation={1.2}
-          wobble={0.35}
-          grain={0.3}
-          relief={0.5}
-          contrast={2.8}
-          threshold={0.2}
-          softness={0.4}
-          environmentIntensity={0.15}
-          highlight="#6979F8"
-          roughness={0.35}
-          scale={2.4}
-          floatIntensity={1.5}
-          rotationIntensity={1}
-          floatSpeed={1.5}
-          orbit
-        />
-      </div>
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
-          <span className={styles.tag}>Why Choose Fund&amp;Trace</span>
+          <span className={styles.tag}>Why Fund&amp;Trace</span>
           <h2>
-            Infrastructure Built for <span>Radical Transparency</span>
+            Giving you can <span>check for yourself</span>
           </h2>
           <p>
-            We've reimagined online fundraising from the ground up to eliminate fraud, reduce
-            donor friction, and maximize genuine social impact.
+            Every campaign on Fund&amp;Trace works the same way, so you always know what happens to your money.
           </p>
         </div>
 
@@ -93,7 +65,7 @@ export default function FeaturesGrid() {
               transition={{ duration: 0.4, delay: index * 0.08 }}
             >
               <div className={styles.iconWrap}>
-                <img src={item.icon} alt={item.title} />
+                <img src={item.icon} alt="" />
               </div>
               <h3>{item.title}</h3>
               <p>{item.description}</p>

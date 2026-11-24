@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import DashboardLayout from "./DashboardLayout";
+import DashboardLayout from "../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import { useSelector } from "react-redux";
@@ -8,6 +8,7 @@ import axios from "axios";
 import Spinner from "../../components/composed/spinner/Spinner";
 import { addCommaToNumber } from "../../components/helperFunctions/helperFunctions";
 import type { Campaign } from "../../types/campaign";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function Account() {
   const { profile } = useSelector(selectAuthStateState);
@@ -20,9 +21,10 @@ export default function Account() {
   const [GBP, setGBP] = useState(0);
 
   const getCount = useCallback(async () => {
+    if (!profile?._id) return; // session not restored yet (see useRequireAuth)
     try {
       const campaigns = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL + "/api/campaigns/" + profile?._id
+        getApiBaseUrl() + "/api/campaigns/" + profile._id
       );
 
       campaigns && setCampaigns(campaigns?.data?.data?.active);
@@ -32,11 +34,12 @@ export default function Account() {
   }, [profile?._id]);
 
   const getDonations = useCallback(async () => {
+    if (!profile?.email) return;
     try {
+      // Auth-protected endpoint: without credentials it always 401'd.
       const donations = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL +
-          "/api/donations/allDonations/" +
-          profile?.email
+        getApiBaseUrl() + "/api/donations/allDonations/" + encodeURIComponent(profile.email),
+        { withCredentials: true }
       );
       donations && setTotalDonations(donations?.data?.data?.length);
     } catch (error) {
@@ -133,10 +136,10 @@ export default function Account() {
               </p>
             </div>
           </div>
-          <Link href="edit-profile" passHref>
-            <a style={{ textDecoration: "none" }}>
-              <button className="btn text-white">Edit Profile</button>
-            </a>
+          <Link href="edit-profile" passHref style={{ textDecoration: "none" }}>
+
+            <button className="btn text-white">Edit Profile</button>
+
           </Link>
         </Accounts>
         <div className="d-flex align-items-baseline justify-content-center">
@@ -269,7 +272,7 @@ const Article = styled.article`
     font-size: 16px;
     line-height: 16px;
     margin-bottom: 45px;
-    color: #b3b3b3;
+    color: #5f6672;
   }
   h3 {
     font-style: normal;

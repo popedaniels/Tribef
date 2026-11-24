@@ -1,13 +1,16 @@
 import axios from "axios";
 import React, { useState } from "react";
-import styled from "styled-components";
 import Navbar from "../../../components/Navbar/Navbar";
 import PaymentHistoryCard from "../../../components/PaymentHistoryCard/PaymentHistoryCard";
+import TransparencyScore from "../../../components/trust/TransparencyScore";
+import PublicLedger from "../../../components/trust/PublicLedger";
+import EvidenceGallery from "../../../components/capture/EvidenceGallery";
 import Layout from "../../../components/Layout";
 import DisbursementCard from "../../../components/DisbursementCard/DisbursementCard";
 import Link from "next/link";
-import { addCommaToNumber, getDaysRemaining } from "../../../components/helperFunctions/helperFunctions";
-import ReceiptInspectorModal from "../../../components/composed/Modal/ReceiptInspectorModal/ReceiptInspectorModal";
+import { formatMoney } from "../../../components/helperFunctions/helperFunctions";
+import FrozenBanner from "../../../components/trust/FrozenBanner";
+import styles from "../../../components/campaignPage/TrackerPage.module.scss";
 import DefaultModal from "../../../components/composed/Modal/DefaultModal/DefaultModal";
 import { useSelector } from "react-redux";
 import { toast } from "../../../../store/slices/ToastSlice";
@@ -15,6 +18,7 @@ import { selectAuthStateState } from "../../../../store/slices/authSlice";
 import { useAppDispatch } from "./../../../../store/hooks";
 import { Campaign } from "../../../types/campaign";
 import type { GetServerSidePropsContext } from "next";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface Disbursement {
   amount?: number;
@@ -24,6 +28,7 @@ interface Disbursement {
   accountName?: string;
   accountNumber?: string;
   receipt?: string;
+  providerStatus?: string;
 }
 
 interface FundingRequest {
@@ -67,7 +72,7 @@ interface CampaignTrackerPageProps {
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const apiUrl = getApiBaseUrl();
     const data = await axios.get(
       `${apiUrl}/api/fundingRequests/campaignTracker/${campaignId}`,
       { timeout: 3000 }
@@ -101,8 +106,7 @@ export default function CampaignTrackerPage({
   approvedFundingRequests,
   allFundingRequests,
 }: CampaignTrackerPageProps) {
-  const [view, setView] = useState("fundingRequests");
-  const [showInspectorModal, setShowInspectorModal] = useState(false);
+  const [view, setView] = useState("disbursements");
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [isLocked, setIsLocked] = useState(campaign?.disputeGovernance?.isLocked || false);
   const [lockReason, setLockReason] = useState(campaign?.disputeGovernance?.lockReason || "");
@@ -122,18 +126,18 @@ export default function CampaignTrackerPage({
   const handleDisputeSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (!disputeForm.donorEmail) {
-      dispatch(toast(true, "Please provide your donor email address.", "error"));
+      dispatch(toast(true, "Please enter the email you donated with.", "error"));
       return;
     }
     if (!disputeForm.description) {
-      dispatch(toast(true, "Please describe the discrepancy.", "error"));
+      dispatch(toast(true, "Please tell us what you found.", "error"));
       return;
     }
 
     setIsSubmitting(true);
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/campaigns/${campaign?._id}/dispute`,
+        `${getApiBaseUrl()}/api/campaigns/${campaign?._id}/dispute`,
         {
           donorId: profile?._id,
           ...disputeForm,
@@ -141,14 +145,14 @@ export default function CampaignTrackerPage({
       );
 
       if (res.data?.status === 200) {
-        dispatch(toast(true, "Dispute report recorded successfully.", "success"));
+        dispatch(toast(true, "Thanks. Your report has been sent to our review team.", "success"));
         if (res.data?.data?.isLocked) {
           setIsLocked(true);
           setLockReason(res.data.data.lockReason);
           dispatch(
             toast(
               true,
-              "Escrow circuit-breaker triggered: Campaign funds have been frozen.",
+              "Payouts for this campaign are now paused while we review it.",
               "info"
             )
           );
@@ -163,486 +167,244 @@ export default function CampaignTrackerPage({
     }
   };
 
+  const currency = campaign?.funding?.currency || "USD";
+  const paidOut = (approvedFundingRequests || []).reduce(
+    (sum, fr) => sum + (fr?.disbursement?.providerStatus === "failed" ? 0 : Number(fr?.disbursement?.amount) || 0),
+    0
+  );
+  const raised = Number(campaign?.funding?.amountRaised) || 0;
+  const held = Number.isFinite(Number(campaign?.funding?.availableBalance))
+    ? Number(campaign?.funding?.availableBalance)
+    : Math.max(0, raised - paidOut);
+  const pending = (allFundingRequests || []).filter((fr) => fr?.status === "Pending").length;
+  const organiserName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || campaign?.organizer || "The organiser";
+  const title = campaign?.basicInformation?.campaignTitle || "Campaign";
+
+  if (!campaign) {
+    return (
+      <Layout title="Tracker unavailable" description="This campaign's tracker could not be loaded." showFooter>
+        <Navbar />
+        <main className={styles.unavailable}>
+          <h1>Tracker unavailable</h1>
+          <p>We couldn&apos;t load this campaign&apos;s money trail right now. Please try again shortly.</p>
+          <Link href="/Categories" className="ft-btn ft-btn--primary">Browse campaigns</Link>
+        </main>
+      </Layout>
+    );
+  }
+
+  const tabs = [
+    { id: "disbursements", label: "Payouts", count: approvedFundingRequests?.length || 0 },
+    { id: "fundingRequests", label: "All requests", count: allFundingRequests?.length || 0 },
+  ];
+
   return (
     <Layout
-      title={`Tracker | ${campaign?.basicInformation?.campaignTitle}`}
-      description={`Campaign Tracking of ${campaign?.basicInformation?.campaignTitle}`}
-      ogImage={`${campaign?.basicInformation?.campaignImage}`}
+      title={`Money tracker · ${title}`}
+      description={`Every donation, payout and receipt for "${title}", on a public, verifiable ledger.`}
+      ogImage={campaign?.basicInformation?.campaignImage}
       showFooter
     >
-      <div>
-        <Navbar />
-      </div>
-      <Wrapper className="pb-5 mb-5" style={{ paddingTop: 80 }}>
-        {isLocked && (
-          <div className="custom-container pt-4">
-            <div
-              className="p-4 rounded d-flex align-items-center"
-              style={{
-                background: "rgba(239, 68, 68, 0.12)",
-                border: "1px solid rgba(239, 68, 68, 0.4)",
-                color: "#EF4444",
-              }}
-            >
-              <span style={{ fontSize: 24, marginRight: 12 }}>🔒</span>
-              <div>
-                <h5 className="mb-1 font-weight-bold" style={{ fontSize: 16, color: "#EF4444" }}>
-                  Escrow Frozen — Under Active Dispute Review
-                </h5>
-                <p className="mb-0 text-muted" style={{ fontSize: 13.5 }}>
-                  {lockReason ||
-                    "Verified donors have flagged discrepancies with submitted milestone evidence. All pending disbursements have been paused pending platform compliance review."}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+      <Navbar />
+      <main className={styles.page}>
+        <div className={styles.container}>
+          <Link href={`/campaign/${campaign._id}`} className={styles.back}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+            Back to campaign
+          </Link>
 
-        <section className="Top d-flex justify-content-between pt-4 flex-wrap custom-container">
-          <article className="campaign-details d-flex align-items-start mt-5 mt-lg-0 order-12 order-lg-1">
-            <div className="mr-md-4 mb-4 mb-lg-0">
-              <Link href={`/campaign/${campaign?._id}`} passHref>
-                <a>
-                  <img
-                    src={campaign?.basicInformation?.campaignImage}
-                    alt="campaignImages"
-                    width="209px"
-                    height="221px"
-                    className="campaign-image"
-                    style={{ objectFit: "cover" }}
-                  />
-                </a>
-              </Link>
+          {isLocked && (
+            <div className={styles.frozen}>
+              <FrozenBanner lockReason={lockReason} />
             </div>
-            <div className="details">
-              <div className="mb-2">
-                <span className="badge-live-status">
-                  <span className="live-pulse-dot"></span>
-                  Live Escrow Tracking
-                </span>
-              </div>
-              <h4 className="mb-3">
-                {campaign?.basicInformation?.campaignTitle}
-              </h4>
-              <div className="d-flex align-items-center mb-3">
-                <img
-                  src="/images/icons/location.svg"
-                  alt="location icon"
-                  width="14px"
-                />
-                <p className="text-blue mb-0 ml-3">
-                  {campaign?.basicInformation?.locationState},{" "}
-                  {campaign?.basicInformation?.locationCountry}
-                </p>
-              </div>
+          )}
 
-              <div className="d-flex align-items-baseline">
-                <h3
-                  className="text-heading mr-2"
-                  style={{ fontSize: 16, lineHeight: "28px" }}
-                >
-                  {campaign?.funding?.currency == "USD"
-                    ? "$"
-                    : campaign?.funding?.currency == "GBP"
-                    ? "£"
-                    : "₦"}
-                  {addCommaToNumber(campaign?.funding?.amountRaised)}
-                </h3>
-                <p className="mb-0" style={{ fontWeight: "300" }}>
-                  raised of{" "}
-                  {campaign?.funding?.currency == "USD"
-                    ? "$"
-                    : campaign?.funding?.currency == "GBP"
-                    ? "£"
-                    : "₦"}
-                  {addCommaToNumber(campaign?.funding?.amountExpected)}
-                </p>
-              </div>
-              <div
-                style={{ width: "100%" }}
-                className={["progress mb-2"].join(" ")}
-              >
-                <div
-                  className={["progress-bar"].join(" ")}
-                  role="progressbar"
-                  style={{
-                    width: `${
-                      ((campaign?.funding?.amountRaised as number) /
-                        (campaign?.funding?.amountExpected as number)) *
-                      100
-                    }%`,
-                  }}
-                  aria-valuenow={
-                    ((campaign?.funding?.amountRaised as number) /
-                      (campaign?.funding?.amountExpected as number)) *
-                    100
-                  }
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                ></div>
-              </div>
-              <div className="d-flex align-items-center">
-                <img
-                  src="/images/icons/time.svg"
-                  alt="time"
-                  width="17.5px"
-                  height="17.5px"
-                  className="mr-2"
-                />
-                <p className="mb-0" style={{ color: "#807373" }}>
-                  {getDaysRemaining(campaign)} days left
-                </p>
-              </div>
-              <div className="d-flex align-items-center mt-3">
-                <p
-                  className="mr-3 mb-0"
-                  style={{
-                    fontWeight: "300",
-                  }}
-                >
-                  <span style={{ fontWeight: "600", color: "#000000" }}>
-                    {campaign?.donations?.length || 0}
-                  </span>{" "}
-                  donors
-                </p>
-                <p
-                  className="mb-0"
-                  style={{
-                    fontWeight: "300",
-                  }}
-                >
-                  <span style={{ fontWeight: "600", color: "#000000" }}>0</span>{" "}
-                  shares
-                </p>
-              </div>
+          <header className={styles.header}>
+            <img
+              src={campaign?.basicInformation?.campaignImage || "/images/stories/water_story.jpg"}
+              alt=""
+              className={styles.thumb}
+            />
+            <div>
+              <span className="ft-eyebrow">Money tracker</span>
+              <h1>{title}</h1>
+              <p>
+                Organised by <strong>{organiserName}</strong>. Every donation, payout and receipt for this campaign appears here as it happens.
+              </p>
             </div>
-          </article>
-          <article className="user-details d-flex order-1 order-lg-12">
-            <div className="mr-4">
-              {user?.profilePicture ? (
-                <img
-                  src={user?.profilePicture}
-                  alt="userImages"
-                  width="58px"
-                  height="58px"
-                  style={{ borderRadius: "50%", objectFit: "cover" }}
-                />
-              ) : (
-                <div
-                  className="d-flex align-items-center justify-content-center"
-                  style={{
-                    width: 58,
-                    height: 58,
-                    background: "#F0F0F0",
-                    borderRadius: "50%",
-                    color: "#A3A3A3",
-                    fontSize: 12,
-                  }}
-                >
-                  {`${user?.firstName?.charAt(0) || "U"} ${user?.lastName?.charAt(0) || "O"}`}
-                </div>
-              )}
+          </header>
+
+          <dl className={styles.stats}>
+            <div>
+              <dt>Raised</dt>
+              <dd>{formatMoney(raised, currency)}</dd>
+              <dd className={styles.sub}>{campaign?.donations?.length || 0} donations</dd>
             </div>
             <div>
-              <h4 className="mb-2">
-                {user?.firstName} {user?.lastName}
-              </h4>
-              <div className="d-flex align-items-baseline">
-                <p className="mb-0" style={{ fontWeight: "300" }}>
-                  {user?.city || "Lagos"}, {user?.country || "Nigeria"}
-                </p>
-              </div>
+              <dt>Paid out</dt>
+              <dd className={styles.ok}>{formatMoney(paidOut, currency)}</dd>
+              <dd className={styles.sub}>{approvedFundingRequests?.length || 0} payouts</dd>
             </div>
-          </article>
-        </section>
-        <section style={{ background: "#F8FAFC", borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0" }} className="py-4 mt-5">
-          <section className="custom-container py-2">
-            <article className="numbers mx-auto ">
-              <div className="bento-elevation-card p-4 d-flex flex-column align-items-center text-center">
-                <span className="badge-escrow-verified mb-2">Escrow Inflow</span>
-                <p className="mb-1 text-muted" style={{ fontSize: 13, fontWeight: 600 }}>TOTAL RAISED</p>
-                <h4 className="mb-0" style={{ fontSize: 24, fontWeight: 800, color: "var(--color-text-heading)" }}>
-                  {campaign?.funding?.currency == "USD"
-                    ? "$"
-                    : campaign?.funding?.currency == "GBP"
-                    ? "£"
-                    : "₦"}
-                  {addCommaToNumber(campaign?.funding?.amountRaised)}
-                </h4>
+            <div>
+              <dt>Held in escrow</dt>
+              <dd>{formatMoney(held, currency)}</dd>
+              <dd className={styles.sub}>Released only on approved requests</dd>
+            </div>
+            <div>
+              <dt>Awaiting review</dt>
+              <dd>{pending}</dd>
+              <dd className={styles.sub}>{pending === 1 ? "funding request" : "funding requests"}</dd>
+            </div>
+          </dl>
+
+          <div className={styles.grid}>
+            <section className={styles.timelineCol} aria-labelledby="money-trail">
+              <div className={styles.sectionHead}>
+                <h2 id="money-trail">Where the money went</h2>
               </div>
-              <div className="bento-elevation-card p-4 d-flex flex-column align-items-center text-center">
-                <span className="badge-escrow-verified mb-2">Audit Pipeline</span>
-                <p className="mb-1 text-muted" style={{ fontSize: 13, fontWeight: 600 }}>FUNDING REQUESTS</p>
-                <h4 className="mb-0" style={{ fontSize: 24, fontWeight: 800, color: "var(--color-primary)" }}>
-                  {allFundingRequests?.length || 0}
-                </h4>
-              </div>
-              <div className="bento-elevation-card p-4 d-flex flex-column align-items-center text-center">
-                <span className="badge-live-status mb-2">
-                  <span className="live-pulse-dot"></span>
-                  Disbursed
-                </span>
-                <p className="mb-1 text-muted" style={{ fontSize: 13, fontWeight: 600 }}>TOTAL DISBURSED</p>
-                <h4 className="mb-0" style={{ fontSize: 24, fontWeight: 800, color: "#10B981" }}>
-                  {campaign?.funding?.currency == "USD"
-                    ? "$"
-                    : campaign?.funding?.currency == "GBP"
-                    ? "£"
-                    : "₦"}
-                  {addCommaToNumber(
-                    approvedFundingRequests?.reduce(
-                      (accumulator, approved) =>
-                        accumulator + (approved?.disbursement?.amount || 0),
-                      0
-                    ) || 0
-                  )}
-                </h4>
+              <div role="tablist" aria-label="Payout history" className={styles.tabs}>
+                {tabs.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="tab"
+                    id={`tab-${t.id}`}
+                    aria-selected={view === t.id}
+                    aria-controls={`panel-${t.id}`}
+                    className={`ft-plain ${styles.tab}`}
+                    onClick={() => setView(t.id)}
+                  >
+                    {t.label} <span className={styles.tabCount}>{t.count}</span>
+                  </button>
+                ))}
               </div>
 
-              <div className="bento-elevation-card p-4 d-flex flex-column align-items-center text-center">
-                <span className="badge-escrow-verified mb-2">Protected</span>
-                <p className="mb-1 text-muted" style={{ fontSize: 13, fontWeight: 600 }}>AVAILABLE BALANCE</p>
-                <h4 className="mb-0" style={{ fontSize: 24, fontWeight: 800, color: "var(--color-text-heading)" }}>
-                  {campaign?.funding?.currency == "USD"
-                    ? "$"
-                    : campaign?.funding?.currency == "GBP"
-                    ? "£"
-                    : "₦"}
-                  {addCommaToNumber(campaign?.funding?.availableBalance)}
-                </h4>
-              </div>
-
-              <div className="bento-elevation-card p-3 d-flex flex-column align-items-center text-center justify-content-center">
-                <button
-                  type="button"
-                  onClick={() => setShowInspectorModal(true)}
-                  className="btn-secondary-action w-100 mb-2"
-                  style={{ height: 40, fontSize: 13 }}
-                >
-                  🛡️ Inspect Receipt
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDisputeModal(true)}
-                  className="btn btn-outline-danger w-100"
-                  style={{
-                    height: 40,
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    borderRadius: 4,
-                    borderColor: "rgba(239, 68, 68, 0.4)",
-                  }}
-                >
-                  ⚠️ Report Discrepancy
-                </button>
-              </div>
-            </article>
-          </section>
-        </section>
-        <section className="bottom mt-5 custom-container">
-          <section className="mx-auto">
-            <div
-              className="d-flex align-items-center border"
-              style={{ width: "100%", borderRadius: 4 }}
-            >
-              <div
-                className="border-right w-50 d-flex align-items-center justify-content-center"
-                style={{
-                  background: view == "fundingRequests" ? "#F0F1FE" : "#FAFAFA",
-                  color: view == "fundingRequests" ? "var(--color-primary)" : "#A3A3A3",
-                  height: 40,
-                }}
-                role="button"
-                onClick={() => setView("fundingRequests")}
-              >
-                Funding requests
-              </div>
-              <div
-                className="w-50 d-flex align-items-center justify-content-center"
-                style={{
-                  background: view == "disbursements" ? "#F0F1FE" : "#FAFAFA",
-                  color: view == "disbursements" ? "var(--color-primary)" : "#A3A3A3",
-                  height: 40,
-                }}
-                role="button"
-                onClick={() => setView("disbursements")}
-              >
-                Disbursments
-              </div>
-            </div>
-            <article className="mx-auto mt-5">
-              {view == "fundingRequests" ? (
-                <div className="pl-4">
-                  {allFundingRequests?.length ? (
-                    allFundingRequests?.map((fundingRequest, i) => (
+              <div role="tabpanel" id={`panel-${view}`} aria-labelledby={`tab-${view}`}>
+                {view === "fundingRequests" ? (
+                  allFundingRequests?.length ? (
+                    allFundingRequests.map((fundingRequest, i) => (
                       <PaymentHistoryCard
                         fundingRequest={fundingRequest}
-                        key={i}
-                        last={i == allFundingRequests.length - 1 && "last"}
+                        key={fundingRequest?._id || i}
+                        last={i === allFundingRequests.length - 1}
                       />
                     ))
                   ) : (
-                    <div className="d-flex flex-column align-items-center my-5">
-                      <img
-                        src="/images/icons/noFund.svg"
-                        alt="no funding Request"
-                        width="50px"
-                        height="50px"
-                      />
-                      <h2 className="text-medium text-center">
-                        No funding request yet!
-                      </h2>
+                    <div className="ft-empty">
+                      <h3>No funding requests yet</h3>
+                      <p>When the organiser asks for money from escrow, the request and its purpose appear here before anything is paid.</p>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="pl-4">
-                  {approvedFundingRequests?.length ? (
-                    approvedFundingRequests?.map((fundingRequest, i) => (
-                      <DisbursementCard
-                        disbursement={fundingRequest?.disbursement}
-                        key={i}
-                        last={i == approvedFundingRequests.length - 1 && "last"}
-                      />
-                    ))
-                  ) : (
-                    <div className="d-flex flex-column align-items-center my-5">
-                      <img
-                        src="/images/icons/noDis.svg"
-                        alt="no funding Request"
-                        width="50px"
-                        height="50px"
-                      />
-                      <h2 className="text-medium text-center">
-                        No Disbursement yet!
-                      </h2>
-                    </div>
-                  )}
-                </div>
-              )}
-            </article>
-          </section>
-        </section>
-      </Wrapper>
-      <ReceiptInspectorModal
-        showModal={showInspectorModal}
-        onModalClose={() => setShowInspectorModal(false)}
-      />
+                  )
+                ) : approvedFundingRequests?.length ? (
+                  approvedFundingRequests.map((fundingRequest, i) => (
+                    <DisbursementCard
+                      disbursement={fundingRequest?.disbursement}
+                      fundingRequest={fundingRequest}
+                      key={fundingRequest?._id || i}
+                      last={i === approvedFundingRequests.length - 1}
+                    />
+                  ))
+                ) : (
+                  <div className="ft-empty">
+                    <h3>Nothing paid out yet</h3>
+                    <p>All {formatMoney(raised, currency)} raised so far is still held in escrow.</p>
+                  </div>
+                )}
+              </div>
+            </section>
 
-      <DefaultModal
-        showModal={showDisputeModal}
-        onModalClose={() => setShowDisputeModal(false)}
-      >
-        <div className="p-4" style={{ maxWidth: 520 }}>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h4 className="mb-0 font-weight-bold" style={{ color: "#EF4444", fontSize: 18 }}>
-              ⚠️ Report Milestone Discrepancy
-            </h4>
-            <button
-              onClick={() => setShowDisputeModal(false)}
-              className="btn btn-sm btn-link text-muted font-weight-bold"
-              style={{ fontSize: 18, textDecoration: "none" }}
-            >
+            <aside className={styles.sideCol}>
+              <TransparencyScore campaignId={campaign._id} initiallyOpen />
+              <div className={styles.reportCard}>
+                <h2>Something doesn&apos;t add up?</h2>
+                <p>
+                  If a receipt looks wrong or work hasn&apos;t happened, tell us. When enough donors report a problem, payouts freeze automatically
+                  while our team reviews.
+                </p>
+                <button type="button" className="ft-btn ft-btn--secondary ft-btn--block" onClick={() => setShowDisputeModal(true)}>
+                  Report a problem
+                </button>
+              </div>
+            </aside>
+          </div>
+
+          <div id="evidence">
+            <EvidenceGallery campaignId={campaign._id} />
+          </div>
+          <PublicLedger campaignId={campaign._id} />
+        </div>
+      </main>
+
+      <DefaultModal showModal={showDisputeModal} onModalClose={() => setShowDisputeModal(false)}>
+        <div className={styles.dispute}>
+          <div className="d-flex justify-content-between align-items-start mb-2">
+            <h2 id="dispute-title">Report a problem with this campaign</h2>
+            <button type="button" onClick={() => setShowDisputeModal(false)} className={`ft-plain ${styles.close}`} aria-label="Close">
               ✕
             </button>
           </div>
-
-          <p className="text-muted mb-4" style={{ fontSize: 13.5, lineHeight: 1.5 }}>
-            To eliminate fraud and protect donor funds, verified donors can flag altered receipts, fake proofs, or inactive milestones. When consensus is reached, remaining escrow funds are automatically frozen.
+          <p className="ft-muted">
+            Reports go to our review team. If enough donors report the same campaign, its payouts are frozen until we&apos;ve checked it.
           </p>
 
           <form onSubmit={handleDisputeSubmit}>
             <div className="mb-3">
-              <label className="font-weight-bold mb-1" style={{ fontSize: 13 }}>
-                Donor Email <span className="text-danger">*</span>
-              </label>
+              <label htmlFor="disputeEmail">Your email (the one you donated with)</label>
               <input
+                id="disputeEmail"
                 type="email"
                 required
                 className="form-control"
-                placeholder="The email you used to donate"
+                autoComplete="email"
                 value={disputeForm.donorEmail}
-                onChange={(e) =>
-                  setDisputeForm({ ...disputeForm, donorEmail: e.target.value })
-                }
+                onChange={(e) => setDisputeForm({ ...disputeForm, donorEmail: e.target.value })}
               />
             </div>
-
             <div className="mb-3">
-              <label className="font-weight-bold mb-1" style={{ fontSize: 13 }}>
-                Discrepancy Category <span className="text-danger">*</span>
-              </label>
+              <label htmlFor="disputeCategory">What&apos;s the problem?</label>
               <select
+                id="disputeCategory"
                 className="form-control"
                 value={disputeForm.disputeCategory}
-                onChange={(e) =>
-                  setDisputeForm({ ...disputeForm, disputeCategory: e.target.value })
-                }
+                onChange={(e) => setDisputeForm({ ...disputeForm, disputeCategory: e.target.value })}
               >
-                <option value="Fake Evidence / Altered Receipt">
-                  Fake Evidence / Altered Receipt
-                </option>
-                <option value="Misappropriation of Funds">
-                  Misappropriation of Funds
-                </option>
-                <option value="Inactive / Abandoned Milestone">
-                  Inactive / Abandoned Milestone
-                </option>
-                <option value="Identity Mismatch">Identity Mismatch</option>
-                <option value="Other">Other Violation</option>
+                <option value="Fake Evidence / Altered Receipt">A receipt or proof looks fake or altered</option>
+                <option value="Misappropriation of Funds">Money isn&apos;t being used as promised</option>
+                <option value="Inactive / Abandoned Milestone">Nothing has happened / campaign abandoned</option>
+                <option value="Identity Mismatch">The organiser isn&apos;t who they say</option>
+                <option value="Other">Something else</option>
               </select>
             </div>
-
             <div className="mb-3">
-              <label className="font-weight-bold mb-1" style={{ fontSize: 13 }}>
-                Description of Violation <span className="text-danger">*</span>
-              </label>
+              <label htmlFor="disputeDescription">Tell us what you found</label>
               <textarea
+                id="disputeDescription"
                 required
-                rows={3}
+                rows={4}
                 className="form-control"
-                placeholder="Explain the specific issue with the proof or project implementation..."
                 value={disputeForm.description}
-                onChange={(e) =>
-                  setDisputeForm({ ...disputeForm, description: e.target.value })
-                }
+                onChange={(e) => setDisputeForm({ ...disputeForm, description: e.target.value })}
               />
             </div>
-
             <div className="mb-4">
-              <label className="font-weight-bold mb-1" style={{ fontSize: 13 }}>
-                Evidence Link (Optional)
+              <label htmlFor="disputeEvidence">
+                Link to evidence <span className="ft-muted">(optional)</span>
               </label>
               <input
+                id="disputeEvidence"
                 type="url"
                 className="form-control"
-                placeholder="https://..."
+                placeholder="https://"
                 value={disputeForm.evidenceAttachmentUrl}
-                onChange={(e) =>
-                  setDisputeForm({
-                    ...disputeForm,
-                    evidenceAttachmentUrl: e.target.value,
-                  })
-                }
+                onChange={(e) => setDisputeForm({ ...disputeForm, evidenceAttachmentUrl: e.target.value })}
               />
             </div>
-
-            <div className="d-flex justify-content-end">
-              <button
-                type="button"
-                onClick={() => setShowDisputeModal(false)}
-                className="btn btn-secondary mr-2"
-                style={{ fontSize: 13.5 }}
-              >
+            <div className="d-flex justify-content-end" style={{ gap: 10 }}>
+              <button type="button" onClick={() => setShowDisputeModal(false)} className="ft-btn ft-btn--secondary">
                 Cancel
               </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn btn-danger font-weight-bold"
-                style={{ fontSize: 13.5, background: "#EF4444", border: "none" }}
-              >
-                {isSubmitting ? "Filing Dispute..." : "Submit Dispute & Freeze Request"}
+              <button type="submit" disabled={isSubmitting} className="ft-btn ft-btn--primary">
+                {isSubmitting ? "Sending…" : "Send report"}
               </button>
             </div>
           </form>
@@ -651,71 +413,3 @@ export default function CampaignTrackerPage({
     </Layout>
   );
 }
-
-const Wrapper = styled.main`
-  width: 100vw;
-  .Top {
-    .user-details {
-      max-width: 300px;
-    }
-    .campaign-details {
-      .campaign-image {
-        width: 209px;
-        height: 221px;
-        @media screen and (max-width: 767px) {
-          width: 100%;
-          height: 300px;
-        }
-      }
-      .details {
-        width: 100%;
-        max-width: 300px;
-      }
-      @media screen and (max-width: 767px) {
-        flex-wrap: wrap;
-      }
-    }
-    h4 {
-      font-style: normal;
-      font-weight: bold;
-      font-size: 18px;
-      line-height: 30px;
-      color: #514949;
-    }
-    .progress {
-      height: 5px !important;
-      background-color: #697af821 !important;
-    }
-    .progressbar {
-      background-color: var(--color-primary) !important;
-    }
-  }
-
-  .bottom {
-    section {
-      max-width: 700px;
-      @media screen and (max-width: 767px) {
-        max-width: unset;
-      }
-    }
-  }
-
-  .numbers {
-    max-width: 900px;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    row-gap: 4.5rem;
-    column-gap: 2.5rem;
-
-    @media screen and (min-width: 768px) and (max-width: 1023px) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    @media screen and (max-width: 767px) {
-      grid-template-columns: repeat(1, minmax(0, 1fr));
-    }
-    h4 {
-      font-weight: 700;
-    }
-  }
-`;

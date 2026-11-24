@@ -50,29 +50,30 @@ export default function FundraisingStories() {
         {/* Hero Banner */}
         <section className="stories-hero">
           <div className="custom-container hero-inner">
-            <span className="hero-eyebrow">Impact Chronicles & News</span>
-            <h1 className="hero-title">Real Lives Changed, 100% Verified</h1>
+            <span className="hero-eyebrow">Stories &amp; news</span>
+            <h1 className="hero-title">What giving with a public ledger looks like</h1>
             <p className="hero-subtitle">
-              Explore authentic donor-funded transformations, verified milestone audits, platform news, and upcoming community workshops.
+              Example stories showing how campaigns use escrow, receipts and the public ledger, plus the latest product news.
+            </p>
+            <p className="illustrative-note" role="note">
+              <strong>About these stories:</strong> they are illustrative examples, not real campaigns, and their figures
+              are not real results. Real stories will appear here, with links to their public ledgers, as campaigns
+              complete.
             </p>
 
             {/* Quick Stats Bar */}
             <div className="stats-row d-flex flex-wrap align-items-center justify-content-center">
               <div className="stat-pill">
-                <span className="icon">🛡️</span>
-                <strong>100% Verified Escrow</strong>
+                <strong>Escrow on every campaign</strong>
               </div>
               <div className="stat-pill">
-                <span className="icon">💧</span>
-                <strong>14,000+ Clean Water Beneficiaries</strong>
+                <strong>Receipts after every payout</strong>
               </div>
               <div className="stat-pill">
-                <span className="icon">🏥</span>
-                <strong>Direct Hospital Settlement</strong>
+                <strong>Public, verifiable ledger</strong>
               </div>
               <div className="stat-pill">
-                <span className="icon">⚡</span>
-                <strong>Zero Platform Fees on Medical</strong>
+                <strong>0% platform fee</strong>
               </div>
             </div>
           </div>
@@ -83,81 +84,87 @@ export default function FundraisingStories() {
           {(view === "All" || view === "Stories") && !searchQuery && featuredStory && (
             <div className="featured-section mb-5">
               <div className="d-flex align-items-center justify-content-between mb-3">
-                <h2 className="section-title mb-0">Featured Impact Story</h2>
-                <span className="verified-badge-label">🏆 Top Verified Campaign</span>
+                <h2 className="section-title mb-0">Featured example</h2>
+                <span className="verified-badge-label">Illustrative example</span>
               </div>
 
-              <Link href={`/stories/${featuredStory.slug}`} passHref>
-                <a className="featured-card-link">
-                  <div className="featured-card">
-                    <div className="featured-img-wrap">
-                      <img
-                        src={featuredStory.image}
-                        alt={featuredStory.title}
-                        className="featured-img"
-                      />
-                      <span className="featured-badge">{featuredStory.badge}</span>
+              <Link
+                href={`/stories/${featuredStory.slug}`}
+                passHref
+                className="featured-card-link">
+
+                <div className="featured-card">
+                  <div className="featured-img-wrap">
+                    <img
+                      src={featuredStory.image}
+                      alt={featuredStory.title}
+                      className="featured-img"
+                    />
+                    <span className="featured-badge">{featuredStory.badge}</span>
+                  </div>
+
+                  <div className="featured-content">
+                    <div className="d-flex align-items-center text-muted mb-2 metadata">
+                      <span className="category-pill">{featuredStory.category}</span>
+                      <span className="mx-2">•</span>
+                      <span>{featuredStory.publishedAt}</span>
+                      <span className="mx-2">•</span>
+                      <span>{featuredStory.readTime}</span>
                     </div>
 
-                    <div className="featured-content">
-                      <div className="d-flex align-items-center text-muted mb-2 metadata">
-                        <span className="category-pill">{featuredStory.category}</span>
-                        <span className="mx-2">•</span>
-                        <span>{featuredStory.publishedAt}</span>
-                        <span className="mx-2">•</span>
-                        <span>{featuredStory.readTime}</span>
+                    <h3 className="featured-title">{featuredStory.title}</h3>
+                    <p className="featured-subtitle">{featuredStory.subtitle}</p>
+
+                    {featuredStory.stats && (
+                      <div className="featured-stats-grid">
+                        <div className="stat-card">
+                          <span className="label">Beneficiaries</span>
+                          <span className="val">{featuredStory.stats.beneficiaries}</span>
+                        </div>
+                        <div className="stat-card">
+                          <span className="label">Funds Raised</span>
+                          <span className="val">{featuredStory.stats.amountRaised}</span>
+                        </div>
+                        <div className="stat-card">
+                          <span className="label">Milestone Audit</span>
+                          <span className="val text-success font-weight-bold">{featuredStory.stats.milestonesCompleted}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="d-flex align-items-center justify-content-between pt-4 border-top">
+                      <div className="d-flex align-items-center">
+                        <img
+                          src={featuredStory.author.avatar}
+                          alt={featuredStory.author.name}
+                          className="author-avatar mr-2"
+                        />
+                        <div>
+                          <p className="author-name mb-0">{featuredStory.author.name}</p>
+                          <p className="author-role mb-0">{featuredStory.author.role}</p>
+                        </div>
                       </div>
 
-                      <h3 className="featured-title">{featuredStory.title}</h3>
-                      <p className="featured-subtitle">{featuredStory.subtitle}</p>
-
-                      {featuredStory.stats && (
-                        <div className="featured-stats-grid">
-                          <div className="stat-card">
-                            <span className="label">Beneficiaries</span>
-                            <span className="val">{featuredStory.stats.beneficiaries}</span>
-                          </div>
-                          <div className="stat-card">
-                            <span className="label">Funds Raised</span>
-                            <span className="val">{featuredStory.stats.amountRaised}</span>
-                          </div>
-                          <div className="stat-card">
-                            <span className="label">Milestone Audit</span>
-                            <span className="val text-success font-weight-bold">{featuredStory.stats.milestonesCompleted}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="d-flex align-items-center justify-content-between pt-4 border-top">
-                        <div className="d-flex align-items-center">
-                          <img
-                            src={featuredStory.author.avatar}
-                            alt={featuredStory.author.name}
-                            className="author-avatar mr-2"
-                          />
-                          <div>
-                            <p className="author-name mb-0">{featuredStory.author.name}</p>
-                            <p className="author-role mb-0">{featuredStory.author.role}</p>
-                          </div>
-                        </div>
-
-                        <span className="featured-cta">
-                          Read Full Chronicle →
-                        </span>
-                      </div>
+                      <span className="featured-cta">
+                        Read Full Chronicle →
+                      </span>
                     </div>
                   </div>
-                </a>
+                </div>
+
               </Link>
             </div>
           )}
 
           {/* Filter Bar & Search */}
           <div className="controls-bar d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 pb-3 border-bottom">
-            <div className="tab-filters d-flex align-items-center mb-3 mb-md-0">
+            <div className="tab-filters d-flex align-items-center mb-3 mb-md-0" role="tablist" aria-label="Filter stories">
               {["All", "Stories", "News", "Events"].map((tab) => (
                 <button
                   key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === tab}
                   className={`tab-btn ${view === tab ? "active" : ""}`}
                   onClick={() => setView(tab)}
                 >
@@ -193,10 +200,10 @@ export default function FundraisingStories() {
               <div className="d-flex align-items-center justify-content-between mb-4">
                 <div>
                   <h2 className="section-title mb-1">
-                    {view === "All" ? "Recent Impact Stories" : "All Impact Stories"}
+                    {view === "All" ? "Example stories" : "All example stories"}
                   </h2>
                   <p className="section-desc mb-0">
-                    Transparent records of projects funded through milestone escrow.
+                    Illustrative examples of how a campaign can use escrow and the public ledger.
                   </p>
                 </div>
                 {view === "All" && (
@@ -219,9 +226,9 @@ export default function FundraisingStories() {
             <section className="mb-5 pt-4 border-top">
               <div className="d-flex align-items-center justify-content-between mb-4">
                 <div>
-                  <h2 className="section-title mb-1">Platform News & Releases</h2>
+                  <h2 className="section-title mb-1">Product news</h2>
                   <p className="section-desc mb-0">
-                    Official updates, governance announcements, and security reports.
+                    What&apos;s new on Fund&amp;Trace.
                   </p>
                 </div>
                 {view === "All" && (
@@ -244,23 +251,30 @@ export default function FundraisingStories() {
             <section className="mb-5 pt-4 border-top">
               <div className="d-flex align-items-center justify-content-between mb-4">
                 <div>
-                  <h2 className="section-title mb-1">Community Events & Workshops</h2>
+                  <h2 className="section-title mb-1">Events</h2>
                   <p className="section-desc mb-0">
-                    Live masterclasses, transparency summits, and direct action drives.
+                    Workshops and community events.
                   </p>
                 </div>
-                {view === "All" && (
+                {view === "All" && eventsList.length > 0 && (
                   <button className="view-all-btn" onClick={() => setView("Events")}>
                     View All Events ({eventsList.length}) →
                   </button>
                 )}
               </div>
 
-              <div className="events-grid">
-                {filteredEvents.map((event) => (
-                  <EventsCard event={event} key={event.id} />
-                ))}
-              </div>
+              {filteredEvents.length ? (
+                <div className="events-grid">
+                  {filteredEvents.map((event) => (
+                    <EventsCard event={event} key={event.id} />
+                  ))}
+                </div>
+              ) : (
+                <div className="ft-empty">
+                  <h3>No events scheduled right now</h3>
+                  <p>When we run workshops or community events, they&apos;ll be listed here.</p>
+                </div>
+              )}
             </section>
           )}
 
@@ -371,10 +385,22 @@ const Wrapper = styled.main`
       color: var(--color-text-heading);
     }
 
+    .illustrative-note {
+      max-width: 720px;
+      margin: 16px auto 0;
+      padding: 12px 16px;
+      border-radius: 6px;
+      background: #fff4e0;
+      color: #6b3a00;
+      font-size: 14px;
+      line-height: 1.55;
+      text-align: left;
+    }
+
     .verified-badge-label {
       font-size: 13px;
       font-weight: 600;
-      color: #059669;
+      color: #047857;
       background: #ecfdf5;
       padding: 4px 12px;
       border-radius: 4px;
@@ -410,7 +436,7 @@ const Wrapper = styled.main`
         }
 
         .featured-cta {
-          color: #4b5df5;
+          color: var(--color-primary);
         }
       }
 
@@ -497,7 +523,7 @@ const Wrapper = styled.main`
 
             .label {
               font-size: 11px;
-              color: #717688;
+              color: #565d6d;
               text-transform: uppercase;
               font-weight: 600;
               margin-bottom: 2px;
@@ -526,7 +552,7 @@ const Wrapper = styled.main`
 
         .author-role {
           font-size: 12px;
-          color: #717688;
+          color: #565d6d;
         }
 
         .featured-cta {
@@ -543,8 +569,26 @@ const Wrapper = styled.main`
   .controls-bar {
     .tab-filters {
       gap: 8px;
+      /* Scroll the pills horizontally on narrow screens instead of pushing
+         the page wider than the viewport. */
+      max-width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      &::-webkit-scrollbar {
+        display: none;
+      }
 
       .tab-btn {
+        flex: 0 0 auto;
+        min-height: 40px;
+        white-space: nowrap;
+
+        &:focus-visible {
+          outline: 2px solid var(--color-primary);
+          outline-offset: 2px;
+        }
+
         background: #f3f4f8;
         border: none;
         padding: 8px 16px;
@@ -568,7 +612,7 @@ const Wrapper = styled.main`
           color: #ffffff;
 
           .count-tag {
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(17, 24, 39, 0.28);
             color: #ffffff;
           }
         }
@@ -737,7 +781,7 @@ const Wrapper = styled.main`
 
     .privacy-note {
       font-size: 12px;
-      color: #9ca3af;
+      color: #5f6672;
     }
   }
 `;

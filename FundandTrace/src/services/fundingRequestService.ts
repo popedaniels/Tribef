@@ -1,9 +1,10 @@
 import axios from "axios";
 import type { FundingRequestBody } from "../types/fundingRequest";
+import { getApiBaseUrl } from "../utils/api";
 
 export const fetchAllFundings = async (campaignId: string | string[] | undefined) => {
   const res = await axios.get(
-    process.env.NEXT_PUBLIC_API_URL + "/api/fundingRequests/fundingRequest/" + campaignId
+    getApiBaseUrl() + "/api/fundingRequests/fundingRequest/" + campaignId
   );
   return res?.data?.data;
 };
@@ -14,7 +15,7 @@ export const createFundingRequest = async (
   campaignId: string | string[] | undefined
 ) => {
   const res = await axios.post(
-    process.env.NEXT_PUBLIC_API_URL + "/api/fundingRequests/addFundingRequest",
+    getApiBaseUrl() + "/api/fundingRequests/addFundingRequest",
     {
       fundingRequest: {
         ...fundingRequest,
@@ -29,7 +30,7 @@ export const createFundingRequest = async (
 
 export const createStripeConnectAccount = async (campaignId: string | string[] | undefined) => {
   const res = await axios.post(
-    process.env.NEXT_PUBLIC_API_URL + "/api/stripeConnect/account/" + campaignId,
+    getApiBaseUrl() + "/api/stripeConnect/account/" + campaignId,
     {},
     { withCredentials: true }
   );
@@ -38,7 +39,8 @@ export const createStripeConnectAccount = async (campaignId: string | string[] |
 
 export const fetchCampaignById = async (campaignId: string | string[] | undefined) => {
   const campaigndata = await axios.get(
-    process.env.NEXT_PUBLIC_API_URL + "/api/campaigns/campaign/" + campaignId
+    getApiBaseUrl() + "/api/campaigns/campaign/" + campaignId,
+    { withCredentials: true }
   );
   return campaigndata?.data?.data;
 };

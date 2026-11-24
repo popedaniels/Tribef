@@ -30,8 +30,8 @@ export default function NewsPage() {
         {/* News Header */}
         <header className="article-header custom-container">
           <div className="breadcrumb-nav mb-3">
-            <Link href="/fundraising-stories?view=News">
-              <a className="breadcrumb-link">← All News & Releases</a>
+            <Link href="/fundraising-stories?view=News" className="breadcrumb-link">
+              ← All News & Releases
             </Link>
             <span className="mx-2 text-muted">/</span>
             <span className="category-chip">{currentNews.category}</span>
@@ -127,8 +127,8 @@ export default function NewsPage() {
                   <p className="sidebar-desc mb-3">
                     Fund&Trace is a transparent crowdfunding infrastructure ensuring 100% auditability for nonprofit and community causes worldwide.
                   </p>
-                  <Link href="/aboutUs" passHref>
-                    <a className="learn-more-link">Learn About Our Mission →</a>
+                  <Link href="/aboutUs" passHref className="learn-more-link">
+                    Learn About Our Mission →
                   </Link>
                 </div>
 
@@ -228,13 +228,13 @@ const Wrapper = styled.main`
 
     .author-role {
       font-size: 13px;
-      color: #717688;
+      color: #565d6d;
     }
 
     .share-label {
       font-size: 13px;
       font-weight: 600;
-      color: #717688;
+      color: #565d6d;
     }
 
     .share-btn {

@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "../../layouts/AdminLayout";
 import Layout from "../../components/Layout";
 import CampaignSearch from "../../components/adminCampaignPageComponents/campaignSearch";
 import { useCallback, useState } from "react";
@@ -14,6 +14,7 @@ import Pagination from "../../components/composed/Pagination";
 import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
 import type { Campaign } from "../../types/campaign";
+import { getApiBaseUrl } from "../../utils/api";
 
 const titles = ["All", "Pending", "Approved", "Declined"];
 
@@ -70,7 +71,7 @@ export default function AdminFundingRequestPage() {
     try {
       const res = await axios.get(
         `${
-          process.env.NEXT_PUBLIC_API_URL
+          getApiBaseUrl()
         }/api/admin/fundingRequests/${query}?queries=${getQuery()}`,
         config()
       );
@@ -187,7 +188,7 @@ const Wrapper = styled.section`
       line-height: 19px;
       /* identical to box height */
 
-      color: #a0a2af;
+      color: #5f6672;
     }
   }
   .bordered-wrapper {

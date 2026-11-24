@@ -102,13 +102,16 @@ export default function Workings() {
               </p>
 
               <div className="ctaRow">
-                <Link href={authenticated ? "/StartACampaign" : "/SignUp"} passHref>
-                  <a className="btnPrimary">
-                    <span>Start a 0% Fee Campaign</span>
-                    <span>→</span>
-                  </a>
+                <Link
+                  href={authenticated ? "/StartACampaign" : "/SignUp"}
+                  passHref
+                  className="btnPrimary">
+
+                  <span>Start a 0% Fee Campaign</span>
+                  <span>→</span>
+
                 </Link>
-                <a href="#comparison" className="btnSecondary">
+                <a href="#comparison" className="btnSecondaryLight">
                   <span>See Platform Comparison</span>
                   <span>↓</span>
                 </a>
@@ -148,10 +151,10 @@ export default function Workings() {
                 <div className="stepIconWrap">
                   <img src="/images/icons/payment.svg" alt="Give" />
                 </div>
-                <h3>2. Zero-Fee Community Giving</h3>
+                <h3>2. No Platform Fee</h3>
                 <p>
-                  Donors contribute securely via card, bank transfer, or mobile money in USD, GBP,
-                  or NGN. Fund&amp;Trace charges 0% platform commission on all donations.
+                  Donors give by card, bank transfer or mobile money. Fund&amp;Trace takes no platform fee; the processor&apos;s card
+                  fee is shown at checkout (<Link href="/fees">how fees work</Link>), so the campaign receives the full donation.
                 </p>
               </div>
 
@@ -240,7 +243,7 @@ export default function Workings() {
                   onClick={() => toggleFaq(index)}
                 >
                   <div className="faqQuestion">
-                    <h4>{faq.question}</h4>
+                    <h3>{faq.question}</h3>
                     <span className="faqIcon">{openFaq === index ? "−" : "+"}</span>
                   </div>
                   <AnimatePresence>
@@ -286,7 +289,7 @@ const HeroSection = styled.section`
     .badge {
       display: inline-block;
       background: #eef1fe;
-      color: #4b5df5;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 0.6px;
@@ -360,7 +363,9 @@ const HeroSection = styled.section`
         }
       }
 
-      .btnSecondary {
+      /* Not "btnSecondary": the global brand-button rule forces that class to a
+         blue fill, which made this white button's dark text unreadable. */
+      .btnSecondaryLight {
         background: #ffffff;
         color: #333a56 !important;
         font-weight: 600;
@@ -401,7 +406,7 @@ const StepsSection = styled.section`
 
     .tag {
       display: inline-block;
-      color: #4b5df5;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 1px;
@@ -518,7 +523,7 @@ const ComparisonSection = styled.section`
 
     .tag {
       display: inline-block;
-      color: #4b5df5;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 1px;
@@ -572,7 +577,7 @@ const ComparisonSection = styled.section`
 
       &.highlightCol {
         background: #eef1fe;
-        color: #4b5df5;
+        color: var(--color-primary);
         font-size: 16px;
       }
     }
@@ -591,7 +596,7 @@ const ComparisonSection = styled.section`
       &.highlightCell {
         background: #fbfcfe;
         font-weight: 700;
-        color: #1e8e3e;
+        color: #166534;
 
         .cellContent {
           display: flex;
@@ -601,7 +606,7 @@ const ComparisonSection = styled.section`
       }
 
       &.otherCell {
-        color: #788099;
+        color: #565d6d;
       }
     }
   }
@@ -618,7 +623,7 @@ const FaqSection = styled.section`
 
     .tag {
       display: inline-block;
-      color: #4b5df5;
+      color: var(--color-primary);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 1px;
@@ -680,8 +685,8 @@ const FaqSection = styled.section`
       justify-content: space-between;
       gap: 16px;
 
-      h4 {
-        font-size: 17px;
+      h3 {
+        font-size: 17px !important; /* global mobile h3 sizing is !important */
         font-weight: 700;
         color: var(--color-text-heading);
         margin: 0;

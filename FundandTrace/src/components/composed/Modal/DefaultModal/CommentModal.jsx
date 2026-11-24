@@ -1,75 +1,83 @@
-import React from "react";
-import DefaultModal from "./DefaultModal";
-import styled from "styled-components";
-import { useState } from "react";
-import { useRouter } from "next/router";
+import React, { useState } from "react";
 import axios from "axios";
+import styled from "styled-components";
+import DefaultModal from "./DefaultModal";
+import { getApiBaseUrl } from "../../../../utils/api";
 
+/**
+ * "Leave a message of support" after donating. The API needs a signed-in
+ * user, so the request is awaited and failures are shown — previously the
+ * un-awaited promise always showed "submitted", even when nothing was saved.
+ */
 export default function CommentModal({ onModalClose, showModal, details }) {
-  const [step, setStep] = useState("0");
   const [comment, setComment] = useState("");
-  const router = useRouter();
+  const [state, setState] = useState("idle"); // idle | sending | done | error
+  const [error, setError] = useState("");
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    if (!comment.trim()) {
+      setError("Write a short message first.");
+      setState("error");
+      return;
+    }
+    setState("sending");
     try {
-      const res = axios.post(
-        process.env.NEXT_PUBLIC_API_URL +
-          "/api/campaigns/campaign/addComment/" +
-          details?.campaignId,
-        { newComment: { ...details, comment: comment } }
+      await axios.post(
+        `${getApiBaseUrl()}/api/campaigns/campaign/addComment/${details?.campaignId}`,
+        { newComment: { ...details, comment: comment.trim() } },
+        { withCredentials: true }
       );
-      res && setStep(1);
-      res &&
-        setTimeout(() => {
-          onModalClose();
-        }, 2000);
-    } catch (error) {
+      setState("done");
+      setTimeout(() => onModalClose(), 1800);
+    } catch (err) {
+      const status = err?.response?.status;
+      setError(
+        status === 401
+          ? "Please sign in to post a message. Your donation is already complete."
+          : err?.response?.data?.error || "We couldn't post your message. Please try again."
+      );
+      setState("error");
     }
   };
+
   return (
-    <DefaultModal
-      onModalClose={onModalClose}
-      showModal={showModal}
-      onBlur={onModalClose}
-    >
-      <Wrapper className="d-flex flex-column justify-content-center align-items-center">
-        {step == "0" ? (
-          <>
-            {" "}
-            <h2 className="text-heading mb-5 text-center">
-              Would you like to leave any encouraging comments for the campaign?
-            </h2>
-            <textarea
-              name="comment"
-              id="comment"
-              className="mb-4 p-3"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              style={{
-                width: "100%",
-                height: 110,
-                border: "0.5px solid #C4C4C4",
-                borderRadius: 4,
-                background: "#FAFAFA",
-              }}
-              placeholder="Leave a comment"
-            ></textarea>
-            <button
-              className="btn submitBtn w-100 mb-4"
-              onClick={() => handleSubmit()}
-            >
-              Submit
-            </button>
-            <a onClick={onModalClose} role="button">
-              Skip
-            </a>
-          </>
+    <DefaultModal onModalClose={onModalClose} showModal={showModal}>
+      <Wrapper>
+        {state === "done" ? (
+          <p className="done" role="status">Thanks, your message is posted on the campaign page.</p>
         ) : (
-          <div className="d-flex flex-column justify-content-center align-items-center">
-            <h2 className="text-center text-medium-heading my-5">
-              Your Comment has been successfully submitted
-            </h2>
-          </div>
+          <form onSubmit={handleSubmit}>
+            <h2 id="comment-title">Leave a message of support</h2>
+            <p className="hint">The organiser and other donors will see it on the campaign page.</p>
+            <label htmlFor="comment" className="sr-only">Your message</label>
+            <textarea
+              id="comment"
+              className="form-control"
+              rows={4}
+              maxLength={500}
+              value={comment}
+              aria-invalid={state === "error"}
+              aria-describedby={state === "error" ? "comment-error" : undefined}
+              onChange={(e) => {
+                setComment(e.target.value);
+                if (state === "error") setState("idle");
+              }}
+            />
+            {state === "error" && (
+              <p id="comment-error" className="error" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="actions">
+              <button type="button" className="ft-btn ft-btn--secondary" onClick={onModalClose}>
+                Not now
+              </button>
+              <button type="submit" className="ft-btn ft-btn--primary" disabled={state === "sending"}>
+                {state === "sending" ? "Posting…" : "Post message"}
+              </button>
+            </div>
+          </form>
         )}
       </Wrapper>
     </DefaultModal>
@@ -77,27 +85,40 @@ export default function CommentModal({ onModalClose, showModal, details }) {
 }
 
 const Wrapper = styled.section`
-  width: 619px;
-  border-radius: 4px;
-  @media screen and (max-width: 767px) {
-    width: 90vw;
-    padding: 50px 20px;
-  }
-  padding: 60px;
+  width: 560px;
+  max-width: 92vw;
+  padding: 32px;
   h2 {
-    @media screen and (max-width: 767px) {
-      width: 100%;
-    }
+    font-size: 20px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 6px;
   }
-  p {
-    margin-bottom: 60px;
+  .hint {
+    color: var(--color-text-muted);
+    font-size: 14.5px;
+    margin-bottom: 16px;
   }
-  .submitBtn {
-    background: var(--color-primary);
-    box-shadow: 0px 2px 4px rgba(50, 50, 71, 0.06),
-      0px 2px 2px rgba(50, 50, 71, 0.06);
-    border-radius: 4px;
-    color: white;
-    padding: 15px 30px;
+  textarea {
+    border-radius: 6px;
+    font-size: 16px;
+  }
+  .error {
+    color: #b42318;
+    font-weight: 600;
+    font-size: 14px;
+    margin: 8px 0 0;
+  }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .done {
+    margin: 16px 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: #146c43;
+    text-align: center;
   }
 `;

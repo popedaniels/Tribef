@@ -28,16 +28,16 @@ export default function CustomError({ statusCode }: ErrorProps) {
           </p>
 
           <div className="ctaRow">
-            <Link href="/" passHref>
-              <a className="btnPrimary">
-                <span>← Back to Homepage</span>
-              </a>
+            <Link href="/" passHref className="btnPrimary">
+
+              <span>← Back to Homepage</span>
+
             </Link>
 
-            <Link href="/Categories" passHref>
-              <a className="btnSecondary">
-                <span>Browse Campaigns</span>
-              </a>
+            <Link href="/Categories" passHref className="btnSecondary">
+
+              <span>Browse Campaigns</span>
+
             </Link>
           </div>
         </div>

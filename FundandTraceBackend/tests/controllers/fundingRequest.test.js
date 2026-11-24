@@ -43,12 +43,12 @@ describe("FundingRequests", () => {
           done();
         });
     });
-    it("it should return a server error", (done) => {
+    it("it should reject a malformed id with 400", (done) => {
       chai
         .request(server)
         .get(`/api/fundingRequests/56738`)
         .end((err, res) => {
-          res.should.have.status(500);
+          res.should.have.status(400);
           res.body.should.be.a("Object");
           res.body.should.have.property("error");
           done();

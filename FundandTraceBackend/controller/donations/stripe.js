@@ -1,3 +1,4 @@
+const isEmail = require("../../utility/isEmail");
 // Stripe Checkout donation flow: session creation, donor redirect, webhook.
 const {
   Campaign,
@@ -6,9 +7,17 @@ const {
   logger,
   stripe,
   creditCampaign,
+  checkoutCurrency,
+  currencyMismatch,
   sendDonationMailSafely,
+  resolveCheckout,
+  checkoutError,
+  splitTotal,
+  prepareExtras,
+  saveExtras,
 } = require("./shared");
 const { Subscription } = require("../../models/subscriptionModel");
+const { FROZEN_MESSAGE } = require("../../utility/campaignState");
 const { getClientIp, assessDonation } = require("../../utility/fraud");
 const { notifyTargetReachedIfNeeded } = require("../../services/targetReached");
 
@@ -25,20 +34,26 @@ exports.createStripeSession = async (req, res) => {
     if (!campaign) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
+    // Dispute freeze: don't take new money into a campaign under review.
+    if (campaign.disputeGovernance?.isLocked) {
+      return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
+    }
 
-    const amount = Number(req.body.amount);
-    const tip = Number(req.body.meta?.tip || 0);
-    const currency = String(req.body.currency || campaign.funding.currency || "gbp").toLowerCase();
-    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
-      return res.status(400).json({ status: 400, error: "Invalid donation amount" });
+    const charged = checkoutCurrency(campaign, req.body.currency);
+    if (!charged) return currencyMismatch(res, campaign);
+    const currency = charged.toLowerCase();
+    let co, extras;
+    try {
+      co = resolveCheckout(req, "stripe", charged);
+      extras = await prepareExtras(req.body.meta, campaign);
+    } catch (err) {
+      return checkoutError(res, err);
     }
-    if (!Number.isFinite(tip) || tip < 0 || tip > amount) {
-      return res.status(400).json({ status: 400, error: "Invalid tip amount" });
-    }
+    const amount = co.total;
     if (!["gbp", "usd", "ngn"].includes(currency)) {
       return res.status(400).json({ status: 400, error: "Unsupported currency" });
     }
-    if (req.body.customer?.email && !/^\S+@\S+\.\S+$/.test(req.body.customer.email)) {
+    if (req.body.customer?.email && !isEmail(req.body.customer.email)) {
       return res.status(400).json({ status: 400, error: "Invalid donor email" });
     }
 
@@ -68,8 +83,9 @@ exports.createStripeSession = async (req, res) => {
         campaignId: req.params.id,
         donorEmail: req.body.customer?.email,
         donorName: req.body.customer?.name,
-        amount: String(amount - tip),
-        tip: String(tip),
+        amount: String(co.donation), // what the campaign receives
+        tip: String(co.tip),
+        fee: String(co.fee), // card fee the donor chose to cover (opt-in on UK/EU cards)
         paymentMethod: "Stripe",
         paymentOption: "card",
         zipCode: req.body.meta?.zipCode || "",
@@ -84,6 +100,7 @@ exports.createStripeSession = async (req, res) => {
       cancel_url: `${process.env.MAINURL || "http://localhost:3000"}/donate/${req.params.id}?status=failed`,
       success_url: `${process.env.BACKENDURL || "http://localhost:5000"}/api/donations/saveStripe/{CHECKOUT_SESSION_ID}`,
     });
+    await saveExtras(`stripe:${session.id}`, campaign._id, extras);
     if (req.body.customer?.email) {
       addActivity("initializeDonation", req.body.customer.email);
     }
@@ -111,11 +128,14 @@ exports.paymentStripe = async (req, res, next) => {
 
     // The signed webhook is the only code path that records and credits a
     // donation. This success URL only shows the payment result to the donor.
-    const donatedAmount = Number(session.metadata.amount || 0);
-    const tip = Number(session.metadata.tip || 0);
-    const verifiedTotal = Number(session.amount_total || 0) / 100;
-    if (!Number.isFinite(donatedAmount) || donatedAmount <= 0 ||
-        Math.abs(verifiedTotal - (donatedAmount + tip)) > 0.01) {
+    const split = splitTotal({
+      total: Number(session.amount_total || 0) / 100,
+      donation: Number(session.metadata.amount || 0),
+      tip: Number(session.metadata.tip || 0),
+      fee: Number(session.metadata.fee || 0),
+    });
+    const donatedAmount = split.donation;
+    if (!split.ok) {
       return res.redirect(`${process.env.MAINURL || "http://localhost:3000"}/?status=invalid_session`);
     }
     return res.redirect(
@@ -137,13 +157,13 @@ exports.stripeCheckoutWebhook = async (req, res) => {
   let event;
   try {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    if (!stripe) {
-      return res.status(503).json({ status: 503, error: "Stripe is not configured" });
-    }
     if (!webhookSecret) {
       return res.status(503).json({ status: 503, error: "Stripe webhook is not configured" });
     }
-    event = stripe.webhooks.constructEvent(
+    // Signature checks need only the webhook secret, not an API key: use the
+    // library's static verifier so a missing/rotated STRIPESECRET can't make
+    // Stripe's retries fail with 503 and drop paid donations.
+    event = require("stripe").webhooks.constructEvent(
       req.body,
       req.headers["stripe-signature"],
       webhookSecret
@@ -198,7 +218,11 @@ exports.stripeCheckoutWebhook = async (req, res) => {
         },
       });
 
-      await creditCampaign(subDoc.campaignId, subDoc.amount);
+      await creditCampaign(subDoc.campaignId, subDoc.amount, {
+        refId: `stripe:${invoice.id}`,
+        currency: invoice.currency,
+        memo: "Recurring donation",
+      });
       notifyTargetReachedIfNeeded(subDoc.campaignId);
       subDoc.totalDonated = (subDoc.totalDonated || 0) + subDoc.amount;
       subDoc.status = subDoc.status === "canceling" ? "canceling" : "active";
@@ -298,14 +322,18 @@ exports.stripeCheckoutWebhook = async (req, res) => {
     });
     if (existingDonation) return res.status(200).json({ received: true });
 
-    const amount = Number(session.amount_total || 0) / 100;
-    const tip = Number(session.metadata.tip || 0);
-    const metadataAmount = Number(session.metadata.amount || 0);
-    if (!Number.isFinite(amount) || !Number.isFinite(tip) || !Number.isFinite(metadataAmount) ||
-        tip < 0 || metadataAmount <= 0 || Math.abs(amount - (metadataAmount + tip)) > 0.01) {
+    // total = donation + tip + covered card fee; campaign gets the donation.
+    const split = splitTotal({
+      total: Number(session.amount_total || 0) / 100,
+      donation: Number(session.metadata.amount || 0),
+      tip: Number(session.metadata.tip || 0),
+      fee: Number(session.metadata.fee || 0),
+    });
+    if (!split.ok) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }
-    const donationAmount = metadataAmount;
+    const { tip, fee } = split;
+    const donationAmount = split.donation;
     const campaign = await Campaign.findOne({
       _id: session.metadata.campaignId,
       launched: true,
@@ -323,6 +351,7 @@ exports.stripeCheckoutWebhook = async (req, res) => {
       transactionId: session.id,
       transactionRef: session.client_reference_id || session.id,
       tip,
+      processingFee: fee,
       paymentMethod: "Stripe",
       paymentOption: "card",
       zipCode: session.metadata.zipCode || "",
@@ -339,7 +368,10 @@ exports.stripeCheckoutWebhook = async (req, res) => {
       },
     });
 
-    await creditCampaign(campaign._id, donationAmount);
+    await creditCampaign(campaign._id, donationAmount, {
+      refId: `stripe:${session.id}`,
+      currency: session.currency,
+    });
     notifyTargetReachedIfNeeded(campaign._id);
 
     await sendDonationMailSafely(

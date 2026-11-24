@@ -13,12 +13,9 @@ export default function EventPage() {
   const [registered, setRegistered] = useState(false);
   const [email, setEmail] = useState("");
 
-  const currentEvent =
-    eventsList.find((e) => e.slug === id || e.id === id) || eventsList[0];
+  const currentEvent = eventsList.find((e) => e.slug === id || e.id === id);
 
-  const relatedEvents = eventsList.filter(
-    (e) => e.id !== currentEvent.id
-  ).slice(0, 2);
+  const relatedEvents = eventsList.filter((e) => e.id !== currentEvent?.id).slice(0, 2);
 
   const handleRSVP = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,6 +23,21 @@ export default function EventPage() {
       setRegistered(true);
     }
   };
+
+  if (!currentEvent) {
+    return (
+      <Layout title="Event not found | Fund&Trace" description="This event could not be found." showFooter>
+        <Navbar />
+        <main className="custom-container text-center" style={{ padding: "160px 0 100px", minHeight: "60vh" }}>
+          <h1 style={{ fontSize: 28 }}>Event not found</h1>
+          <p className="ft-muted mb-4">There are no events scheduled right now.</p>
+          <Link href="/fundraising-stories" className="ft-btn ft-btn--primary">
+            Back to stories &amp; news
+          </Link>
+        </main>
+      </Layout>
+    );
+  }
 
   return (
     <Layout
@@ -39,8 +51,8 @@ export default function EventPage() {
         {/* Event Header */}
         <header className="article-header custom-container">
           <div className="breadcrumb-nav mb-3">
-            <Link href="/fundraising-stories?view=Events">
-              <a className="breadcrumb-link">← All Community Events</a>
+            <Link href="/fundraising-stories?view=Events" className="breadcrumb-link">
+              ← All Community Events
             </Link>
             <span className="mx-2 text-muted">/</span>
             <span className="category-chip">{currentEvent.category}</span>
@@ -164,8 +176,8 @@ export default function EventPage() {
                   <p className="cta-desc mb-3">
                     Partner with Fund&Trace to host a community fundraiser workshop or charity run.
                   </p>
-                  <Link href="/aboutUs" passHref>
-                    <a className="btn start-btn w-100">Partner With Us</a>
+                  <Link href="/aboutUs" passHref className="btn start-btn w-100">
+                    Partner With Us
                   </Link>
                 </div>
               </div>
@@ -253,7 +265,7 @@ const Wrapper = styled.main`
     .share-label {
       font-size: 13px;
       font-weight: 600;
-      color: #717688;
+      color: #565d6d;
     }
 
     .share-btn {
@@ -341,7 +353,7 @@ const Wrapper = styled.main`
 
       .rsvp-attendees {
         font-size: 13.5px;
-        color: #059669;
+        color: #047857;
       }
 
       .rsvp-input {

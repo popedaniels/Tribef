@@ -69,7 +69,9 @@
 
 .navCol {
   .colTitle {
-    font-size: 12.5px;
+    /* h2 for heading order; !important beats the global mobile h2 sizing. */
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
     font-weight: 700;
     color: var(--color-primary);
     letter-spacing: 0.05em;
@@ -83,9 +85,11 @@
     margin: 0;
 
     li {
-      margin-bottom: 12px;
+      margin-bottom: 2px;
 
       a {
+        display: inline-block;
+        padding: 6px 0; /* ~32px tap target; spacing as before */
         font-size: 14px;
         color: var(--color-text-body);
         font-weight: 500;
@@ -112,15 +116,19 @@
 
   .copyrightText {
     font-size: 13px;
-    color: #94a3b8;
+    color: #5f6672;
   }
 
   .bottomLinks {
     display: flex;
     align-items: center;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    max-width: 100%;
 
     a {
+      display: inline-block;
+      padding: 10px 0;
       font-size: 13px;
       color: var(--color-text-muted);
       text-decoration: none;

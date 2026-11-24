@@ -1,3 +1,4 @@
+const { adminMfaRequired } = require("./adminMfa");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { Users } = require("../models/users");
@@ -29,16 +30,40 @@ const verifyToken = (req) => {
   return jwt.verify(token, getJwtSecret());
 };
 
-const requireAuth = (req, res, next) => {
+const sessionVersionOf = (decoded) => Number(decoded?.sv || 0);
+
+/**
+ * Verify the token AND that the session is still current: the user exists,
+ * isn't suspended, and the token's session version matches (so password
+ * resets / "sign out everywhere" revoke old sessions). Returns the decoded
+ * payload or null.
+ */
+const authenticate = async (req) => {
+  let decoded;
   try {
-    req.auth = verifyToken(req);
-    next();
+    decoded = verifyToken(req);
+  } catch {
+    return null;
+  }
+  const userId = getAuthUserId(decoded);
+  if (!userId) return null;
+  const user = await Users.findById(userId).select("sessionVersion suspended").lean();
+  if (!user || user.suspended) return null;
+  if (sessionVersionOf(decoded) !== Number(user.sessionVersion || 0)) return null;
+  return decoded;
+};
+
+const requireAuth = async (req, res, next) => {
+  try {
+    const decoded = await authenticate(req);
+    if (!decoded) {
+      return res.status(401).json({ success: false, status: 401, error: "Unauthorized" });
+    }
+    req.auth = decoded;
+    return next();
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      status: 401,
-      error: "Unauthorized",
-    });
+    // Database unavailable: we can't confirm the session is still valid.
+    return res.status(503).json({ success: false, status: 503, error: "Service temporarily unavailable. Please try again." });
   }
 };
 
@@ -55,12 +80,22 @@ const requireAdmin = async (req, res, next) => {
       });
     }
 
-    const user = await Users.findById(userId).select("role suspended");
-    if (!user || user.role !== "admin" || user.suspended) {
+    const user = await Users.findById(userId).select("role suspended sessionVersion firstName lastName email");
+    if (!user || user.role !== "admin" || user.suspended || sessionVersionOf(decoded) !== Number(user.sessionVersion || 0)) {
       return res.status(403).json({
         success: false,
         status: 403,
         error: "Admin access required",
+      });
+    }
+
+    // Enforced admin 2FA: only sessions that passed the TOTP challenge.
+    if (adminMfaRequired() && decoded.mfa !== true) {
+      return res.status(403).json({
+        success: false,
+        status: 403,
+        code: "ADMIN_2FA_REQUIRED",
+        error: "Sign in again with your authenticator code",
       });
     }
 
@@ -78,15 +113,6 @@ const requireAdmin = async (req, res, next) => {
 
 const requireCampaignOwner = async (req, res, next) => {
   try {
-    const requestedOwnerId =
-      req.body.organizerId ||
-      req.body.fundingRequest?.organizerId ||
-      req.query.organizerId;
-    const campaignId =
-      req.body.id ||
-      req.body.fundingRequest?.campaignId ||
-      req.query.campaignId ||
-      req.params.id;
     const authUserId = getAuthUserId(req.auth);
 
     if (!authUserId) {
@@ -97,7 +123,38 @@ const requireCampaignOwner = async (req, res, next) => {
       });
     }
 
-    if (requestedOwnerId && String(requestedOwnerId) !== String(authUserId)) {
+    // Every place a request can name a campaign. They must all agree: the
+    // ownership check and the controller must act on the SAME campaign.
+    // Previously `req.body.id` won over `req.params.id`, so a caller could
+    // prove ownership of their own campaign in the body while the controller
+    // deleted/updated the victim campaign named in the URL (IDOR).
+    const body = req.body || {};
+    const query = req.query || {};
+    const params = req.params || {};
+    // Likewise, every organizer id the client supplies must be the caller.
+    const requestedOwnerIds = [
+      body.organizerId,
+      body.fundingRequest?.organizerId,
+      query.organizerId,
+    ].filter((value) => value !== undefined && value !== null && value !== "");
+    const candidateIds = [
+      params.id,
+      body.id,
+      body.fundingRequest?.campaignId,
+      query.campaignId,
+    ]
+      .filter((value) => value !== undefined && value !== null && value !== "")
+      .map(String);
+    const distinctIds = [...new Set(candidateIds)];
+    if (distinctIds.length > 1) {
+      return res.status(403).json({
+        success: false,
+        status: 403,
+        error: "Campaign ownership required",
+      });
+    }
+    const campaignId = distinctIds[0];
+    if (requestedOwnerIds.some((ownerId) => String(ownerId) !== String(authUserId))) {
       return res.status(403).json({
         success: false,
         status: 403,
@@ -162,6 +219,9 @@ const requireInternalWebhook = (req, res, next) => {
 };
 
 module.exports = {
+  authenticate,
+  sessionVersionOf,
+  getAuthUserId,
   getToken,
   verifyToken,
   requireAuth,

@@ -1,5 +1,6 @@
+import { youtubeEmbedUrl } from "../../../utils/video";
 import React, { useEffect, useState } from "react";
-import CampaignDashboardLayout from "./campaignDashboardLayout";
+import CampaignDashboardLayout from "../../../layouts/CampaignDashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import router, { useRouter } from "next/router";
@@ -17,11 +18,11 @@ import {
   getDaysRemaining,
   getTimeDiff,
   grabErrorMessage,
-  grabErrorStatus,
-} from "../../../components/helperFunctions/helperFunctions";
+  grabErrorStatus, currencyPrefix } from "../../../components/helperFunctions/helperFunctions";
 import { logout } from "../../../../store/slices/authSlice";
 import { useAppDispatch } from "./../../../../store/hooks";
 import type { Campaign } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface Donation {
   anonymous?: boolean;
@@ -43,7 +44,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   const campaignId = context.query.id;
   try {
     const campaigndata = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/campaign/${campaignId}`,
+      `${getApiBaseUrl()}/api/campaigns/campaign/${campaignId}`,
       { timeout: 3000 }
     );
     const campaign = campaigndata?.data?.data;
@@ -76,7 +77,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
     };
     try {
       const update = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/campaign/addUpdate/${campaignId}`,
+        `${getApiBaseUrl()}/api/campaigns/campaign/addUpdate/${campaignId}`,
         { update: updateData },
         { withCredentials: true }
       );
@@ -100,7 +101,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
   const reloadUpdates = async () => {
     try {
       const campaignData = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/campaigns/campaign/" +
           campaignId,
         { withCredentials: true }
@@ -152,15 +153,27 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                   Any update is an opportunity for potential donors to inform
                   and participate. On your campaign page, posts will appear.
                 </p>
+                <Link href={`/dashboard/${campaignId}/evidence`} className="ft-btn ft-btn--primary ft-btn--block mb-2">
+                  Add live photo or video
+                </Link>
+                <p className="ft-muted mb-3" style={{ fontSize: 13 }}>
+                  Taken with your camera and sealed, so donors see it&apos;s real and unedited.
+                </p>
                 <form onSubmit={handleSubmit} className="mb-0">
+                  <label htmlFor="update" className="sr-only">
+                    Text update
+                  </label>
                   <textarea
                     name="update"
                     id="update"
                     className="mb-2"
+                    placeholder="Or write a text update"
                     value={updateText}
                     onChange={(e) => setUpdateText(e.target.value)}
                   ></textarea>
-                  <button className="btn ml-auto text-white">Post</button>
+                  <button className="ft-btn ft-btn--secondary ml-auto" disabled={!updateText.trim()}>
+                    Post
+                  </button>
                 </form>
                 {/* <h2 className="text-medium-heading mb-3">Performance</h2>
                 <p className="mb-4">
@@ -183,11 +196,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
               >
                 <p className="text-small">RAISED</p>
                 <h3 className="mb-4">
-                  {campaign?.funding?.currency == "USD"
-                    ? "$"
-                    : campaign?.funding?.currency == "GBP"
-                    ? "£"
-                    : "₦"}
+                  {currencyPrefix(campaign?.funding?.currency)}
                   {addCommaToNumber(campaign?.funding?.amountRaised)}
                 </h3>
                 <p className="text-small">DONORS</p>
@@ -212,11 +221,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                   <div className="d-flex align-items-center">
                     <p className="text-small mr-1 mb-0">GOAL: </p>
                     <p className="font-weight-bold opacity-1 mb-0">
-                      {campaign?.funding?.currency == "USD"
-                        ? "$"
-                        : campaign?.funding?.currency == "GBP"
-                        ? "£"
-                        : "₦"}
+                      {currencyPrefix(campaign?.funding?.currency)}
                       {addCommaToNumber(campaign?.funding?.amountExpected)}
                     </p>
                   </div>
@@ -228,7 +233,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                       height="17.5px"
                       className="mr-2"
                     />
-                    <p className="mb-0" style={{ color: "#807373" }}>
+                    <p className="mb-0" style={{ color: "#565d6d" }}>
                       {getDaysRemaining(campaign!)} days left
                     </p>
                   </div>
@@ -400,7 +405,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                 </div>
 
                 <div className="progress-div">
-                  <Link href={`/donate/${campaignId}`} passHref>
+                  <Link href={`/donate/${campaignId}`} passHref legacyBehavior>
                     <button className="btn text-white w-100">Donate</button>
                   </Link>
                   <button
@@ -429,23 +434,15 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                   </p>
                   <div className="d-flex align-items-baseline">
                     <h3 className="text-heading mr-2">
-                      {campaign?.funding?.currency == "USD"
-                        ? "$"
-                        : campaign?.funding?.currency == "GBP"
-                        ? "£"
-                        : "₦"}
+                      {currencyPrefix(campaign?.funding?.currency)}
                       {addCommaToNumber(campaign?.funding?.amountRaised)}
                     </h3>
                     <p
                       className="mb-0"
-                      style={{ fontWeight: "300", color: "#B3B3B3" }}
+                      style={{ fontWeight: "300", color: "#5f6672" }}
                     >
                       raised of{" "}
-                      {campaign?.funding?.currency == "USD"
-                        ? "$"
-                        : campaign?.funding?.currency == "GBP"
-                        ? "£"
-                        : "₦"}
+                      {currencyPrefix(campaign?.funding?.currency)}
                       {addCommaToNumber(campaign?.funding?.amountExpected)}
                     </p>
                   </div>
@@ -472,7 +469,7 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                       height="17.5px"
                       className="mr-2"
                     />
-                    <p className="mb-0" style={{ color: "#807373" }}>
+                    <p className="mb-0" style={{ color: "#565d6d" }}>
                       {getDaysRemaining(campaign!)} days left
                     </p>
                   </div>
@@ -539,13 +536,11 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                     <div>
                       {campaign?.content?.campaignVideo && (
                         <div style={{ position: "relative", marginBottom: 30 }}>
-                          {campaign?.content?.campaignVideo?.includes(
-                            "youtube.com"
-                          ) ? (
+                          {youtubeEmbedUrl(campaign?.content?.campaignVideo) ? (
                             <Iframe style={{ marginBottom: 40 }}>
                               <iframe
                                 className="iframe"
-                                src={campaign?.content?.campaignVideo}
+                                src={youtubeEmbedUrl(campaign?.content?.campaignVideo) || undefined}
                               ></iframe>
                             </Iframe>
                           ) : (

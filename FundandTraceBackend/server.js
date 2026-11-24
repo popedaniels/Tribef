@@ -25,11 +25,16 @@ const charities = require("./routes/charity");
 const report = require("./routes/reports");
 const CampaignEmailWhitelist = require("./routes/campaignEmailWhitelist");
 const identity = require("./routes/identity");
+const evidence = require("./routes/evidence");
+const fxRoutes = require("./routes/fx");
+const feeRoutes = require("./routes/fees");
 const stripeConnect = require("./routes/stripeConnect");
 const recurring = require("./routes/recurring");
 const twoFactor = require("./routes/twoFactor");
 const discovery = require("./routes/discovery");
 const pushSubscriptions = require("./routes/pushSubscriptions");
+const ledger = require("./routes/ledger");
+const payouts = require("./routes/payouts");
 
 // Web push (no-op without VAPID keys).
 require("./services/push").initPush();
@@ -42,16 +47,47 @@ const PORT = process.env.PORT || 5000;
 app.set("trust proxy", 1);
 mongoose.set("bufferCommands", false);
 
-if (process.env.MONGOURL) {
-  mongoose
-    .connect(process.env.MONGOURL, {
-      serverSelectionTimeoutMS: 2000,
-    })
-    .then(() => logger.info("MongoDB Connected Successfully"))
-    .catch((err) => logger.error({ err }, "MongoDB connection failed"));
-} else {
+// Connect with retry: mongoose does not retry a failed *initial* connection,
+// so without this a database blip during a deploy left the API serving 503s
+// until someone restarted it. Readiness (/ready) reports the state meanwhile.
+async function connectWithRetry(attempt = 1) {
+  try {
+    await mongoose.connect(process.env.MONGOURL, {
+      serverSelectionTimeoutMS: Number(process.env.MONGO_SELECTION_TIMEOUT_MS || 5000),
+      maxPoolSize: Number(process.env.MONGO_POOL_SIZE || 20),
+    });
+    logger.info("MongoDB Connected Successfully");
+  } catch (err) {
+    const delay = Math.min(30000, 1000 * 2 ** Math.min(attempt, 5));
+    logger.error({ err, attempt, retryInMs: delay }, "MongoDB connection failed; retrying");
+    if (!shuttingDown) setTimeout(() => connectWithRetry(attempt + 1), delay).unref();
+  }
+}
+let shuttingDown = false;
+
+if (process.env.MONGOURL && process.env.NODE_ENV !== "test") {
+  connectWithRetry();
+} else if (!process.env.MONGOURL) {
   logger.error("MONGOURL is not configured");
 }
+
+// Request IDs: accept an upstream X-Request-Id (load balancer) or mint one,
+// echo it back, and log one line per request with status and duration.
+const crypto = require("crypto");
+const QUIET_PATHS = new Set(["/live", "/ready", "/health", "/api/health"]);
+app.use((req, res, next) => {
+  const incoming = String(req.headers["x-request-id"] || "");
+  req.id = /^[\w-]{8,64}$/.test(incoming) ? incoming : crypto.randomUUID();
+  res.setHeader("X-Request-Id", req.id);
+  if (QUIET_PATHS.has(req.path) || process.env.NODE_ENV === "test") return next();
+  const started = process.hrtime.bigint();
+  res.on("finish", () => {
+    const ms = Number(process.hrtime.bigint() - started) / 1e6;
+    const level = res.statusCode >= 500 ? "error" : res.statusCode >= 400 ? "warn" : "info";
+    logger[level]({ requestId: req.id, method: req.method, path: req.originalUrl.split("?")[0], status: res.statusCode, ms: Math.round(ms) }, "request");
+  });
+  next();
+});
 
 app.use(securityHeaders);
 app.use(
@@ -63,12 +99,25 @@ app.use(
 );
 
 // Stripe Identity requires the exact raw request body for signature verification.
+// (Stripe Connect was missing here, so every Connect webhook failed its
+// signature check and organisers' payout status never updated.)
 app.use(
-  ["/api/identity/webhook", "/api/donations/stripe-webhook"],
+  ["/api/identity/webhook", "/api/donations/stripe-webhook", "/api/stripeConnect/webhook"],
   express.raw({ type: "application/json", limit: "1mb" })
 );
+// Query strings parse to plain strings (or arrays of strings), never nested
+// objects: "?email[$ne]=x" must not reach a Mongo filter as an operator.
+app.set("query parser", "simple");
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
-app.use(express.json({ limit: "1mb" }));
+// Keep the exact bytes of HMAC-signed webhooks (Paystack, Flutterwave).
+app.use(
+  express.json({
+    limit: "1mb",
+    verify: (req, res, buf) => {
+      if (/^\/api\/donations\/(paystack|flutterwave)-webhook/.test(req.originalUrl)) req.rawBody = Buffer.from(buf);
+    },
+  })
+);
 app.use(cookieParser());
 app.use(sanitizeInput);
 
@@ -86,7 +135,11 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(new Error("Origin not allowed by CORS"));
+    // 403, not the global handler's default 500: a foreign origin is a
+    // client/policy problem, not a server fault, and must not page on-call.
+    const corsError = new Error("Origin not allowed by CORS");
+    corsError.status = 403;
+    return callback(corsError);
   },
 };
 
@@ -114,11 +167,19 @@ app.use("/api/reports", apiLimiter, report);
 app.use("/api/charities", apiLimiter, charities);
 app.use("/api/campaignEmailWhitelist", apiLimiter, CampaignEmailWhitelist);
 app.use("/api/identity", apiLimiter, identity);
+app.use("/api/evidence", apiLimiter, evidence);
+app.use("/api/fx", apiLimiter, fxRoutes);
+app.use("/api/fees", apiLimiter, feeRoutes);
+app.use("/api/giving", apiLimiter, require("./routes/giving"));
+app.use("/api/vendors", apiLimiter, require("./routes/vendors"));
 app.use("/api/stripeConnect", apiLimiter, stripeConnect);
 app.use("/api/recurring", apiLimiter, recurring);
 app.use("/api/auth/2fa", authLimiter, twoFactor);
 app.use("/api/discovery", apiLimiter, discovery);
 app.use("/api/pushSubscriptions", apiLimiter, pushSubscriptions);
+app.use("/api/ledger", apiLimiter, ledger);
+app.use("/api/email", apiLimiter, require("./routes/email"));
+app.use("/api/payouts", apiLimiter, payouts);
 
 const isDatabaseConnected = () => mongoose.connection.readyState === 1;
 
@@ -166,7 +227,7 @@ app.use(sentryErrorHandler());
 
 app.use((err, req, res, next) => {
   captureException(err, { extra: { path: req.originalUrl, method: req.method } });
-  logger.error({ err }, "Global Error Handler");
+  logger.error({ err, requestId: req.id }, "Global Error Handler");
   const statusCode = err.status || 500;
   res.status(statusCode).json({
     success: false,
@@ -174,24 +235,57 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === "production" && statusCode === 500
       ? "Internal Server Error"
       : err.message || "Internal Server Error",
+    requestId: req.id,
   });
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    logger.info({ port: PORT }, "FundandTrace backend server started");
+  let scheduler = null;
+  const server = app.listen(PORT, () => {
+    logger.info({ port: PORT, mediaStore: require("./services/mediaStore").useConfiguredStore() }, "FundandTrace backend server started");
 
-    // Optional daily reconciliation sweep (multi-instance safe via Redis lock).
-    if (process.env.RECONCILE_DAILY === "true") {
-      const { runReconciliation } = require("./services/reconciliation");
-      const run = () => runReconciliation({ days: 1 }).catch((err) =>
-        logger.error({ err }, "Scheduled reconciliation failed")
-      );
-      setInterval(run, 24 * 60 * 60 * 1000).unref();
-      setTimeout(run, 30 * 1000).unref();
-    }
+    // Daily jobs (integrity check, ledger anchor, optional gateway
+    // reconciliation). Each runs once per UTC day across all instances.
+    scheduler = require("./services/scheduler").startScheduler();
   });
+  // Slow clients must not hold sockets open forever behind the load balancer.
+  server.headersTimeout = 65000;
+  server.keepAliveTimeout = 61000;
+
+  // Graceful shutdown (deploys, autoscaling): stop accepting connections,
+  // let in-flight requests finish (payouts/refunds mid-call), then close the
+  // database. Force-exit after SHUTDOWN_GRACE_MS.
+  const shutdown = (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info({ signal }, "Shutting down");
+    scheduler?.stop();
+    const force = setTimeout(() => {
+      logger.error("Graceful shutdown timed out; exiting");
+      process.exit(1);
+    }, Number(process.env.SHUTDOWN_GRACE_MS || 15000));
+    force.unref();
+    server.close(async () => {
+      await mongoose.disconnect().catch(() => {});
+      logger.info("Shutdown complete");
+      process.exit(0);
+    });
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
+
+// A thrown exception leaves the process in an unknown state: log it, report
+// it, and exit so the process manager starts a clean one.
+process.on("uncaughtException", (err) => {
+  logger.fatal({ err }, "Uncaught exception; exiting");
+  try {
+    captureException(err);
+  } catch {
+    /* ignore */
+  }
+  setTimeout(() => process.exit(1), 500).unref();
+});
 
 process.on("unhandledRejection", (err) => {
   logger.error({ err }, "Unhandled Rejection");

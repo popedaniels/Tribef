@@ -10,8 +10,9 @@ import Pagination from "../../components/composed/Pagination";
 import Spinner from "../../components/composed/spinner/Spinner";
 import { config } from "../../components/helperFunctions/helperFunctions";
 import Layout from "../../components/Layout";
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "../../layouts/AdminLayout";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 const filters = ["Name: A to Z", "Name: Z to A", "Country"];
 
@@ -56,7 +57,7 @@ export default function AdminUsersPage() {
     try {
       const res = await axios.get(
         `${
-          process.env.NEXT_PUBLIC_API_URL
+          getApiBaseUrl()
         }/api/admin/users/search/${query}?search=${getSearchQuery()}`,
         config()
       );
@@ -80,7 +81,7 @@ export default function AdminUsersPage() {
     try {
       const res = await axios.get(
         `${
-          process.env.NEXT_PUBLIC_API_URL
+          getApiBaseUrl()
         }/api/admin/users/${query}?queries=${getQuery()}`,
         config()
       );

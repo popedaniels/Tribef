@@ -8,11 +8,15 @@ const { Campaign } = require("../models/campaignModel");
 const { Donations } = require("../models/donationsModel");
 const logger = require("../utility/logger");
 
+// Inclusion projection. Only the public funding figures — `funding: 1`
+// used to pull in the (encrypted) payout bank fields as well.
 const PUBLIC_PROJECTION = {
   basicInformation: 1,
   category: 1,
   campaignType: 1,
-  funding: 1,
+  "funding.currency": 1,
+  "funding.amountExpected": 1,
+  "funding.amountRaised": 1,
   createdAt: 1,
 };
 
@@ -152,6 +156,28 @@ exports.referralStats = async (req, res) => {
     return res.status(200).json({ data: stats });
   } catch (error) {
     logger.error({ err: error }, "Referral stats failed");
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};
+
+// GET /api/discovery/sitemap — launched, live campaigns for the website's
+// sitemap.xml: id, last change and title only.
+exports.sitemap = async (req, res) => {
+  try {
+    const rows = await Campaign.find(LAUNCHED_FILTER, { _id: 1, createdAt: 1, "updates.datePosted": 1, category: 1 })
+      .sort({ createdAt: -1 })
+      .limit(45000)
+      .lean()
+      .maxTimeMS(10000);
+    const data = rows.map((c) => {
+      const latestUpdate = (c.updates || []).reduce((m, u) => Math.max(m, new Date(u.datePosted || 0).getTime() || 0), 0);
+      const lastmod = new Date(Math.max(new Date(c.createdAt || 0).getTime() || 0, latestUpdate) || Date.now());
+      return { id: String(c._id), lastmod: lastmod.toISOString().slice(0, 10), category: c.category || "" };
+    });
+    res.set("Cache-Control", "public, max-age=3600");
+    return res.json({ status: 200, data });
+  } catch (err) {
+    logger.error({ err }, "sitemap failed");
     return res.status(500).json({ status: 500, error: "Server error." });
   }
 };

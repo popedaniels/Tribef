@@ -1,0 +1,18 @@
+# gitleaks config: default rules, minus fixtures that only look like secrets.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures, examples and lockfiles"
+paths = [
+  '''(^|/)tests?/''',
+  '''__tests__/''',
+  '''\.env\.example$''',
+  '''package-lock\.json$''',
+  '''(^|/)docs/''',
+  '''\.test\.(js|ts|tsx)$''',
+]
+regexes = [
+  '''replace_me''',
+  '''sk_(test|live)_(abc|xyz|replace)''',
+]

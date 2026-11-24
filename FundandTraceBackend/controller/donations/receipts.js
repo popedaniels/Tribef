@@ -50,8 +50,11 @@ function buildReceiptPdf(donation, campaign, org, footerLines = []) {
       ["Payment method", escapeText(donation.paymentMethod || "card")],
       ["Transaction reference", escapeText(donation.transactionRef || donation.transactionId || "")],
     ];
+    if (donation.processingFee) {
+      rows.splice(4, 0, ["Card fee you covered", money(donation.processingFee)]);
+    }
     if (donation.tip) {
-      rows.splice(4, 0, ["Platform tip", money(donation.tip)]);
+      rows.splice(4, 0, ["Tip to Fund&Trace", money(donation.tip)]);
     }
 
     const rowHeight = 22;

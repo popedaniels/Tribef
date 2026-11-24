@@ -35,7 +35,7 @@ describe("Users", () => {
         .request(server)
         .get(`/api/auth/campaignOrganizer/6064eb12078c0e209075a035`)
         .end((err, res) => {
-          res.should.have.status(401);
+          res.should.have.status(404);
           res.body.should.be.a("Object");
           res.body.should.have.property("error");
           done();

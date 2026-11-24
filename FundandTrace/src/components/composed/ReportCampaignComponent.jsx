@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { toast } from "../../../store/slices/ToastSlice";
 import { uploadImage } from "../helperFunctions/helperFunctions";
 import SelectComponent from "./SelectComponent";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function ReportCampaignComponent({ submitted }) {
   const [value, setValue] = useState("");
@@ -26,7 +27,7 @@ export default function ReportCampaignComponent({ submitted }) {
     const report = { ...reportData, evidence, subject: value };
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/reports`,
+        `${getApiBaseUrl()}/api/reports`,
         { report }
       );
       res && dispatch(toast(true, "Report sent!", "success"));

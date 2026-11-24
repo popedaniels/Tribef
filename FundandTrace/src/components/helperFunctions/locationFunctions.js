@@ -1,4 +1,5 @@
 // Comprehensive location & country utilities with offline-first static data
+import { visitorCountry } from "../../utils/geo";
 
 const countriesList = [
   { name: "Nigeria", phone_code: "234", href: { flag: "https://flagcdn.com/w40/ng.png" }, states: ["Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT Abuja", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"] },
@@ -41,11 +42,18 @@ const getStates = async (countryName) => {
   ];
 };
 
+// The visitor's country, as detected at the edge (src/middleware.ts → cookie).
+// Returns null when unknown — never a guess: this used to return Nigeria for
+// everyone, so a London donor was offered Paystack.
 const getCountries = async () => {
+  const c = visitorCountry();
+  if (!c || !c.name) return null;
   return {
-    country_name: "Nigeria",
-    calling_code: "234",
-    flag: "https://flagcdn.com/w40/ng.png",
+    country_name: c.name,
+    country_code: c.code,
+    currency: c.currency,
+    calling_code: c.callingCode,
+    flag: `https://flagcdn.com/w40/${c.code.toLowerCase()}.png`,
   };
 };
 

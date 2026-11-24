@@ -4,16 +4,15 @@ const { Donations } = require("../models/donationsModel");
 const { FundingRequests } = require("../models/fundingRequestModel");
 const { decrypt } = require("../utility/encryption");
 
-const CAMPAIGN_PUBLIC_PROJECTION = {
-  "funding.accountName": 0,
-  "funding.accountNumber": 0,
-  "funding.sortCode": 0,
-  "funding.bankName": 0,
-};
+const { CAMPAIGN_PUBLIC_PROJECTION } = require("../utility/publicViews");
 
-async function fetchPublicCampaigns({ page = 1, limit = 50 }) {
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+async function fetchPublicCampaigns({ page = 1, limit = 50, country = "" }) {
   const skip = (page - 1) * limit;
   const filter = { launched: true, suspended: false };
+  // "Campaigns in <country>": exact country name, case-insensitive.
+  if (country) filter["basicInformation.locationCountry"] = new RegExp(`^${escapeRegex(country)}$`, "i");
 
   const [campaigns, count] = await Promise.all([
     Campaign.find(filter)
@@ -35,41 +34,8 @@ async function fetchCampaignsByOrganizer(organizerId) {
   return { active, drafts };
 }
 
-async function fetchSingleCampaignById(id) {
-  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-    return null;
-  }
-
-  const camp = await Campaign.findOne({ _id: id, suspended: false }).maxTimeMS(3000);
-  if (!camp) return null;
-
-  const campObj = camp._doc ? { ...camp._doc } : { ...camp };
-
-  if (campObj.funding && campObj.funding.accountName) {
-    campObj.funding = {
-      ...campObj.funding,
-      accountNumber: decrypt(campObj.funding.accountNumber),
-      accountName: decrypt(campObj.funding.accountName),
-      bankName: decrypt(campObj.funding.bankName),
-      sortCode: decrypt(campObj.funding.sortCode),
-    };
-  }
-
-  const [donations, fundingRequests] = await Promise.all([
-    Donations.find({ campaignId: id }),
-    FundingRequests.find({ campaignId: id }),
-  ]);
-
-  return {
-    ...campObj,
-    donations,
-    fundingRequests,
-  };
-}
-
 module.exports = {
   fetchPublicCampaigns,
   fetchCampaignsByOrganizer,
-  fetchSingleCampaignById,
   CAMPAIGN_PUBLIC_PROJECTION,
 };

@@ -5,6 +5,7 @@ import { useState } from "react";
 import axios from "axios";
 import Spinner from "../../spinner/Spinner";
 import { config } from "../../../helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../../../utils/api";
 
 export default function AdminSendEmailModal({
   onModalClose,
@@ -20,7 +21,7 @@ export default function AdminSendEmailModal({
 
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/sendMail`,
+        `${getApiBaseUrl()}/api/admin/sendMail`,
         { email: userEmail, message: message, userName },
         config()
       );

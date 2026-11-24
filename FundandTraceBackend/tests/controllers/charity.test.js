@@ -35,18 +35,18 @@ describe("Charity", () => {
         .request(server)
         .get(`/api/charities/charity/6064eb12078c0e209075a035`)
         .end((err, res) => {
-          res.should.have.status(401);
+          res.status.should.be.oneOf([404, 503]); // 404 with a DB, 503 when the DB is unreachable
           res.body.should.be.a("Object");
           res.body.should.have.property("error");
           done();
         });
     });
-    it("it should return a server error", (done) => {
+    it("it should reject a malformed id with 400", (done) => {
       chai
         .request(server)
         .get(`/api/charities/charity/56738`)
         .end((err, res) => {
-          res.should.have.status(500);
+          res.should.have.status(400);
           res.body.should.be.a("Object");
           res.body.should.have.property("error");
           done();

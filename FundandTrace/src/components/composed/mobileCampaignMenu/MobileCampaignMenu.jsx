@@ -6,6 +6,7 @@ import { selectAuthStateState } from "../../../../store/slices/authSlice";
 // import { useState } from "react";
 // import DeleteModal from "../Modal/DefaultModal/DeleteModal";
 import styles from "./MobileCampaignMenu.module.scss";
+import { useRehydrated } from "../../../hooks/useRequireAuth";
 
 export default function MobileCampaignMenu({ onClose, setShowDelete }) {
   const navItems = [
@@ -61,11 +62,13 @@ export default function MobileCampaignMenu({ onClose, setShowDelete }) {
   };
 
   const { authenticated, profile } = useSelector(selectAuthStateState);
+
+  const rehydrated = useRehydrated();
   const router = useRouter();
 
   useEffect(() => {
-    !authenticated && router.push("/");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/");
+  }, [rehydrated, authenticated, router]);
 
   return (
     <div className={styles.container}>
@@ -90,24 +93,24 @@ export default function MobileCampaignMenu({ onClose, setShowDelete }) {
             {navItems.map((items, i) =>
               items.link ? (
                 <Link key={i} href={items.link ? items.link : undefined} passHref>
-                  <a>
-                    <div
-                      className="d-flex align-items-center"
-                      style={{ marginBottom: 40 }}
-                      key={i}
-                      onClick={items.onClick}
-                      role="button"
-                    >
-                      <img
-                        src={items.icon}
-                        height={20}
-                        width={20}
-                        alt="navIcons"
-                        className="mr-3"
-                      />
-                      <p className="mb-0">{items.value}</p>
-                    </div>
-                  </a>
+
+                  <div
+                    className="d-flex align-items-center"
+                    style={{ marginBottom: 40 }}
+                    key={i}
+                    onClick={items.onClick}
+                    role="button"
+                  >
+                    <img
+                      src={items.icon}
+                      height={20}
+                      width={20}
+                      alt="navIcons"
+                      className="mr-3"
+                    />
+                    <p className="mb-0">{items.value}</p>
+                  </div>
+
                 </Link>
               ) : (
                 <div key={i} onClick={handleDelete} role="button">
@@ -127,23 +130,23 @@ export default function MobileCampaignMenu({ onClose, setShowDelete }) {
           </div>
           <div className={styles.otherlinks}>
             {otherlinks.map((other, i) => (
-              <Link key={i} href={other.link} passHref>
-                <a onClick={other?.onClick} role="button">
-                  <div
-                    className="d-flex align-items-center"
-                    style={{ marginBottom: 50 }}
-                    key={i}
-                  >
-                    <img
-                      src={other.icon}
-                      height={20}
-                      width={20}
-                      alt="navIcons"
-                      className="mr-3"
-                    />
-                    <p className="mb-0">{other.value}</p>
-                  </div>
-                </a>
+              <Link key={i} href={other.link} passHref onClick={other?.onClick} role="button">
+
+                <div
+                  className="d-flex align-items-center"
+                  style={{ marginBottom: 50 }}
+                  key={i}
+                >
+                  <img
+                    src={other.icon}
+                    height={20}
+                    width={20}
+                    alt="navIcons"
+                    className="mr-3"
+                  />
+                  <p className="mb-0">{other.value}</p>
+                </div>
+
               </Link>
             ))}
           </div>

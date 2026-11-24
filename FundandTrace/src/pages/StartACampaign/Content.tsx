@@ -1,6 +1,7 @@
+import { youtubeEmbedUrl } from "../../utils/video";
 import React, { useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
 import { useState } from "react";
 import axios from "axios";
 import { cloudinaryUploadUrl } from "../../utils/cloudinary";
@@ -22,6 +23,8 @@ import {
   grabErrorMessage,
   grabErrorStatus,
 } from "../../components/helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 export default function Content() {
   const router = useRouter();
@@ -34,17 +37,18 @@ export default function Content() {
   const [campaignId, setCampaignId] = useState("");
   const { startCampaign } = useSelector(selectStartCampaignState);
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const [campError, setCampError] = useState(false);
   const { showCampaignError } = useSelector(selectCampaignErrorState);
   const [youtubeLink, setYoutubeLink] = useState(
-    startCampaign?.content?.campaignVideo.includes("youtube.com")
+    youtubeEmbedUrl(startCampaign?.content?.campaignVideo)
       ? startCampaign?.content?.campaignVideo
       : ""
   );
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   useEffect(() => {
     const storedCampaignId = localStorage.getItem("campaignId") || "";
@@ -102,7 +106,7 @@ export default function Content() {
       let startCampaignContent = { content: data, id: campaignId };
 
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/content",
+        getApiBaseUrl() + "/api/startCampaign/content",
         startCampaignContent,
         { withCredentials: true }
       );
@@ -202,7 +206,7 @@ export default function Content() {
           </p>
         </div>
         <div className="d-flex flex-column flex-md-row align-items-center w-100">
-          {!startCampaign?.content?.campaignVideo?.includes("youtube.com") && (
+          {!youtubeEmbedUrl(startCampaign?.content?.campaignVideo) && (
             <div className="file d-flex align-items-center justify-content-center mr-md-1">
               <label
                 className="d-flex flex-column align-items-center"
@@ -225,7 +229,7 @@ export default function Content() {
               </label>
             </div>
           )}
-          {!startCampaign?.content?.campaignVideo?.includes("youtube.com") && (
+          {!youtubeEmbedUrl(startCampaign?.content?.campaignVideo) && (
             <div className="mx-md-2 mt-2 mt-md-0" style={{ minWidth: 30 }}>
               <h2 className="text-medium-heading" style={{ fontSize: 18 }}>
                 OR
@@ -274,11 +278,11 @@ export default function Content() {
           {loading && <p className="text-blue">Uploading...</p>}
           {startCampaign?.content?.campaignVideo != "" &&
             !selectedFile &&
-            (startCampaign?.content?.campaignVideo?.includes("youtube.com") ? (
+            (youtubeEmbedUrl(startCampaign?.content?.campaignVideo) ? (
               <Iframe style={{ marginBottom: 40 }}>
                 <iframe
                   className="iframe"
-                  src={startCampaign?.content?.campaignVideo}
+                  src={youtubeEmbedUrl(startCampaign?.content?.campaignVideo) || undefined}
                 ></iframe>
               </Iframe>
             ) : (

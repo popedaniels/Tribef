@@ -5,7 +5,8 @@ import { useState } from "react";
 import Navbar from "../../components/Navbar/Navbar";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
-import { login, selectAuthStateState } from "../../../store/slices/authSlice";
+import { safeNextPath } from "../../hooks/useRequireAuth";
+import { login, completeTwoFactor, selectAuthStateState } from "../../../store/slices/authSlice";
 import Spinner from "../../components/composed/spinner/Spinner";
 import Layout from "../../components/Layout";
 import { useAppDispatch } from "./../../../store/hooks";
@@ -18,9 +19,38 @@ export default function SignIn() {
   const router = useRouter();
   const { authenticated, loggingIn, logInFailed } =
     useSelector(selectAuthStateState);
+  // Accounts with two-factor authentication: second step.
+  const [challengeToken, setChallengeToken] = useState("");
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [codeBusy, setCodeBusy] = useState(false);
+  const signIn = async () => {
+    const r = (await dispatch(login(email, password))) as unknown as { twoFactorRequired?: boolean; challengeToken?: string } | boolean;
+    if (r && typeof r === "object" && r.twoFactorRequired && r.challengeToken) {
+      setCode("");
+      setCodeError("");
+      setChallengeToken(r.challengeToken);
+    }
+  };
+  const submitCode = async () => {
+    setCodeBusy(true);
+    setCodeError("");
+    try {
+      await dispatch(completeTwoFactor(challengeToken, code));
+    } catch (e) {
+      const err = e as { response?: { status?: number; data?: { error?: string } } };
+      if (err?.response?.status === 401) setChallengeToken("");
+      setCodeError(err?.response?.data?.error || "That code didn't work. Try the newest code in your app.");
+    } finally {
+      setCodeBusy(false);
+    }
+  };
 
   useEffect(() => {
-    authenticated && router.back();
+    if (!authenticated || !router.isReady) return;
+    // Return to the page that sent the user here (validated same-origin path);
+    // `router.back()` left the site when sign-in was the first page visited.
+    router.replace(safeNextPath(router.query.next));
   }, [authenticated, router]);
   return (
     <Layout
@@ -31,21 +61,21 @@ export default function SignIn() {
         <div className="w-100 bg-white">
           <header className="header d-md-flex justify-content-between align-items-center custom-container d-none">
             <Link href="/" passHref>
-              <a>
-                <img
-                  src="/images/logo.png"
-                  alt="fundandtraceLogo"
-                  width={78}
-                  height={55}
-                />
-              </a>
+
+              <img
+                src="/images/logo.png"
+                alt="fundandtraceLogo"
+                width={78}
+                height={55}
+              />
+
             </Link>
             <div className="d-flex align-items-center">
               <p className="mb-0 mr-3">Don't have an account?</p>
-              <Link href="/SignUp">
-                <a className="mb-0" style={{ color: "var(--color-primary)" }}>
+              <Link href="/SignUp" className="mb-0" style={{ color: "var(--color-primary)" }}>
+                
                   Sign Up
-                </a>
+                
               </Link>
             </div>
           </header>
@@ -54,10 +84,50 @@ export default function SignIn() {
           </div>
         </div>
         <main className="">
+          {challengeToken ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitCode();
+              }}
+              className="d-flex flex-column justify-content-center align-items-center mx-auto"
+              style={{ maxWidth: 420, padding: "40px 16px" }}
+            >
+              <p className="mb-4 text-blue">TWO-STEP SIGN IN</p>
+              <h2 className="text-heading mb-3">Enter your code</h2>
+              <p className="mb-4 text-center">Open your authenticator app and enter the 6-digit code for Fund&amp;Trace.</p>
+              <label htmlFor="otp" className="w-100 mb-1">
+                Authenticator code
+              </label>
+              <input
+                id="otp"
+                className="form-control mb-3"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                autoFocus
+                required
+              />
+              {codeError && (
+                <p role="alert" style={{ color: "#b91c1c" }}>
+                  {codeError}
+                </p>
+              )}
+              <button type="submit" className="ft-btn ft-btn--primary ft-btn--block" disabled={codeBusy || code.length !== 6}>
+                {codeBusy ? "Checking…" : "Sign in"}
+              </button>
+              <button type="button" className="ft-btn ft-btn--ghost mt-2" onClick={() => setChallengeToken("")}>
+                Back
+              </button>
+            </form>
+          ) : (
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              dispatch(login(email, password));
+              signIn();
             }}
             className="d-flex flex-column justify-content-center align-items-center mx-auto"
           >
@@ -119,12 +189,24 @@ export default function SignIn() {
               <div
                 className="img"
                 role="button"
+                tabIndex={0}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowPassword(!showPassword);
+                  }
+                }}
                 style={{
                   position: "absolute",
-                  width: "20px",
-                  height: 20,
-                  right: 14,
-                  top: 10,
+                  width: 44,
+                  height: 44,
+                  padding: 12,
+                  boxSizing: "border-box",
+                  right: 2,
+                  top: -2,
+                  cursor: "pointer",
                 }}
                 onClick={() => setShowPassword(!showPassword)}
               >
@@ -145,16 +227,19 @@ export default function SignIn() {
             {logInFailed.status && (
               <p className="text-danger">{logInFailed.error}</p>
             )}
-            <Link href="/ForgotPassword" passHref>
-              <a href="" className="mb-4 text-right w-100 text-dark">
+            <Link
+              href="/ForgotPassword"
+              passHref
+              className="mb-4 text-right w-100 text-dark">
+              
                 Forgot Password?
-              </a>
+              
             </Link>
 
             <button
               className="btn w-100"
               disabled={email && password ? false : true}
-              onClick={() => dispatch(login(email, password))}
+              onClick={() => signIn()}
             >
               {loggingIn ? (
                 <Spinner
@@ -168,12 +253,17 @@ export default function SignIn() {
               )}
             </button>
           </form>
+          )}
           <div className="d-flex align-items-center justify-content-center mt-4 ">
             <p className="mb-0 mr-3">Don't have an account?</p>
-            <Link href="/SignUp" passHref>
-              <a className="mb-0" style={{ color: "var(--color-primary)" }}>
+            <Link
+              href="/SignUp"
+              passHref
+              className="mb-0"
+              style={{ color: "var(--color-primary)" }}>
+              
                 Sign Up
-              </a>
+              
             </Link>
           </div>
         </main>

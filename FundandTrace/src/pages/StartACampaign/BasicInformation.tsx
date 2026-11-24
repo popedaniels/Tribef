@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import StartLayout from "./StartLayout";
+import StartLayout from "../../layouts/StartLayout";
 import { useRouter } from "next/router";
 import axios from "axios";
 import {
@@ -29,6 +29,8 @@ import {
 } from "../../components/helperFunctions/locationFunctions";
 import CategoryModal from "../../components/composed/Modal/DefaultModal/CategoryModal";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
+import { useRehydrated } from "../../hooks/useRequireAuth";
 
 interface CountryOption {
   name: string;
@@ -49,6 +51,7 @@ export default function BasicInformation() {
   const [loading, setLoading] = useState(false);
   const [campaignId, setCampaignId] = useState("");
   const { authenticated } = useSelector(selectAuthStateState);
+  const rehydrated = useRehydrated();
   const [error, setError] = useState({
     title: "",
     tagline: "",
@@ -72,8 +75,8 @@ export default function BasicInformation() {
   const [type, setType] = useState("");
 
   useEffect(() => {
-    !authenticated && router.push("/SignUp");
-  }, [authenticated, router]);
+    rehydrated && !authenticated && router.push("/SignUp");
+  }, [rehydrated, authenticated, router]);
 
   const popUp = useCallback(() => {
     setShowModal(true);
@@ -204,7 +207,7 @@ export default function BasicInformation() {
       //     : false
       // ) {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/api/startCampaign/basicInformation",
+        getApiBaseUrl() + "/api/startCampaign/basicInformation",
         { basicInformation: startCampaign?.basicInformation, id: campaignId },
         { withCredentials: true }
       );
@@ -226,9 +229,9 @@ export default function BasicInformation() {
       <div className="mb-5">
         <h2 className="text-heading mb-4">Basic Information</h2>
         <p className="mb-4">
-          The Basic information condense your campaign goals and description
-          into a campaign card that’s shared with thousands of donors across our
-          platform. Write a strong statement for donors to learn more.
+          Your title, summary and photo become the campaign card donors see
+          when they browse and when you share your link. Make it clear what
+          you&apos;re raising money for and who it helps.
         </p>
       </div>
       <div className="mb-5" style={{ position: "relative" }}>

@@ -6,14 +6,18 @@
   "scripts": {
     "predev": "node scripts/guard-port.js",
     "prestart": "node scripts/guard-port.js",
-    "test": "NODE_ENV=test mocha ./tests/index.js --timeout 20000 --exit",
+    "test": "NODE_ENV=test mocha --require ./tests/setup.js ./tests/index.js --timeout 20000 --exit",
     "test:unit": "NODE_ENV=test jest --config jest.config.js",
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "localtest": "NODE_ENV=test mocha ./tests/index.js --timeout 20000 --exit",
+    "localtest": "NODE_ENV=test mocha --require ./tests/setup.js ./tests/index.js --timeout 20000 --exit",
     "validate-env": "node scripts/validate-env.js",
     "kill:5000": "node scripts/kill-port.js 5000",
-    "test:unit:cov": "NODE_ENV=test jest --config jest.config.js --coverage"
+    "test:unit:cov": "NODE_ENV=test jest --config jest.config.js --coverage",
+    "test:all": "npm run test:unit && npm test",
+    "lint": "node scripts/syntax-check.js",
+    "preflight": "node scripts/preflight.js",
+    "preflight:online": "node scripts/preflight.js --online"
   },
   "repository": {
     "type": "git",
@@ -26,6 +30,7 @@
   },
   "homepage": "https://github.com/wisdomosara/FundandTraceBackend#readme",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1176.0",
     "@sentry/node": "^10.71.0",
     "axios": "^1.19.0",
     "bcrypt": "^6.0.0",
@@ -42,7 +47,7 @@
     "joi": "^18.2.5",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.4",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^10.6.1",
     "otplib": "^13.5.0",
     "pdfkit": "^0.20.1",
     "pino": "^10.3.1",
@@ -56,6 +61,7 @@
     "@babel/preset-env": "^7.29.7",
     "@types/jest": "^30.0.0",
     "@types/supertest": "^7.2.1",
+    "autocannon": "^8.0.0",
     "jest": "^30.4.2",
     "mocha": "^11.8.0",
     "nyc": "^18.0.0",

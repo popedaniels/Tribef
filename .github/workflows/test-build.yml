@@ -2,57 +2,77 @@ name: Test & Build
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, stage]
   pull_request:
     branches: [main, develop]
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project: [frontend, backend]
+concurrency:
+  group: test-build-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FundandTraceBackend
+    services:
+      # Real MongoDB so the webhook/idempotency integration tests run instead
+      # of being skipped as "pending".
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      NODE_ENV: test
+      MONGOURL: mongodb://127.0.0.1:27017/fundandtrace_ci
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          submodules: recursive
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: FundandTraceBackend/package-lock.json
+      - run: npm ci
+      - name: Dependency audit (production deps, high+)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Syntax check
+        run: npm run lint
+      - name: Unit tests (with coverage floor)
+        run: npm run test:unit:cov
+      - name: Integration tests (Mocha)
+        # No `| tail`: piping hid mocha's exit code, so a suite that crashed on
+        # import still reported green.
+        run: npm test
 
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: ${{ matrix.project == 'frontend' && 'FundandTrace/package-lock.json' || 'FundandTraceBackend/package-lock.json' }}
-
-      - name: Install dependencies
-        run: |
-          if [ "${{ matrix.project }}" = "frontend" ]; then
-            cd FundandTrace && npm ci
-          else
-            cd FundandTraceBackend && npm ci
-          fi
-
-      - name: Run tests
-        run: |
-          if [ "${{ matrix.project }}" = "frontend" ]; then
-            cd FundandTrace && npm test -- --passWithNoTests 2>&1 | tail -20
-          else
-            cd FundandTraceBackend && NODE_ENV=test npx mocha ./tests/index.js --timeout 20000 --exit 2>&1 | tail -30
-          fi
-
-      - name: Build
-        run: |
-          if [ "${{ matrix.project }}" = "frontend" ]; then
-            cd FundandTrace && NODE_OPTIONS=--openssl-legacy-provider npm run build
-          else
-            cd FundandTraceBackend && npm run build 2>/dev/null || echo "No build script in backend"
-          fi
-
-  deployment:
-    needs: test
+  frontend:
+    name: Frontend tests & build
     runs-on: ubuntu-latest
-    if: always()
+    defaults:
+      run:
+        working-directory: FundandTrace
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_URL: https://api.fundandtrace.com
     steps:
-      - name: Summary
-        run: echo "Test & build pipeline completed"
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: FundandTrace/package-lock.json
+      - run: npm ci
+      - name: Dependency audit (production deps, high+)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Unit tests
+        run: npm test -- --ci
+      - name: Production build
+        run: npm run build
+      # Mobile performance budget (FT-033): fails the build if pages get
+      # heavier, shift on load, or drop below the score floor. Pages are
+      # rendered without the API, so this checks the shell, fonts, CSS and JS.
+      - name: Lighthouse budget (mobile)
+        run: npx --yes @lhci/cli@0.16.x autorun --config=./lighthouserc.json

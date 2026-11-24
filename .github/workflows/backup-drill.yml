@@ -1,0 +1,73 @@
+# Backup → restore → verify drill. Runs the real scripts end to end against a
+# seeded throwaway database, then corrupts one ledger entry and checks the
+# verifier catches it. To drill your PRODUCTION backups, run
+# scripts/backup-restore-drill.sh on your own infrastructure (see
+# docs/LAUNCH_RUNBOOK.md §5): don't copy production data onto CI runners.
+name: Backup drill
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 1 * *" # monthly
+  push:
+    paths:
+      - "scripts/backup-mongo.sh"
+      - "scripts/restore-mongo.sh"
+      - "scripts/backup-restore-drill.sh"
+      - "FundandTraceBackend/scripts/drill-*.js"
+      - "FundandTraceBackend/services/integrity.js"
+      - "FundandTraceBackend/services/ledger.js"
+      - ".github/workflows/backup-drill.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+    env:
+      NODE_ENV: test
+      SECURITY_KEY: ${{ github.run_id }}aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      TOKEN_SECRET: drill_token_secret_not_used_for_anything_real_0123456789
+      SOURCE_MONGOURL: mongodb://127.0.0.1:27017/fundandtrace_src
+      DRILL_MONGOURL: mongodb://127.0.0.1:27017/fundandtrace_drill
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: FundandTraceBackend/package-lock.json
+      - run: npm ci
+        working-directory: FundandTraceBackend
+      - name: Database tools (from the mongo image)
+        run: |
+          mkdir -p "$HOME/bin"
+          for t in mongodump mongorestore; do
+            printf '#!/bin/sh\nexec docker run --rm --network host -u "%s" -v "$PWD:$PWD" -v /tmp:/tmp -w "$PWD" mongo:7 %s "$@"\n' "$(id -u):$(id -g)" "$t" > "$HOME/bin/$t"
+            chmod +x "$HOME/bin/$t"
+          done
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Normalise SECURITY_KEY to 64 hex chars
+        run: echo "SECURITY_KEY=$(echo -n "$SECURITY_KEY" | sha256sum | cut -c1-64)" >> "$GITHUB_ENV"
+      - name: Seed source database
+        run: MONGOURL="$SOURCE_MONGOURL" node FundandTraceBackend/scripts/drill-seed.js
+      - name: Drill (dump → restore → verify)
+        run: ./scripts/backup-restore-drill.sh
+      - name: Tampered ledger must FAIL verification
+        run: |
+          docker run --rm --network host mongo:7 mongosh --quiet "$DRILL_MONGOURL" --eval 'db.ledgerentries.updateOne({seq:2},{$set:{amount:999999}})'
+          if MONGOURL="$DRILL_MONGOURL" node FundandTraceBackend/scripts/drill-verify.js; then
+            echo "::error::verifier accepted a tampered ledger"; exit 1
+          fi
+          echo "Tampering detected as expected"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drill-report
+          path: drill-reports/*.md

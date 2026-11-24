@@ -38,4 +38,5 @@ yarn-error.log*
 
 
 **/public/workbox-*.js
-**/public/sw.js
+**/public/sw.jsplaywright-report/
+test-results/

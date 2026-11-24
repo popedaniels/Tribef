@@ -67,7 +67,7 @@
 
   .tag {
     display: inline-block;
-    color: #4b5df5;
+    color: var(--color-primary);
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 1px;
@@ -160,7 +160,7 @@
     width: 52px;
     height: 52px;
     border-radius: 4px;
-    background: #eef1fe;
+    background: linear-gradient(135deg, var(--color-primary), #6979f8);
     display: flex;
     align-items: center;
     justify-content: center;

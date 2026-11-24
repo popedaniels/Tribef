@@ -310,9 +310,30 @@
 
         .money {
             display: flex;
+            align-items: stretch;
             border: 1px solid #c4c4c4;
-            border-radius: 4px;
+            border-radius: 8px;
             width: 100%;
+            max-width: 100%;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+            &:focus-within {
+                border-color: var(--color-primary);
+                box-shadow: 0 0 0 3px rgba(105, 121, 248, 0.18);
+            }
+
+            /* Number inputs have an intrinsic min-width; without min-width: 0
+               the currency picker was pushed off-screen on phones. */
+            input {
+                flex: 1 1 auto;
+                min-width: 0;
+                width: 100%;
+                outline: none;
+            }
+
+            > div {
+                flex-shrink: 0;
+            }
         }
 
         .progress {

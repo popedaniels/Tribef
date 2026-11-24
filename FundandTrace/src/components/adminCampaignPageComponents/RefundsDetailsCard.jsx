@@ -4,15 +4,16 @@ import React from "react";
 import { useDispatch } from "react-redux";
 import styled from "styled-components";
 import { toast } from "../../../store/slices/ToastSlice";
-import { addCommaToNumber } from "../helperFunctions/helperFunctions";
+import { addCommaToNumber, currencyPrefix } from "../helperFunctions/helperFunctions";
 import { config } from "../helperFunctions/helperFunctions";
+import { getApiBaseUrl } from "../../utils/api";
 
 const RefundsDetailsCard = ({ donation, index, single }) => {
   const dispatch = useDispatch();
   const handleRefund = async () => {
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/refunds/stripeRefund/${donation?.campaignId?._id}/${donation._id}`,
+        `${getApiBaseUrl()}/api/admin/refunds/stripeRefund/${donation?.campaignId?._id}/${donation._id}`,
         {},
         config()
       );
@@ -25,7 +26,7 @@ const RefundsDetailsCard = ({ donation, index, single }) => {
   const handleRefundBatch = async () => {
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/refunds/stripeRefundBatch/${donation?._id}`,
+        `${getApiBaseUrl()}/api/admin/refunds/stripeRefundBatch/${donation?._id}`,
         {},
         config()
       );
@@ -70,11 +71,7 @@ const RefundsDetailsCard = ({ donation, index, single }) => {
       </div>
       <div className="ending mr-3" style={{ width: 110 }}>
         <p className="mb-0 text-left">
-          {donation?.campaignId?.funding?.currency == "USD"
-            ? "$"
-            : donation?.campaignId?.funding?.currency == "GBP"
-            ? "£"
-            : "₦"}
+          {currencyPrefix(donation?.campaignId?.funding?.currency)}
           {addCommaToNumber(
             single ? donation?.amount : donation?.funding?.availableBalance
           )}

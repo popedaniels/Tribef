@@ -72,20 +72,54 @@ describe("auth guards", () => {
   });
 
   describe("requireAuth", () => {
-    it("calls next() for a valid token and attaches req.auth", () => {
+    const { Users } = require("../../models/users");
+    const userLookup = (user) =>
+      Users.findById.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(user) }) });
+    afterEach(() => Users.findById.mockReset());
+
+    it("calls next() for a valid token whose session is current", async () => {
+      userLookup({ sessionVersion: 0, suspended: false });
       const token = jwt.sign({ id: "user-2" }, SECRET);
       const req = bearerReq(token);
       const next = jest.fn();
-      auth.requireAuth(req, mockRes(), next);
+      await auth.requireAuth(req, mockRes(), next);
       expect(next).toHaveBeenCalled();
       expect(req.auth).toMatchObject({ id: "user-2" });
     });
 
-    it("returns 401 on an invalid signature", () => {
+    it("returns 401 on an invalid signature", async () => {
       const token = jwt.sign({ id: "user-3" }, "some-other-secret-value-at-least-32ch");
       const res = mockRes();
-      auth.requireAuth(bearerReq(token), res, jest.fn());
+      await auth.requireAuth(bearerReq(token), res, jest.fn());
       expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it("returns 401 for a revoked session (password reset / sign out everywhere)", async () => {
+      userLookup({ sessionVersion: 2, suspended: false });
+      const token = jwt.sign({ id: "user-4", sv: 1 }, SECRET);
+      const res = mockRes();
+      const next = jest.fn();
+      await auth.requireAuth(bearerReq(token), res, next);
+      expect(next).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it("returns 401 for a suspended account even with a valid token", async () => {
+      userLookup({ sessionVersion: 0, suspended: true });
+      const token = jwt.sign({ id: "user-5" }, SECRET);
+      const res = mockRes();
+      await auth.requireAuth(bearerReq(token), res, jest.fn());
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it("returns 503 (not 401) when the session can't be checked", async () => {
+      Users.findById.mockImplementation(() => {
+        throw new Error("db down");
+      });
+      const token = jwt.sign({ id: "user-6" }, SECRET);
+      const res = mockRes();
+      await auth.requireAuth(bearerReq(token), res, jest.fn());
+      expect(res.status).toHaveBeenCalledWith(503);
     });
   });
 
@@ -131,6 +165,44 @@ describe("auth guards", () => {
       await auth.requireAdmin(req, mockRes(), next);
       expect(next).toHaveBeenCalled();
       expect(req.admin).toMatchObject({ role: "admin" });
+    });
+
+    describe("with admin 2FA enforced", () => {
+      beforeEach(() => {
+        process.env.ADMIN_REQUIRE_2FA = "true";
+        Users.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ role: "admin", suspended: false }) });
+      });
+      afterEach(() => delete process.env.ADMIN_REQUIRE_2FA);
+
+      it("refuses an admin session that didn't pass the TOTP challenge (incl. enrolment tokens)", async () => {
+        for (const payload of [{ id: "admin-1" }, { id: "admin-1", scope: "admin-enrol" }, { id: "admin-1", mfa: "true" }]) {
+          const res = mockRes();
+          const next = jest.fn();
+          await auth.requireAdmin(bearerReq(jwt.sign(payload, SECRET)), res, next);
+          expect(res.statusCode).toBe(403);
+          expect(res.body.code).toBe("ADMIN_2FA_REQUIRED");
+          expect(next).not.toHaveBeenCalled();
+        }
+      });
+
+      it("accepts a session issued after the TOTP challenge", async () => {
+        const next = jest.fn();
+        await auth.requireAdmin(bearerReq(jwt.sign({ id: "admin-1", mfa: true }, SECRET)), mockRes(), next);
+        expect(next).toHaveBeenCalled();
+      });
+
+      it("is on by default in production and can be switched off explicitly", () => {
+        const { adminMfaRequired } = require("../../utility/adminMfa");
+        const env = process.env.NODE_ENV;
+        delete process.env.ADMIN_REQUIRE_2FA;
+        process.env.NODE_ENV = "production";
+        expect(adminMfaRequired()).toBe(true);
+        process.env.ADMIN_REQUIRE_2FA = "false";
+        expect(adminMfaRequired()).toBe(false);
+        process.env.NODE_ENV = env;
+        delete process.env.ADMIN_REQUIRE_2FA;
+        expect(adminMfaRequired()).toBe(false);
+      });
     });
   });
 
@@ -191,5 +263,80 @@ describe("auth guards", () => {
         )
       ).not.toThrow();
     });
+  });
+});
+
+// Regression: requireCampaignOwner used to check `req.body.id` before
+// `req.params.id`, letting an owner of campaign A delete/update campaign B by
+// sending {id: A} in the body of a request to /…/:id=B.
+describe("requireCampaignOwner (IDOR regression)", () => {
+  const OWNER = "60f7117f2ee78d31b4de0f01";
+  const MINE = "60f7117f2ee78d31b4de0aaa";
+  const VICTIM = "60f7117f2ee78d31b4de0bbb";
+  let auth;
+  let findById;
+
+  beforeAll(() => {
+    process.env.TOKEN_SECRET = SECRET;
+    jest.doMock("../../models/campaignModel", () => {
+      findById = jest.fn((id) => ({
+        select: () =>
+          Promise.resolve(
+            id === MINE
+              ? { organizerId: OWNER }
+              : id === VICTIM
+              ? { organizerId: "60f7117f2ee78d31b4de0f99" }
+              : null
+          ),
+      }));
+      return { Campaign: { findById } };
+    });
+    auth = require("../../utility/auth");
+  });
+
+  const run = async (req) => {
+    const res = mockRes();
+    const next = jest.fn();
+    await auth.requireCampaignOwner(
+      { body: {}, query: {}, params: {}, auth: { id: OWNER }, ...req },
+      res,
+      next
+    );
+    return { res, next };
+  };
+
+  it("rejects a body id that disagrees with the route id", async () => {
+    const { res, next } = await run({ params: { id: VICTIM }, body: { id: MINE } });
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects when the route names a campaign the caller does not own", async () => {
+    const { res, next } = await run({ params: { id: VICTIM } });
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects a funding request whose campaignId disagrees with body.id", async () => {
+    const { res } = await run({ body: { id: MINE, fundingRequest: { campaignId: VICTIM } } });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects any supplied organizerId that is not the caller", async () => {
+    const { res } = await run({
+      body: { id: MINE, organizerId: OWNER, fundingRequest: { organizerId: "someone-else" } },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("allows the owner when all ids agree", async () => {
+    const { res, next } = await run({ params: { id: MINE }, body: { id: MINE } });
+    expect(res.statusCode).toBeNull();
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 401 (not 403) when unauthenticated", async () => {
+    const { res } = await run({ auth: undefined, params: { id: VICTIM }, body: { id: MINE } });
+    expect(res.statusCode).toBe(401);
   });
 });

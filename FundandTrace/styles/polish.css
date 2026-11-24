@@ -1,0 +1,167 @@
+/* ==========================================================================
+   Fund&Trace — interaction & accessibility polish layer
+   Loaded after index.css. Keeps visual identity; adds the craft details a
+   payments product needs: visible keyboard focus, motion sensitivity,
+   comfortable touch targets, calmer form states and tabular money figures.
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(85, 99, 232, 0.18);
+  color: inherit;
+}
+
+/* (Not svg: inline icons inside padded buttons would collapse to 0 width.) */
+img,
+video {
+  max-width: 100%;
+}
+
+/* ---- Keyboard focus ---------------------------------------------------- */
+/* Many components reset `outline`, leaving keyboard users with no idea where
+   they are. Restore a consistent ring for keyboard (not mouse) focus. */
+:where(a, button, [role="button"], [role="tab"], input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* ---- Forms -------------------------------------------------------------- */
+.form-control,
+.form-select {
+  border-radius: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-focus-ring) !important;
+}
+
+.form-control::placeholder {
+  color: var(--color-text-subtle);
+  opacity: 1;
+}
+
+.form-control[aria-invalid="true"],
+.form-control.is-invalid {
+  border-color: var(--color-danger) !important;
+}
+
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Buttons ------------------------------------------------------------ */
+.btn {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease,
+    transform 0.08s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled,
+.btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Comfortable touch targets on phones (WCAG 2.5.8). */
+@media (pointer: coarse) {
+  .btn,
+  button,
+  [role="button"],
+  [role="tab"] {
+    min-height: 44px;
+  }
+}
+
+/* ---- Money & numbers ---------------------------------------------------- */
+.tabular-nums,
+.amount,
+.progress-label {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Progress bars ------------------------------------------------------ */
+.progress {
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- Scrollbars (desktop) ----------------------------------------------- */
+@media (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+  }
+}
+
+/* ---- Motion sensitivity -------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Bootstrap's .text-success (#198754) is 4.3:1 on our off-white canvas. */
+.text-success {
+  color: #146c43 !important;
+}
+
+/* Bootstrap's .text-danger (#dc3545, plus a pink tint somewhere) falls under
+   4.5:1 on our off-white surfaces. */
+.text-danger {
+  color: #b42318 !important;
+}
+
+/* Bootstrap's #0d6efd is just under 4.5:1 on off-white; use the brand blue. */
+.text-primary { color: var(--color-primary) !important; }
+
+/* ---- Performance on phones (FT-033) ----
+   Large blurs and backdrop-filter are among the most expensive things a
+   mid-range Android GPU paints, on every scroll frame. On small screens (and
+   for people who ask for less transparency) drop them; the translucent
+   backgrounds underneath stay, made slightly more opaque so text keeps its
+   contrast. */
+@media (max-width: 768px), (prefers-reduced-transparency: reduce) {
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .ambient-glow-orb-indigo,
+  .ambient-glow-orb-emerald {
+    display: none !important;
+  }
+  .glass-panel,
+  .glass-card-elevated {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+  }
+  .dark-theme .glass-panel,
+  .dark-theme .glass-card-elevated {
+    background-color: rgba(17, 24, 39, 0.96) !important;
+  }
+}

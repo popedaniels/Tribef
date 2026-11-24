@@ -4,8 +4,9 @@ import React from "react";
 
 import styled from "styled-components";
 import { toast } from "../../../store/slices/ToastSlice";
-import ForgotPasswordLayout from "./ForgotPasswordLayout";
+import ForgotPasswordLayout from "../../layouts/ForgotPasswordLayout";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function ForgotPasswordMail() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function ForgotPasswordMail() {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/resetPassword/sendResetMail/" +
           email
       );

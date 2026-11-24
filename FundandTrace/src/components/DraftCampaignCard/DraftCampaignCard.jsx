@@ -8,6 +8,7 @@ import { logout } from "../../../store/slices/authSlice";
 import { toast } from "../../../store/slices/ToastSlice";
 import { grabErrorStatus } from "../helperFunctions/helperFunctions";
 import styles from "./DraftCampaignCard.module.scss";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function DraftCampaignCard({ campaign, reload }) {
   const dispatch = useDispatch();
@@ -15,7 +16,7 @@ export default function DraftCampaignCard({ campaign, reload }) {
   const handleDelete = async () => {
     try {
       const res = await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/draft/delete/${campaign?._id}`,
+        `${getApiBaseUrl()}/api/campaigns/draft/delete/${campaign?._id}`,
         { withCredentials: true }
       );
       res && dispatch(toast(true, res?.data?.data, "success"));

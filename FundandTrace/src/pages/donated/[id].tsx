@@ -1,262 +1,225 @@
-import React, { useEffect, useState } from "react";
-import TopCampaignSection from "../../components/homepageComponents/topCampaignSection/TopCampaignSection";
-import WhySection from "../../components/homepageComponents/WhySection/WhySection";
-import Navbar from "../../components/Navbar/Navbar";
-import styles from "./donated.module.scss";
-import Footer from "../../components/Footer/Footer";
-import CommentModal from "../../components/composed/Modal/DefaultModal/CommentModal";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { GetServerSidePropsContext } from "next";
-import axios from "axios";
 import { useRouter } from "next/router";
-import { toast } from "../../../store/slices/ToastSlice";
+import axios from "axios";
 import { useSelector } from "react-redux";
-import { selectAuthStateState } from "../../../store/slices/authSlice";
+import type { GetServerSidePropsContext } from "next";
+
 import Layout from "../../components/Layout";
-import FundingRequestsComponent from "../../components/composed/fundingRequestComponent/FundingRequestComponent";
-import FeaturesGrid from "../../components/homepageComponents/FeaturesGrid/FeaturesGrid";
-import { useAppDispatch } from "./../../../store/hooks";
+import Navbar from "../../components/Navbar/Navbar";
+import Footer from "../../components/Footer/Footer";
+import TopCampaignSection from "../../components/homepageComponents/topCampaignSection/TopCampaignSection";
+import CommentModal from "../../components/composed/Modal/DefaultModal/CommentModal";
+import ShareModal from "../../components/composed/Modal/DefaultModal/ShareModal";
+import { whatsappShareUrl } from "../../utils/share";
+import { formatMoney } from "../../components/helperFunctions/helperFunctions";
+import { toast } from "../../../store/slices/ToastSlice";
+import { selectAuthStateState } from "../../../store/slices/authSlice";
+import { useAppDispatch } from "../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 import type { Campaign } from "../../types/campaign";
 import type { Campaign as ListedCampaign } from "../../types/campaigns";
-
-interface FundingRequestSummary {
-  status?: string;
-}
+import styles from "../../components/campaignPage/DonatedPage.module.scss";
 
 interface DonatedPageProps {
   campaign: Campaign | null;
-  fundingRequests: FundingRequestSummary[];
 }
 
-
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const campaignId = context.query.id;
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    const [fundingRequestsData, campaigndata] = await Promise.allSettled([
-      axios.get(`${apiUrl}/api/fundingRequests/fundingRequest/${campaignId}`, { timeout: 3000 }),
-      axios.get(`${apiUrl}/api/campaigns/campaign/${campaignId}`, { timeout: 3000 }),
-    ]);
-
-    const fundingRequests = fundingRequestsData.status === "fulfilled" ? fundingRequestsData.value?.data?.data : [];
-    const campaign = campaigndata.status === "fulfilled" ? campaigndata.value?.data?.data : null;
-
-    return {
-      props: {
-        campaign,
-        fundingRequests,
-      },
-    };
-  } catch (error) {
-    return {
-      props: {
-        campaign: null,
-        fundingRequests: [],
-      },
-    };
+    const res = await axios.get(`${getApiBaseUrl()}/api/campaigns/campaign/${context.query.id}`, { timeout: 3000 });
+    return { props: { campaign: res?.data?.data || null } };
+  } catch {
+    return { props: { campaign: null } };
   }
 }
 
-export default function DonatedPage({
-  campaign,
-  fundingRequests,
-}: DonatedPageProps) {
-  const [campaigns, setCampaigns] = useState<ListedCampaign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+const q = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || "";
+
+export default function DonatedPage({ campaign }: DonatedPageProps) {
   const router = useRouter();
-  const { status, name, email, amount, campaignId, anonymous } = router.query;
   const dispatch = useAppDispatch();
   const { authenticated } = useSelector(selectAuthStateState);
-  const [remove, setRemove] = useState(false);
+  const [related, setRelated] = useState<ListedCampaign[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(true);
+  const [showComment, setShowComment] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [follow, setFollow] = useState<"ask" | "saving" | "yes" | "no">("ask");
+
+  const status = q(router.query.status);
+  const name = q(router.query.name);
+  const email = q(router.query.email);
+  const amount = Number(q(router.query.amount));
+  const campaignId = q(router.query.campaignId) || campaign?._id || "";
+  const monthlyStarted = status === "subscription_started";
+  const success = status === "successful" || monthlyStarted;
 
   useEffect(() => {
-    status == "successful" &&
-      setTimeout(() => {
-        setShowModal(true);
-      }, 1000);
-  }, [status]);
+    axios
+      .get(`${getApiBaseUrl()}/api/campaigns`)
+      .then((r) => setRelated((r?.data?.data || []).filter((c: ListedCampaign) => c._id !== campaign?._id)))
+      .catch(() => setRelated([]))
+      .finally(() => setRelatedLoading(false));
+  }, [campaign?._id]);
 
-  const getAllCampaigns = async () => {
+  const followCampaign = async () => {
+    setFollow("saving");
     try {
-      const campaigns = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL + "/api/campaigns"
-      );
-
-      campaigns && setCampaigns(campaigns?.data?.data);
-      campaigns && setLoading(false);
+      await axios.post(`${getApiBaseUrl()}/api/campaignEmailWhitelist`, { email, campaignId });
+      setFollow("yes");
     } catch (error) {
-      setLoading(false);
+      const e = error as { response?: { data?: { error?: string } } };
+      const msg = e?.response?.data?.error || "";
+      // Already following counts as success.
+      if (/already/i.test(msg)) setFollow("yes");
+      else {
+        setFollow("ask");
+        dispatch(toast(true, msg || "We couldn't save that. Please try again.", "error"));
+      }
     }
   };
 
-  useEffect(() => {
-    getAllCampaigns();
-  }, []);
-
-  useEffect(() => {
-    if (status == "successful") {
-      dispatch(toast(true, "Payment Successful", "success"));
-    }
-  }, [status, dispatch]);
-
-  const handleWhitelist = async () => {
-    try {
-      const whitelist = { email, campaignId };
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/campaignEmailWhitelist`,
-        whitelist
-      );
-      res && dispatch(toast(true, "Added to tracking list", "success"));
-      setRemove(true);
-    } catch (error) {
-      dispatch(toast(true, error?.response?.data?.error, "error"));
-      error?.response?.data?.error?.includes("Server error.")
-        ? null
-        : setRemove(true);
-    }
-  };
+  const title = campaign?.basicInformation?.campaignTitle || "this campaign";
+  const currency = campaign?.funding?.currency || "USD";
+  const firstName = name.split(" ")[0];
 
   return (
-    <Layout
-      title={`Thank You | ${campaign?.basicInformation?.campaignTitle}`}
-      description="Donation Successful!"
-      ogImage={`${campaign?.basicInformation?.campaignImage}`}
-    >
-      <div>
-        <Navbar />
-      </div>
-      <div className="custom-container">
-        <div className="border-bottom" style={{ borderColor: "#C4C4C4" }}>
-          <div className={styles.acknowledgement}>
-            <h2 className="text-heading mb-0">
-              Thank you for contributing to{" "}
-              {campaign?.basicInformation?.campaignTitle}.
-            </h2>
-            <h2 className="text-heading mb-0">
-              Your donation has been received!
-            </h2>
-            <p className="text-small">A receipt has been sent to your email </p>
-          </div>
-        </div>
-      </div>
-      {!remove && (
-        <div className="custom-container mb-5 pb-2">
-          <h2 className="text-big text-center mt-5 mb-3">
-            Would you like to receive updates about this campaign?
-          </h2>
-          <p
-            className={[
-              styles.paragraph,
-              "text-small mx-auto text-center",
-            ].join(" ")}
-          >
-            As a donor, funding statements of the campaign will be sent to your
-            email from time to time as funding requests are made.
-          </p>
-          <div
-            style={{ maxWidth: 650 }}
-            className="d-flex align-items-center flex-column flex-md-row my-4 mx-auto"
-          >
-            <button
-              className="mr-md-3 px-4 btn w-100 w-md-auto mb-3 mb-md-0"
-              style={{
-                color: "var(--color-primary)",
-                minWidth: "max-content",
-                background: "white",
-                border: "0.5px solid var(--color-primary)",
-                borderRadius: 4,
-                paddingTop: 15,
-                paddingBottom: 15,
-              }}
-              onClick={() => setRemove(true)}
-            >
-              No, I don’t need updates
-            </button>
-            <button
-              className="px-4 w-100 btn"
-              style={{
-                minWidth: "max-content",
-                color: "white",
-                background: "var(--color-primary)",
-                borderRadius: 4,
-                paddingTop: 15,
-                paddingBottom: 15,
-              }}
-              onClick={handleWhitelist}
-            >
-              Yes, I would like to track this campaign
-            </button>
-          </div>
-        </div>
-      )}
-      {/* <div
-        className="mb-5 pb-2 mx-auto custom-container pt-5"
-        style={{ maxWidth: 800 }}
-      >
-        {fundingRequests?.length ? (
-          fundingRequests?.map(
-            (fundingRequest, i) =>
-              fundingRequest?.status == "Approved" && (
-                <FundingRequestsComponent
-                  campaign={campaign}
-                  key={i}
-                  fundingRequest={fundingRequest}
-                />
-              )
-          )
-        ) : (
-          <div className="custom-container mx-auto">
-            <h2 className="text-center text-medium mt-2 mb-0">
-              No funding Requests for this campaign yet!
-            </h2>
-          </div>
-        )}
-      </div> */}
-      <div className="mb-4 mt-5 pt-2">
-        {!authenticated && (
-          <div className="custom-container">
-            <div className={styles.signUpSection}>
-              <h2 className="text-big mb-3 text-center">
-                Sign up on our platform!
-              </h2>
-              {/* <p className="text-small mb-3 text-center">
-                Get more interesting features on our platform and get live
-                updates of campaigns near you!
-              </p> */}
-              <Link href="/SignUp" passHref>
-                <button className="btn text-white mt-2">
-                  Join Fund&Trace!
-                </button>
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-      <FeaturesGrid />
+    <Layout title={success ? `Thank you · ${title}` : `Donation · ${title}`} description={`Your donation to ${title}`} ogImage={campaign?._id ? `https://fundandtrace.com/api/og/campaign/${campaign._id}` : undefined}>
+      <Navbar />
+      <main className={styles.page}>
+        <div className={styles.container}>
+          {success ? (
+            <section className={styles.hero} aria-labelledby="thanks-title">
+              <span className={styles.check} aria-hidden="true">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5 9-9" /></svg>
+              </span>
+              <h1 id="thanks-title">Thank you{firstName ? `, ${firstName}` : ""}!</h1>
+              <p className={styles.lead}>
+                {monthlyStarted ? (
+                  <>
+                    Your monthly gift to <strong>{title}</strong> is set up. You can change or cancel it any time under Dashboard → Subscriptions.
+                  </>
+                ) : (
+                  <>
+                    Your {amount > 0 ? <strong>{formatMoney(amount, currency)}</strong> : "donation"} to <strong>{title}</strong> is confirmed.
+                  </>
+                )}
+                {email ? <> A receipt is on its way to <strong>{email}</strong>.</> : " A receipt is on its way to your inbox."}
+              </p>
+            </section>
+          ) : (
+            <section className={styles.hero} aria-labelledby="thanks-title">
+              <h1 id="thanks-title">We&apos;re confirming your payment</h1>
+              <p className={styles.lead}>
+                If your payment went through, you&apos;ll get a receipt by email within a few minutes. If you don&apos;t, you haven&apos;t been charged
+                and you can try again.
+              </p>
+              {campaign?._id && (
+                <Link href={`/donate/${campaign._id}`} className="ft-btn ft-btn--secondary">
+                  Back to the donation page
+                </Link>
+              )}
+            </section>
+          )}
 
-      <div className="mt-5 pt-5">
-        <TopCampaignSection
-          title="Donate"
-          heading="Find a campaign near you"
-          data={campaigns}
-          loading={loading}
-        />
-      </div>
+          {success && (
+            <>
+              <section className={styles.next} aria-labelledby="next-title">
+                <h2 id="next-title">What happens to your money</h2>
+                <ol>
+                  <li>
+                    <strong>It&apos;s held in escrow.</strong> The organiser can&apos;t withdraw it in one go.
+                  </li>
+                  <li>
+                    <strong>It&apos;s released in stages.</strong> Each payout is a request with a stated purpose that our team reviews. Where possible
+                    it&apos;s paid straight to the supplier.
+                  </li>
+                  <li>
+                    <strong>You can check every step.</strong> Payouts, receipts and your donation are on the campaign&apos;s public ledger.
+                  </li>
+                </ol>
+                {campaign?._id && (
+                  <Link href={`/campaign/${campaign._id}/tracker`} className="ft-btn ft-btn--link">
+                    Open the money tracker →
+                  </Link>
+                )}
+              </section>
+
+              <div className={styles.actions}>
+                <section className={styles.card} aria-labelledby="follow-title">
+                  <h2 id="follow-title">Get spending updates</h2>
+                  {follow === "yes" ? (
+                    <p className={styles.ok} role="status">
+                      Done. We&apos;ll email {email || "you"} whenever money is paid out from this campaign.
+                    </p>
+                  ) : follow === "no" ? (
+                    <p className="ft-muted">No problem. You can always check the tracker.</p>
+                  ) : (
+                    <>
+                      <p>We&apos;ll email you each time money is paid out, with what it was for.</p>
+                      <div className={styles.buttons}>
+                        <button type="button" className="ft-btn ft-btn--primary" onClick={followCampaign} disabled={!email || follow === "saving"}>
+                          {follow === "saving" ? "Saving…" : "Yes, email me updates"}
+                        </button>
+                        <button type="button" className="ft-btn ft-btn--quiet" onClick={() => setFollow("no")}>
+                          No thanks
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </section>
+
+                <section className={styles.card} aria-labelledby="share-title">
+                  <h2 id="share-title">Help it reach its goal</h2>
+                  <p>Campaigns shared by donors raise far more. One message to friends or family makes a difference.</p>
+                  <div className={styles.buttons}>
+                    {campaign && (
+                      <a
+                        className="ft-btn ft-btn--primary"
+                        style={{ background: "#075e54", borderColor: "#075e54" }}
+                        href={whatsappShareUrl({
+                          title,
+                          url: `https://fundandtrace.com/campaign/${campaign._id}?ref=wa`,
+                          raised: Number(campaign.funding?.amountRaised) || 0,
+                          goal: Number(campaign.funding?.amountExpected) || 0,
+                          currency,
+                          donated: amount,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Share on WhatsApp
+                      </a>
+                    )}
+                    <button type="button" className="ft-btn ft-btn--secondary" onClick={() => setShowShare(true)}>
+                      More ways to share
+                    </button>
+                    {authenticated && (
+                      <button type="button" className="ft-btn ft-btn--quiet" onClick={() => setShowComment(true)}>
+                        Leave a message
+                      </button>
+                    )}
+                  </div>
+                </section>
+              </div>
+
+              {!authenticated && (
+                <p className={styles.account}>
+                  <Link href="/SignUp">Create a free account</Link> to see all your donations in one place and request refunds.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        <TopCampaignSection heading="Other campaigns that need support" tag="Keep giving" data={related} loading={relatedLoading} />
+      </main>
       <Footer />
+      {campaign && <ShareModal campaign={campaign} showModal={showShare} onModalClose={() => setShowShare(false)} />}
       <CommentModal
-        details={{
-          name: name,
-          email: email,
-          campaignId: campaignId,
-          amount: amount,
-          time: Date.now(),
-        }}
-        showModal={showModal}
-        onModalClose={() => {
-          setShowModal(false);
-          window.history.replaceState(null, "", `/donated/${campaign?._id}`);
-        }}
+        details={{ name, email, campaignId, time: Date.now() }}
+        showModal={showComment}
+        onModalClose={() => setShowComment(false)}
       />
     </Layout>
   );

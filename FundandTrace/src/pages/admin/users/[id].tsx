@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../../../layouts/AdminLayout";
 import Layout from "../../../components/Layout";
 import CampaignSearch from "../../../components/adminCampaignPageComponents/campaignSearch";
 import { useCallback, useState } from "react";
@@ -15,6 +15,7 @@ import AdminSendEmailModal from "../../../components/composed/Modal/DefaultModal
 import SuspendUserModal from "../../../components/composed/Modal/DefaultModal/SuspendUserModal";
 import UnsuspendUserModal from "../../../components/composed/Modal/DefaultModal/UnsuspendUserModal";
 import type { Campaign } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface UserDetails {
   _id?: string;
@@ -45,7 +46,7 @@ export default function UsersDetailsPage() {
 
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/user/${router.query.id}`,
+        `${getApiBaseUrl()}/api/admin/user/${router.query.id}`,
         config()
       );
       res && setUser(res?.data?.data);
@@ -85,14 +86,14 @@ export default function UsersDetailsPage() {
                   <article className="top py-4 px-4 d-flex align-items-start justify-content-between">
                     <div className="d-flex">
                       <Link href={`/admin/users`} passHref>
-                        <a>
-                          <img
-                            src="/images/icons/back.svg"
-                            alt="back button"
-                            width="16px"
-                            height="16px"
-                          />
-                        </a>
+
+                        <img
+                          src="/images/icons/back.svg"
+                          alt="back button"
+                          width="16px"
+                          height="16px"
+                        />
+
                       </Link>
                       <div className="mx-4">
                         {user?.profile ? (
@@ -111,7 +112,7 @@ export default function UsersDetailsPage() {
                               height: 58,
                               background: "#F0F0F0",
                               borderRadius: "50%",
-                              color: "#A3A3A3",
+                              color: "#5f6672",
                               fontSize: 12,
                             }}
                           >

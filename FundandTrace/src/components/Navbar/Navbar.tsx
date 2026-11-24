@@ -89,19 +89,19 @@ const Navbar = ({ white = false }) => {
         <div className="d-flex justify-content-between align-items-center w-100 custom-container">
           <div className="d-none d-lg-block">
             <Link href="/" passHref>
-              <a>
-                {white ? (
-                  <Image src="/images/draftImage.png" width={78} height={55} alt="Fund&Trace" priority />
-                ) : (
-                  <Image
-                    src="/images/logo.png"
-                    alt="logo"
-                    width={78}
-                    height={55}
-                    priority
-                  />
-                )}
-              </a>
+
+              {white ? (
+                <Image src="/images/draftImage.png" width={78} height={55} alt="Fund&Trace" priority />
+              ) : (
+                <Image
+                  src="/images/logo.png"
+                  alt="logo"
+                  width={78}
+                  height={55}
+                  priority
+                />
+              )}
+
             </Link>
           </div>
           <Menu
@@ -109,32 +109,36 @@ const Navbar = ({ white = false }) => {
             onClick={() => setShowmenu(true)}
             color={white ? "white" : undefined}
             role="button"
+            tabIndex={0}
+            aria-label="Open menu"
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setShowmenu(true)}
           >
             <div className="bars bar1"></div>
             <div className="bars bar2"></div>
             <div className="bars bar3"></div>
           </Menu>
-          <Link href="/" passHref>
-            <a
-              onClick={showModal ? () => setShowModal(false) : undefined}
-              className="d-block d-lg-none"
-              role="button"
-            >
-              <Image
-                src={white ? "/images/draftImage.png" : "/images/logo.png"}
-                alt="logo"
-                width={63}
-                height={48}
-                priority
-              />
-            </a>
+          <Link
+            href="/"
+            passHref
+            onClick={showModal ? () => setShowModal(false) : undefined}
+            className="d-block d-lg-none"
+            aria-label="Fund&Trace home">
+
+            <Image
+              src={white ? "/images/draftImage.png" : "/images/logo.png"}
+              alt="logo"
+              width={63}
+              height={48}
+              priority
+            />
+
           </Link>
           <div className="d-lg-none d-flex align-items-center">
             <div className="mr-3">
               <ThemeToggle white={white} />
             </div>
             {!white ? (
-              <Link href="/search" passHref>
+              <Link href="/search" passHref legacyBehavior>
                 <img
                   src="/images/icons/search.svg"
                   width={20}
@@ -142,7 +146,7 @@ const Navbar = ({ white = false }) => {
                  alt="Search" />
               </Link>
             ) : (
-              <Link href="/search" passHref>
+              <Link href="/search" passHref legacyBehavior>
                 <img
                   src="/images/whiteSearch.svg"
                   width={20}
@@ -165,14 +169,15 @@ const Navbar = ({ white = false }) => {
               ].join(" ")}
               style={{ position: "relative" }}
             >
-              <div
-                style={{ position: "absolute", right: 23, top: 25 }}
+              <button
+                type="button"
+                style={{ position: "absolute", right: 8, top: 10, width: 44, height: 44, fontSize: 22, lineHeight: 1 }}
                 onClick={() => setShowmenu(false)}
-                className="font-weight-medium"
-                role="button"
+                className="ft-plain font-weight-medium"
+                aria-label="Close menu"
               >
-                X
-              </div>
+                ×
+              </button>
               <Image
                 src="/images/logo.png"
                 alt="logo"
@@ -182,119 +187,80 @@ const Navbar = ({ white = false }) => {
                 priority
               />
               <ul>
-                <Link href="/" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Home
-                    </li>
-                  </a>
-                </Link>
-                <Link href="/search" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Search
-                    </li>
-                  </a>
-                </Link>
-                <Link href="/workings" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      How It Works
-                    </li>
-                  </a>
-                </Link>
-                <Link href="/Categories" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Explore
-                    </li>
-                  </a>
-                </Link>
-                <Link href="/contact" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Contact
-                    </li>
-                  </a>
-                </Link>
+                <li>
+                  <Link href="/" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/search" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    Search
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/workings" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    How It Works
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/Categories" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    Explore
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    Contact
+                  </Link>
+                </li>
                 {!authenticated ? (
                   <>
-                    <Link href="/SignUp/SignIn" passHref>
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signInBtn}
-                          role="button"
-                        >
-                          Sign In
-                        </li>
-                      </a>
-                    </Link>
-                    <Link
-                      href={authenticated ? "/StartACampaign" : "/SignUp"}
-                      passHref
-                    >
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signUpBtn}
-                          role="button"
-                        >
-                          Start a campaign
-                        </li>
-                      </a>
-                    </Link>
+                    <li className={styles.signInBtn}>
+                      <Link href="/SignUp/SignIn" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                        Sign in
+                      </Link>
+                    </li>
+                    <li className={styles.signUpBtn}>
+                      <Link href={authenticated ? "/StartACampaign" : "/SignUp"} style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                        Start a campaign
+                      </Link>
+                    </li>
                   </>
                 ) : (
                   <>
-                    <li
-                      onClick={() => {
-                        dispatch(logout());
-                        setShowmenu(false);
-                      }}
-                      role="button"
-                      className={styles.signInBtn}
-                    >
-                      Sign Out
+                    <li className={styles.signInBtn}>
+                      <button
+                        type="button"
+                        className="ft-plain"
+                        style={{ width: "100%", textAlign: "center" }}
+                        onClick={() => {
+                          dispatch(logout());
+                          setShowmenu(false);
+                        }}
+                      >
+                        Sign Out
+                      </button>
                     </li>
-                    <Link
-                      href={authenticated ? "/StartACampaign" : "/SignUp"}
-                      passHref
-                    >
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signUpBtn}
-                        >
-                          Start a campaign
-                        </li>
-                      </a>
-                    </Link>
-                    <Link
-                      href={authenticated ? "/dashboard" : "/SignUp/SignIn"}
-                      passHref
-                    >
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signUpBtn}
-                          role="button"
-                        >
-                          Go to dashboard
-                        </li>
-                      </a>
-                    </Link>
+                    <li className={styles.signUpBtn}>
+                      <Link href={authenticated ? "/StartACampaign" : "/SignUp"} style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                        Start a campaign
+                      </Link>
+                    </li>
+                    <li className={styles.signUpBtn}>
+                      <Link href={authenticated ? "/dashboard" : "/SignUp/SignIn"} style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                        Go to dashboard
+                      </Link>
+                    </li>
                   </>
                 )}
-                <div className="mt-4 d-flex justify-content-center w-100">
+                <li className="mt-4 d-flex justify-content-center w-100">
                   <ThemeToggle />
-                </div>
+                </li>
               </ul>
             </div>
           </div>
 
           <div className="d-lg-flex align-items-center justify-content-end w-100 d-none">
-            <Link href="/search" passHref>
+            <Link href="/search" passHref legacyBehavior>
               <div
                 className="d-flex align-items-center justify-content-center mr-4 mr-xl-4"
                 style={{ cursor: "pointer" }}
@@ -347,13 +313,13 @@ const Navbar = ({ white = false }) => {
               />
               <div className={[styles.howDropdown].join(" ")}>
                 <ul className="shadow">
-                  <Link href="/workings" passHref>
+                  <Link href="/workings" passHref legacyBehavior>
                     <li>How Fund&Trace Works</li>
                   </Link>
-                  <Link href="/fundraisingIdeas" passHref>
+                  <Link href="/fundraisingIdeas" passHref legacyBehavior>
                     <li>Fundraising ideas</li>
                   </Link>
-                  <Link href="/fundraising-stories" passHref>
+                  <Link href="/fundraising-stories" passHref legacyBehavior>
                     <li>Fundraising Stories</li>
                   </Link>
                 </ul>
@@ -388,29 +354,29 @@ const Navbar = ({ white = false }) => {
                   <p className="text-blue">Categories</p>
 
                   <Link href="/category/medical" passHref>
-                    <a>
-                      <li>Medical</li>
-                    </a>
+
+                    <li>Medical</li>
+
                   </Link>
 
                   <Link href="/category/emergency" passHref>
-                    <a>
-                      <li>Emergency</li>
-                    </a>
+
+                    <li>Emergency</li>
+
                   </Link>
 
                   <Link href="/category/nonprofit" passHref>
-                    <a>
-                      <li>Non-profit</li>
-                    </a>
+
+                    <li>Non-profit</li>
+
                   </Link>
                   <Link href="/category/environment" passHref>
-                    <a>
-                      <li>Environment</li>
-                    </a>
+
+                    <li>Environment</li>
+
                   </Link>
 
-                  <Link href="/Categories" passHref>
+                  <Link href="/Categories" passHref legacyBehavior>
                     <li className="text-blue text-center w-full mb-0 border-top pt-3">
                       See all
                     </li>
@@ -420,13 +386,13 @@ const Navbar = ({ white = false }) => {
             </div>
 
             <div className="mr-4 mr-xl-4">
-              <Link href="/contact">
-                <a
-                  className={`${white && "text-white"}`}
-                  style={{ fontSize: 14, fontWeight: 400 }}
-                >
+              <Link
+                href="/contact"
+                className={`${white && "text-white"}`}
+                style={{ fontSize: 14, fontWeight: 400 }}>
+                
                   Contact
-                </a>
+                
               </Link>
             </div>
             {!authenticated ? (
@@ -434,19 +400,20 @@ const Navbar = ({ white = false }) => {
                 className="mr-4 mr-xl-4 bg-transparent"
                 color={white ? "white" : undefined}
               >
-                <Link href="/SignUp/SignIn">
+                <Link href="/SignUp/SignIn" legacyBehavior>
                   <button
-                    className={styles.signInBtn}
+                    type="button"
+                    className={`ft-btn ft-btn--secondary ${styles.signInBtn}`}
                     style={{
                       background: white ? "transparent" : undefined,
                       color: white ? "white" : undefined,
                       border: white ? "1px solid white" : undefined,
                       width: "100%",
                       fontSize: 14,
-                      fontWeight: 400,
+                      fontWeight: 600,
                     }}
                   >
-                    Sign In
+                    Sign in
                   </button>
                 </Link>
               </Wrapper1>
@@ -468,8 +435,8 @@ const Navbar = ({ white = false }) => {
                     : router.push("/SignUp")
                 }
               >
-                <p className="mb-0" style={{ fontSize: 14, fontWeight: 400 }}>
-                  Start a Campaign
+                <p className="mb-0" style={{ fontSize: 14, fontWeight: 700 }}>
+                  Start a campaign
                 </p>
               </button>
             </Wrapper>
@@ -505,7 +472,7 @@ const Navbar = ({ white = false }) => {
                       height: 40,
                       background: "#F0F0F0",
                       borderRadius: "50%",
-                      color: "#A3A3A3",
+                      color: "#5f6672",
                       fontSize: 12,
                     }}
                   >
@@ -534,24 +501,26 @@ const Navbar = ({ white = false }) => {
                     <Link
                       href={authenticated ? "/dashboard" : "/SignUpSignIn"}
                       passHref
-                    >
+                      legacyBehavior>
                       <li>Go to Dashboard</li>
                     </Link>
-                    <Link href="/dashboard" passHref>
+                    <Link href="/dashboard" passHref legacyBehavior>
                       <li>My Campaigns</li>
                     </Link>
-                    <Link href="/dashboard/account" passHref>
+                    <Link href="/dashboard/account" passHref legacyBehavior>
                       <li>My Account</li>
                     </Link>
-                    <Link href="/dashboard/my-contributions" passHref>
+                    <Link href="/dashboard/my-contributions" passHref legacyBehavior>
                       <li>My Contributions</li>
                     </Link>
-                    <Link href="/dashboard/settings" passHref>
+                    <Link href="/dashboard/settings" passHref legacyBehavior>
                       <li>Settings</li>
                     </Link>
 
-                    <li role="button" onClick={() => dispatch(logout())}>
-                      Logout
+                    <li>
+                      <button type="button" className="ft-plain" onClick={() => dispatch(logout())}>
+                        Logout
+                      </button>
                     </li>
                   </ul>
                 </div>
@@ -587,53 +556,58 @@ const Navbar = ({ white = false }) => {
       >
         <div className="custom-container d-flex justify-content-between align-items-center">
           <div className="d-none d-lg-block">
-            <Link href="/" passHref>
-              <a
-                role="button"
-                onClick={showModal ? () => setShowModal(false) : undefined}
-              >
-                {
-                  <Image
-                    src="/images/logo.png"
-                    alt="logo"
-                    width={78}
-                    height={55}
-                    priority
-                  />
-                }
-              </a>
+            <Link
+              href="/"
+              passHref
+              aria-label="Fund&Trace home"
+              onClick={showModal ? () => setShowModal(false) : undefined}>
+
+              {
+                <Image
+                  src="/images/logo.png"
+                  alt="logo"
+                  width={78}
+                  height={55}
+                  priority
+                />
+              }
+
             </Link>
           </div>
           <Menu
             className="d-block d-lg-none"
             role="button"
+            tabIndex={0}
+            aria-label="Open menu"
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setShowmenu(true)}
             onClick={() => setShowmenu(true)}
           >
             <div className="bars bar1"></div>
             <div className="bars bar2"></div>
             <div className="bars bar3"></div>
           </Menu>
-          <Link href="/" passHref>
-            <a
-              onClick={showModal ? () => setShowModal(false) : undefined}
-              className="d-block d-lg-none"
-              role="button"
-            >
-              <Image src="/images/logo.png" alt="logo" width={63} height={48} priority />
-            </a>
+          <Link
+            href="/"
+            passHref
+            onClick={showModal ? () => setShowModal(false) : undefined}
+            className="d-block d-lg-none"
+            aria-label="Fund&Trace home">
+
+            <Image src="/images/logo.png" alt="logo" width={63} height={48} priority />
+
           </Link>
           <div className="d-lg-none d-flex align-items-center">
             <div className="mr-3">
               <ThemeToggle />
             </div>
-            <Link href="/search" passHref>
-              <a style={{ textDecoration: "none" }}>
-                <img
-                  src="/images/icons/search.svg"
-                  width={20}
-                  height={20}
-                 alt="Search" />
-              </a>
+            <Link href="/search" passHref style={{ textDecoration: "none" }}>
+
+              <img
+                src="/images/icons/search.svg"
+                width={20}
+                height={20}
+               alt="Search" />
+
             </Link>
           </div>
           <div
@@ -646,14 +620,15 @@ const Navbar = ({ white = false }) => {
               ].join(" ")}
               style={{ position: "relative" }}
             >
-              <div
-                style={{ position: "absolute", right: 23, top: 25 }}
+              <button
+                type="button"
+                style={{ position: "absolute", right: 8, top: 10, width: 44, height: 44, fontSize: 22, lineHeight: 1 }}
                 onClick={() => setShowmenu(false)}
-                className="font-weight-bold"
-                role="button"
+                className="ft-plain font-weight-bold"
+                aria-label="Close menu"
               >
-                X
-              </div>
+                ×
+              </button>
               <Image
                 src="/images/logo.png"
                 alt="logo"
@@ -663,65 +638,43 @@ const Navbar = ({ white = false }) => {
                 priority
               />
               <ul>
-                <Link href="/" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Home
-                    </li>
-                  </a>
-                </Link>
-                <Link href="/search" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Search
-                    </li>
-                  </a>
-                </Link>
-                <Link href="/workings" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      How It Works
-                    </li>
-                  </a>
-                </Link>
-                <Link href="/Categories" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Explore
-                    </li>
-                  </a>
-                </Link>
-                <Link href="/contact" passHref>
-                  <a style={{ textDecoration: "none" }}>
-                    <li onClick={() => setShowmenu(false)} role="button">
-                      Contact
-                    </li>
-                  </a>
-                </Link>
+                <li>
+                  <Link href="/" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/search" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    Search
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/workings" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    How It Works
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/Categories" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    Explore
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                    Contact
+                  </Link>
+                </li>
                 {!authenticated ? (
                   <>
-                    <Link href="/SignUp/SignIn" passHref>
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signInBtn}
-                          role="button"
-                        >
-                          Sign In
-                        </li>
-                      </a>
-                    </Link>
-                    <Link href="/SignUp" passHref>
-                      <a style={{ textDecoration: "none" }}>
-                        <li
-                          onClick={() => setShowmenu(false)}
-                          className={styles.signUpBtn}
-                          role="button"
-                        >
-                          Sign Up
-                        </li>
-                      </a>
-                    </Link>{" "}
+                    <li className={styles.signInBtn}>
+                      <Link href="/SignUp/SignIn" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                        Sign in
+                      </Link>
+                    </li>
+                    <li className={styles.signUpBtn}>
+                      <Link href="/SignUp" style={{ textDecoration: "none", color: "inherit", display: "block" }} onClick={() => setShowmenu(false)}>
+                        Sign Up
+                      </Link>
+                    </li>{" "}
                   </>
                 ) : (
                   <li
@@ -740,7 +693,7 @@ const Navbar = ({ white = false }) => {
           </div>
 
           <div className="d-lg-flex align-items-center justify-content-end w-100 d-none">
-            <Link href="/search" passHref>
+            <Link href="/search" passHref legacyBehavior>
               <div
                 className="d-flex align-items-center justify-content-center mr-4 mr-xl-4"
                 style={{ cursor: "pointer" }}
@@ -781,13 +734,13 @@ const Navbar = ({ white = false }) => {
               />
               <div className={[styles.howDropdown].join(" ")}>
                 <ul className="shadow">
-                  <Link href="/workings" passHref>
+                  <Link href="/workings" passHref legacyBehavior>
                     <li>How Fund&Trace Works</li>
                   </Link>
-                  <Link href="/fundraisingIdeas" passHref>
+                  <Link href="/fundraisingIdeas" passHref legacyBehavior>
                     <li>Fundraising ideas</li>
                   </Link>
-                  <Link href="/fundraising-stories" passHref>
+                  <Link href="/fundraising-stories" passHref legacyBehavior>
                     <li>Fundraising Stories</li>
                   </Link>
                 </ul>
@@ -818,29 +771,29 @@ const Navbar = ({ white = false }) => {
                   <p className="text-blue">Categories</p>
 
                   <Link href="/category/medical" passHref>
-                    <a>
-                      <li>Medical</li>
-                    </a>
+
+                    <li>Medical</li>
+
                   </Link>
 
                   <Link href="/category/emergency" passHref>
-                    <a>
-                      <li>Emergency</li>
-                    </a>
+
+                    <li>Emergency</li>
+
                   </Link>
 
                   <Link href="/category/nonprofit" passHref>
-                    <a>
-                      <li>Non-profit</li>
-                    </a>
+
+                    <li>Non-profit</li>
+
                   </Link>
                   <Link href="/category/environment" passHref>
-                    <a>
-                      <li>Environment</li>
-                    </a>
+
+                    <li>Environment</li>
+
                   </Link>
 
-                  <Link href="/Categories" passHref>
+                  <Link href="/Categories" passHref legacyBehavior>
                     <li className="text-blue text-center w-full mb-0 pt-3 border-top">
                       See all
                     </li>
@@ -856,7 +809,7 @@ const Navbar = ({ white = false }) => {
             </div>
             {!authenticated ? (
               <div className="mr-4 mr-xl-4">
-                <Link href="/SignUp/SignIn">
+                <Link href="/SignUp/SignIn" legacyBehavior>
                   <button
                     className={styles.signInBtn}
                     style={{ color: "var(--color-primary)", fontSize: 14, fontWeight: 400 }}
@@ -914,7 +867,7 @@ const Navbar = ({ white = false }) => {
                       height: 40,
                       background: "#F0F0F0",
                       borderRadius: "50%",
-                      color: "#A3A3A3",
+                      color: "#5f6672",
                       fontSize: 12,
                     }}
                   >
@@ -936,19 +889,19 @@ const Navbar = ({ white = false }) => {
                     <Link
                       href={authenticated ? "/dashboard" : "/SignUpSignIn"}
                       passHref
-                    >
+                      legacyBehavior>
                       <li>Go to Dashboard</li>
                     </Link>
-                    <Link href="/dashboard" passHref>
+                    <Link href="/dashboard" passHref legacyBehavior>
                       <li>My Campaigns</li>
                     </Link>
-                    <Link href="/dashboard/account" passHref>
+                    <Link href="/dashboard/account" passHref legacyBehavior>
                       <li>My Account</li>
                     </Link>
-                    <Link href="/dashboard/my-contributions" passHref>
+                    <Link href="/dashboard/my-contributions" passHref legacyBehavior>
                       <li>My Contributions</li>
                     </Link>
-                    <Link href="/dashboard/settings" passHref>
+                    <Link href="/dashboard/settings" passHref legacyBehavior>
                       <li>Settings</li>
                     </Link>
 
@@ -980,6 +933,10 @@ const Navbar = ({ white = false }) => {
 };
 
 const Menu = styled.div`
+  /* 44x44 touch target around the 18px icon, without moving it. */
+  padding: 14px 13px;
+  margin: -14px -13px;
+  cursor: pointer;
   .bars {
     width: 18px;
     margin-bottom: 5px;

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useEffect } from "react";
 import styled from "styled-components";
 import Spinner from "../../components/composed/spinner/Spinner";
+import { getApiBaseUrl } from "../../utils/api";
 
 interface Charity {
   _id?: string;
@@ -17,7 +18,7 @@ export default function Charities() {
   const getCharities = async () => {
     try {
       const res = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL + "/api/charities"
+        getApiBaseUrl() + "/api/charities"
       );
       res && setLoading(false);
       res && setCharities(res?.data?.data);
@@ -31,16 +32,15 @@ export default function Charities() {
   }, []);
 
   return (
-    <Wrapper>
-      these are the charities in our db
-      {loading ? (
+    <Wrapper>these are the charities in our db
+            {loading ? (
         <Spinner type="TailSpin" width={25} height={25} color={"var(--color-primary)"} />
       ) : (
         charities?.map((charity, i) => (
           <Link key={i} passHref href={`/charities/${charity?._id}`}>
-            <a>
-              <div>{charity?.charityName}</div>
-            </a>
+
+            <div>{charity?.charityName}</div>
+
           </Link>
         ))
       )}

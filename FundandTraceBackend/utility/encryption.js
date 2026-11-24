@@ -1,5 +1,12 @@
 const crypto = require("crypto");
 
+if (!process.env.SECURITY_KEY) {
+  // Fail with an actionable message instead of Buffer.from's opaque
+  // ERR_INVALID_ARG_TYPE. Generate one with: node scripts/generate-secrets.js
+  throw new Error(
+    "SECURITY_KEY is not set. It must be 32 bytes hex (64 hex characters) — see .env.example"
+  );
+}
 const KEY = Buffer.from(process.env.SECURITY_KEY, "hex");
 if (KEY.length !== 32) {
   throw new Error("SECURITY_KEY must be 32 bytes hex (64 hex characters)");
@@ -68,6 +75,22 @@ exports.decrypt = (encryptedData) => {
     return decryptV2(encryptedData);
   }
   return decryptLegacy(encryptedData);
+};
+
+// Decrypt a stored sensitive value, tolerating records that were (wrongly)
+// persisted as plaintext — e.g. third-party bank details saved before the
+// fundingType fix. v2 ciphertext must decrypt (tampering throws); anything
+// else is tried as legacy CBC and otherwise returned as-is.
+exports.revealSensitive = (value) => {
+  if (value === undefined || value === null || value === "") return value;
+  if (typeof value === "string" && value.startsWith(VERSION_PREFIX)) {
+    return decryptV2(value);
+  }
+  try {
+    return decryptLegacy(value);
+  } catch {
+    return value;
+  }
 };
 
 exports.isLegacyCiphertext = (value) =>

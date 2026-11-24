@@ -1,12 +1,14 @@
+const isEmail = require("../utility/isEmail");
 // Recurring (monthly) giving via Stripe Checkout subscription mode.
 // Recording and crediting happen exclusively in the signed Stripe webhook
 // (see donations/stripe.js), mirroring the one-time donation flow.
 const { Campaign } = require("../models/campaignModel");
+const { FROZEN_MESSAGE } = require("../utility/campaignState");
 const { Subscription } = require("../models/subscriptionModel");
 const { addActivity } = require("../services/activityLog");
 const logger = require("../utility/logger");
 const { getClientIp, assessDonation } = require("../utility/fraud");
-const { stripe } = require("./donations/shared");
+const { stripe, checkoutCurrency, currencyMismatch } = require("./donations/shared");
 
 const SUPPORTED_CURRENCIES = ["gbp", "usd", "ngn"];
 
@@ -24,10 +26,16 @@ exports.createSubscriptionSession = async (req, res) => {
     if (!campaign) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
+    // Dispute freeze: don't take new money into a campaign under review.
+    if (campaign.disputeGovernance?.isLocked) {
+      return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
+    }
 
     const amount = Number(req.body.amount);
     const tip = Number(req.body.meta?.tip || 0);
-    const currency = String(req.body.currency || campaign.funding.currency || "gbp").toLowerCase();
+    const charged = checkoutCurrency(campaign, req.body.currency);
+    if (!charged) return currencyMismatch(res, campaign);
+    const currency = charged.toLowerCase();
     if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }
@@ -43,7 +51,7 @@ exports.createSubscriptionSession = async (req, res) => {
       return res.status(400).json({ status: 400, error: "Unsupported currency" });
     }
     const email = req.body.customer?.email;
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    if (!email || !isEmail(email)) {
       return res.status(400).json({ status: 400, error: "Valid donor email required for monthly giving" });
     }
 
@@ -103,10 +111,10 @@ exports.createSubscriptionSession = async (req, res) => {
 // POST /api/recurring/cancel/:subscriptionId (requireAuth)
 exports.cancelSubscription = async (req, res) => {
   try {
-    if (!stripe) {
+    const subscription = await Subscription.findById(req.params.subscriptionId);
+    if (subscription && subscription.gateway !== "paystack" && !stripe) {
       return res.status(503).json({ status: 503, error: "Stripe is not configured" });
     }
-    const subscription = await Subscription.findById(req.params.subscriptionId);
     if (!subscription) {
       return res.status(404).json({ status: 404, error: "Subscription not found" });
     }
@@ -122,6 +130,20 @@ exports.cancelSubscription = async (req, res) => {
     }
     if (["canceled", "canceling"].includes(subscription.status)) {
       return res.status(409).json({ status: 409, error: "Subscription already canceled" });
+    }
+
+    if (subscription.gateway === "paystack") {
+      // Paystack has no "cancel at period end": disabling stops future charges.
+      try {
+        await require("./recurringPaystack").disablePaystackSubscription(subscription);
+      } catch (err) {
+        return res.status(err.status || 502).json({ status: err.status || 502, error: err.status ? err.message : "Paystack couldn't cancel the subscription. Please try again." });
+      }
+      subscription.status = "canceled";
+      subscription.canceledAt = new Date();
+      await subscription.save();
+      addActivity("cancelRecurringDonation", subscription.subscriberEmail);
+      return res.status(200).json({ success: true, message: "Monthly gift cancelled" });
     }
 
     // Donor-friendly: keep donations flowing until the end of the paid period.
@@ -150,9 +172,14 @@ exports.mySubscriptions = async (req, res) => {
     if (!requesterEmail) {
       return res.status(401).json({ status: 401, error: "Unauthorized" });
     }
+    // Only what the donor needs to manage their giving; never fraud signals
+    // (IP) or internal Stripe customer ids.
     const subs = await Subscription.find({
       subscriberEmail: requesterEmail,
-    }).select("-__v");
+    })
+      .select("campaignId amount tip processingFee currency interval status totalDonated createdAt canceledAt anonymous gateway nextPaymentDate")
+      .populate("campaignId", "basicInformation.campaignTitle basicInformation.campaignImage")
+      .sort({ createdAt: -1 });
     return res.status(200).json({ data: subs });
   } catch (error) {
     logger.error({ err: error }, "mySubscriptions failed");

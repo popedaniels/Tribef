@@ -1,5 +1,6 @@
+import { youtubeEmbedUrl } from "../../../utils/video";
 import React, { useCallback, useEffect, useState } from "react";
-import DashboardLayout from "../DashboardLayout";
+import DashboardLayout from "../../../layouts/DashboardLayout";
 import styled from "styled-components";
 import styles from "./contribution.module.scss";
 import Link from "next/link";
@@ -8,8 +9,9 @@ import axios from "axios";
 import ShareModal from "../../../components/composed/Modal/DefaultModal/ShareModal";
 import FundingRequestsComponent from "../../../components/composed/fundingRequestComponent/FundingRequestComponent";
 import UpdateComponent from "../../../components/composed/UpdatesComponent";
-import { addCommaToNumber, getDaysRemaining } from "../../../components/helperFunctions/helperFunctions";
+import { addCommaToNumber, getDaysRemaining, currencyPrefix } from "../../../components/helperFunctions/helperFunctions";
 import type { Campaign } from "../../../types/campaign";
+import { getApiBaseUrl } from "../../../utils/api";
 
 interface FundingRequestSummary {
   status?: string;
@@ -30,7 +32,7 @@ export default function Contribution() {
   const getAllFundingRequests = useCallback(async () => {
     try {
       const res = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/fundingRequests/fundingRequest/" +
           router.query.id
       );
@@ -46,7 +48,7 @@ export default function Contribution() {
   const getCampaign = useCallback(async () => {
     try {
       const campaign = await axios.get(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/campaigns/campaign/" +
           router.query.id
       );
@@ -104,7 +106,7 @@ export default function Contribution() {
               </div>
 
               <div style={{ width: "45%" }} className="info">
-                <Link href={`/donate/${campaign?._id}`} passHref>
+                <Link href={`/donate/${campaign?._id}`} passHref legacyBehavior>
                   <button className="btn text-white w-100">Donate</button>
                 </Link>
                 <button
@@ -132,23 +134,15 @@ export default function Contribution() {
                 </p>
                 <div className="d-flex align-items-baseline">
                   <h3 className="text-heading mr-2">
-                    {campaign?.funding?.currency == "USD"
-                      ? "$"
-                      : campaign?.funding?.currency == "GBP"
-                      ? "£"
-                      : "₦"}
+                    {currencyPrefix(campaign?.funding?.currency)}
                     {addCommaToNumber(campaign?.funding?.amountRaised)}
                   </h3>
                   <p
                     className="mb-0"
-                    style={{ fontWeight: "300", color: "#B3B3B3" }}
+                    style={{ fontWeight: "300", color: "#5f6672" }}
                   >
                     raised of{" "}
-                    {campaign?.funding?.currency == "USD"
-                      ? "$"
-                      : campaign?.funding?.currency == "GBP"
-                      ? "£"
-                      : "₦"}
+                    {currencyPrefix(campaign?.funding?.currency)}
                     {addCommaToNumber(campaign?.funding?.amountExpected)}
                   </p>
                 </div>
@@ -175,7 +169,7 @@ export default function Contribution() {
                     height="17.5px"
                     className="mr-2"
                   />
-                  <p className="mb-0" style={{ color: "#807373" }}>
+                  <p className="mb-0" style={{ color: "#565d6d" }}>
                     {getDaysRemaining(campaign!)} days left
                   </p>
                 </div>
@@ -259,13 +253,11 @@ export default function Contribution() {
                   <div className={styles.story}>
                     {campaign?.content?.campaignVideo && (
                       <div style={{ position: "relative", marginBottom: 30 }}>
-                        {campaign?.content?.campaignVideo?.includes(
-                          "youtube.com"
-                        ) ? (
+                        {youtubeEmbedUrl(campaign?.content?.campaignVideo) ? (
                           <Iframe style={{ marginBottom: 40 }}>
                             <iframe
                               className="iframe"
-                              src={campaign?.content?.campaignVideo}
+                              src={youtubeEmbedUrl(campaign?.content?.campaignVideo) || undefined}
                             ></iframe>
                           </Iframe>
                         ) : (

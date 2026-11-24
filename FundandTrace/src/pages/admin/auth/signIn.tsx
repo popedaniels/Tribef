@@ -7,8 +7,10 @@ import { toast } from "../../../../store/slices/ToastSlice";
 import axios from "axios";
 import {
   adminLogin,
+  adminCompleteLogin,
   selectAdminAuthStateState,
 } from "../../../../store/slices/adminAuthStateSlice";
+import { getApiBaseUrl } from "../../../utils/api";
 import Spinner from "../../../components/composed/spinner/Spinner";
 import { useAppDispatch } from "./../../../../store/hooks";
 
@@ -21,10 +23,63 @@ export default function AdminSignInPage() {
   const [email, setEmail] = useState("");
   const { JWT, adminLoggingIn } = useSelector(selectAdminAuthStateState);
 
+  // Second step: "code" = enter the authenticator code; "setup" = enrol in
+  // 2FA first (required for admins in production).
+  const [stage, setStage] = useState<"password" | "code" | "setup">("password");
+  const [challengeToken, setChallengeToken] = useState("");
+  const [enrolmentToken, setEnrolmentToken] = useState("");
+  const [qr, setQr] = useState("");
+  const [otpUrl, setOtpUrl] = useState("");
+  const [code, setCode] = useState("");
+  const [stepError, setStepError] = useState("");
+  const [stepBusy, setStepBusy] = useState(false);
+  const apiError = (e: unknown, fallback: string) =>
+    (e as { response?: { data?: { error?: string } } })?.response?.data?.error || fallback;
+
+  const afterPassword = async (r: unknown) => {
+    const res = r as { twoFactorRequired?: boolean; challengeToken?: string; twoFactorSetupRequired?: boolean; enrolmentToken?: string };
+    if (res?.twoFactorRequired && res.challengeToken) {
+      setChallengeToken(res.challengeToken);
+      setCode("");
+      setStage("code");
+    } else if (res?.twoFactorSetupRequired && res.enrolmentToken) {
+      setEnrolmentToken(res.enrolmentToken);
+      setStage("setup");
+      try {
+        const s = await axios.post(`${getApiBaseUrl()}/api/auth/2fa/setup`, {}, { headers: { Authorization: `Bearer ${res.enrolmentToken}` } });
+        setQr(s.data?.qrDataUrl || "");
+        setOtpUrl(s.data?.otpauthUrl || "");
+      } catch (e) {
+        setStepError(apiError(e, "Couldn't start two-factor setup"));
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const res = await dispatch(adminLogin(email, password));
+      await afterPassword(res);
     } catch (error) {
+    }
+  };
+
+  const submitCode = async () => {
+    setStepBusy(true);
+    setStepError("");
+    try {
+      if (stage === "setup") {
+        await axios.post(`${getApiBaseUrl()}/api/auth/2fa/enable`, { token: code }, { headers: { Authorization: `Bearer ${enrolmentToken}` } });
+        // 2FA is on: sign in again, this time through the code challenge.
+        setCode("");
+        await afterPassword(await dispatch(adminLogin(email, password)));
+        return;
+      }
+      const r = await axios.post(`${getApiBaseUrl()}/api/auth/2fa/challenge`, { challengeToken, token: code });
+      dispatch(adminCompleteLogin(r.data?.data));
+    } catch (e) {
+      setStepError(apiError(e, "That code didn't work. Check your authenticator and try again."));
+    } finally {
+      setStepBusy(false);
     }
   };
 
@@ -47,6 +102,59 @@ export default function AdminSignInPage() {
           />
         </header>
         <section className="d-flex flex-column justify-content-center align-items-center mx-auto">
+          {stage !== "password" ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitCode();
+              }}
+              style={{ width: "100%" }}
+            >
+              <h2 className="text-medium-heading text-center mb-4">{stage === "setup" ? "Set up two-factor sign-in" : "Enter your code"}</h2>
+              {stage === "setup" ? (
+                <>
+                  <p className="text-center">
+                    Admin accounts must use an authenticator app. Scan this with Google Authenticator, 1Password, Authy or similar, then enter the 6-digit code.
+                  </p>
+                  {qr ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={qr} alt="Authenticator QR code" width={200} height={200} style={{ display: "block", margin: "0 auto 12px" }} />
+                  ) : null}
+                  {otpUrl ? (
+                    <details className="mb-3">
+                      <summary>Can&apos;t scan? Enter the key manually</summary>
+                      <code style={{ wordBreak: "break-all" }}>{new URLSearchParams(otpUrl.split("?")[1] || "").get("secret")}</code>
+                    </details>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-center mb-4">Open your authenticator app and enter the 6-digit code for Fund&amp;Trace.</p>
+              )}
+              <div className="input-div w-100">
+                <label htmlFor="otp">Authenticator code</label>
+                <input
+                  id="otp"
+                  className="w-100"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  required
+                  autoFocus
+                />
+              </div>
+              {stepError && (
+                <p role="alert" style={{ color: "#b91c1c" }}>
+                  {stepError}
+                </p>
+              )}
+              <button className="btn ml-auto" disabled={stepBusy || code.length !== 6}>
+                <p className="mb-0 text-white">{stepBusy ? "Checking…" : stage === "setup" ? "Turn on and continue" : "Sign in"}</p>
+              </button>
+            </form>
+          ) : (
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -96,7 +204,16 @@ export default function AdminSignInPage() {
                 <div
                   className="img"
                   role="button"
+                  tabIndex={0}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
                   onClick={() => setShowPassword(!showPassword)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setShowPassword(!showPassword);
+                    }
+                  }}
                 >
                   <svg
                     width="100%"
@@ -126,6 +243,7 @@ export default function AdminSignInPage() {
               )}
             </button>
           </form>
+          )}
         </section>
       </Wrapper>
     </Layout>

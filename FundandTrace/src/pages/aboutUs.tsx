@@ -241,37 +241,37 @@ export default function AboutUsPage() {
           <section className="custom-container py-4">
             <article className="numbers mx-auto">
               <div className="mb-4 d-flex flex-column align-items-center">
-                <h4 className="mb-2" style={{ color: "var(--color-primary)", fontSize: 42, fontWeight: 800 }}>
+                <h4 className="mb-2 stat-value">
                   230+
                 </h4>
                 <p className="mb-0 font-weight-bold" style={{ color: "#424a66" }}>Active Campaigns</p>
               </div>
               <div className="mb-4 d-flex flex-column align-items-center">
-                <h4 className="mb-2" style={{ color: "var(--color-primary)", fontSize: 42, fontWeight: 800 }}>
+                <h4 className="mb-2 stat-value">
                   35,500+
                 </h4>
                 <p className="mb-0 font-weight-bold" style={{ color: "#424a66" }}>Verified Donors</p>
               </div>
               <div className="mb-4 d-flex flex-column align-items-center">
-                <h4 className="mb-2" style={{ color: "var(--color-primary)", fontSize: 42, fontWeight: 800 }}>
+                <h4 className="mb-2 stat-value">
                   $450,000+
                 </h4>
                 <p className="mb-0 font-weight-bold" style={{ color: "#424a66" }}>Raised for Causes</p>
               </div>
               <div className="mb-5 mb-md-0 d-flex flex-column align-items-center">
-                <h4 className="mb-2" style={{ color: "var(--color-primary)", fontSize: 42, fontWeight: 800 }}>
+                <h4 className="mb-2 stat-value">
                   100%
                 </h4>
                 <p className="mb-0 font-weight-bold" style={{ color: "#424a66" }}>Traceability Rate</p>
               </div>
               <div className="mb-5 mb-md-0 d-flex flex-column align-items-center">
-                <h4 className="mb-2" style={{ color: "var(--color-primary)", fontSize: 42, fontWeight: 800 }}>
+                <h4 className="mb-2 stat-value">
                   14+
                 </h4>
                 <p className="mb-0 font-weight-bold" style={{ color: "#424a66" }}>Countries Supported</p>
               </div>
               <div className="mb-5 mb-md-0 d-flex flex-column align-items-center">
-                <h4 className="mb-2" style={{ color: "var(--color-primary)", fontSize: 42, fontWeight: 800 }}>
+                <h4 className="mb-2 stat-value">
                   0%
                 </h4>
                 <p className="mb-0 font-weight-bold" style={{ color: "#424a66" }}>Platform Fee</p>
@@ -350,14 +350,25 @@ const Wrapper = styled.main`
 
   .numbers {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    text-align: center;
+
+    .stat-value {
+      color: var(--color-primary);
+      font-weight: 800;
+      /* Fluid so "$450,000+" fits two-up on a 360px phone. */
+      font-size: clamp(26px, 6.4vw, 42px);
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
     gap: 20px;
     max-width: 1200px;
     @media screen and (max-width: 991px) {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
     @media screen and (max-width: 575px) {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 

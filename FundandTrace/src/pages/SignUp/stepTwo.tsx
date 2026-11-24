@@ -8,6 +8,7 @@ import axios from "axios";
 import { toast } from "../../../store/slices/ToastSlice";
 import Layout from "../../components/Layout";
 import { useAppDispatch } from "./../../../store/hooks";
+import { getApiBaseUrl } from "../../utils/api";
 
 export default function StepOne() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function StepOne() {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL +
+        getApiBaseUrl() +
           "/api/auth/signup/verifyEmail/" +
           email
       );
@@ -36,14 +37,14 @@ export default function StepOne() {
         <div className="w-100 bg-white">
           <header className="header d-md-flex justify-content-between align-items-center custom-container d-none">
             <Link href="/" passHref>
-              <a>
-                <img
-                  src="/images/logo.png"
-                  alt="fundandtraceLogo"
-                  width={78}
-                  height={55}
-                />
-              </a>
+
+              <img
+                src="/images/logo.png"
+                alt="fundandtraceLogo"
+                width={78}
+                height={55}
+              />
+
             </Link>
           </header>
           <div className="d-block d-md-none">

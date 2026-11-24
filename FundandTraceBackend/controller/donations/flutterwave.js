@@ -1,5 +1,6 @@
 // Flutterwave donation flow: initialization, redirect callback, webhook.
 const { default: axios } = require("axios");
+const { FROZEN_MESSAGE } = require("../../utility/campaignState");
 const crypto = require("crypto");
 
 const {
@@ -8,11 +9,18 @@ const {
   addActivity,
   logger,
   creditCampaign,
+  checkoutCurrency,
+  currencyMismatch,
   sendDonationMailSafely,
+  resolveCheckout,
+  checkoutError,
+  splitTotal,
+  prepareExtras,
+  saveExtras,
 } = require("./shared");
 const { getClientIp, assessDonation, geoMismatchScore } = require("../../utility/fraud");
 const { notifyTargetReachedIfNeeded } = require("../../services/targetReached");
-const { FLAG_THRESHOLD } = require("../../utility/fraud");
+const { FLAG_THRESHOLD, withCardSignals } = require("../../utility/fraud");
 
 // Rebuild the fraud assessment recorded with the donation, combining the
 // initialization snapshot with any gateway-side signals (card country).
@@ -44,6 +52,36 @@ exports.initializePayment = async (req, res, next) => {
     if (!campaign || !Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ status: 400, error: "Invalid payment request" });
     }
+    // Dispute freeze: don't take new money into a campaign under review.
+    if (campaign.disputeGovernance?.isLocked) {
+      return res.status(423).json({ status: 423, code: "campaign_frozen", error: FROZEN_MESSAGE });
+    }
+
+    const currency = checkoutCurrency(campaign, payment.currency);
+    if (!currency) return currencyMismatch(res, campaign);
+    payment.currency = currency;
+
+    // Same contract as Stripe/Paystack (shared.resolveCheckout): `amount` is
+    // the TOTAL charged = donation + tip + card fee; the campaign receives the
+    // donation. meta.amount always mirrors the total.
+    let co, extras;
+    try {
+      co = resolveCheckout({ body: { amount, meta: payment.meta || {} }, headers: req.headers }, "flutterwave", currency);
+      extras = await prepareExtras(payment.meta, campaign);
+    } catch (err) {
+      return checkoutError(res, err);
+    }
+    payment.amount = co.total;
+    // Gift Aid address and team stay on our server, not in gateway metadata.
+    if (payment.meta) {
+      delete payment.meta.giftAid;
+      delete payment.meta.teamId;
+    }
+    if (extras && !payment.tx_ref) payment.tx_ref = `fundandtrace-flw-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    payment.meta = { ...(payment.meta || {}), amount: String(co.total), tip: String(co.tip), fee: String(co.fee), method: co.method };
+    // Mobile money: open Flutterwave straight on the right wallet.
+    const MOMO = { KES: "mpesa", GHS: "mobilemoneyghana", UGX: "mobilemoneyuganda", RWF: "mobilemoneyrwanda", ZMW: "mobilemoneyzambia", XOF: "mobilemoneyfranco", XAF: "mobilemoneyfranco", TZS: "mobilemoneytanzania" };
+    if ((co.method === "mpesa" || co.method === "mobilemoney") && MOMO[currency]) payment.payment_options = MOMO[currency];
 
     // Fraud snapshot rides through gateway metadata to the recorder.
     const fraud = await assessDonation({
@@ -71,6 +109,7 @@ exports.initializePayment = async (req, res, next) => {
       payment,
       options
     );
+    await saveExtras(`flw:${payment.tx_ref}`, campaign._id, extras);
     resp && addActivity("initializeDonation", payment.customer.email);
     res.send(resp.data.data.link);
   } catch (error) {
@@ -92,8 +131,11 @@ exports.paymentFlutterwave = async (req, res, next) => {
         Authorization: "Bearer " + process.env.FLUTTERWAVE,
       },
     };
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(transaction_id || ""))) {
+      return res.redirect(`${process.env.MAINURL}/donate/${req.params.id}?status=failed`);
+    }
     const resp = await axios.get(
-      `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+      `https://api.flutterwave.com/v3/transactions/${encodeURIComponent(transaction_id)}/verify`,
       options
     );
     if (
@@ -118,15 +160,30 @@ exports.paymentFlutterwave = async (req, res, next) => {
         `${process.env.MAINURL || "http://localhost:3000"}/donated/${
           resp.data.data.meta.campaignId
         }?status=successful&name=${encodeURIComponent(resp.data.data.customer.name)}&amount=${
-          Number(resp.data.data.meta.amount) - Number(resp.data.data.meta.tip)
+          splitTotal({ total: Number(resp.data.data.meta.amount), tip: Number(resp.data.data.meta.tip || 0), fee: Number(resp.data.data.meta.fee || 0) }).donation
         }&email=${encodeURIComponent(resp.data.data.customer.email)}&campaignId=${
           resp.data.data.meta.campaignId
         }&anonymous=${resp.data.data.meta.anonymous}`
       );
     }
 
-    const donatedAmount =
-      Number(resp.data.data.meta.amount) - Number(resp.data.data.meta.tip);
+    // The amount Flutterwave actually collected must match the total we set at
+    // initialization (meta is ours, but a payment can be started directly with
+    // the public key and arbitrary meta), and be in the campaign's currency.
+    const fwMeta = resp.data.data.meta || {};
+    const split = splitTotal({ total: Number(fwMeta.amount), tip: Number(fwMeta.tip || 0), fee: Number(fwMeta.fee || 0) });
+    const paidTotal = Number(resp.data.data.amount);
+    const fwCampaign = await Campaign.findById(req.params.id).select("funding.currency").lean();
+    if (
+      !split.ok ||
+      !Number.isFinite(paidTotal) ||
+      Math.abs(paidTotal - split.total) > 0.01 ||
+      (fwCampaign?.funding?.currency && String(resp.data.data.currency).toUpperCase() !== String(fwCampaign.funding.currency).toUpperCase())
+    ) {
+      logger.error({ transaction_id, paidTotal, meta: fwMeta }, "Flutterwave redirect: paid amount/currency does not match — not credited");
+      return res.redirect(`${process.env.MAINURL}/donate/${req.params.id}?status=failed`);
+    }
+    const donatedAmount = split.donation;
     const donation = new Donations({
       campaignId: resp.data.data.meta.campaignId,
       donorEmail: resp.data.data.customer.email,
@@ -135,14 +192,15 @@ exports.paymentFlutterwave = async (req, res, next) => {
       transactionId: transaction_id,
       transactionRef: tx_ref,
       flwRef: resp.data.data.flw_ref,
-      tip: resp.data.data.meta.tip,
+      tip: split.tip,
+      processingFee: split.fee,
       paymentMethod: "flutterwave",
       paymentOption: "card",
       zipCode: resp.data.data.meta.zipCode,
       createdAt: resp.data.data.customer.created_at || Date.now(),
       anonymous: resp.data.data.meta.anonymous,
       referralCode: String(resp.data.data.meta.referralCode || ""),
-      fraud: buildFraudSnapshot(resp.data.data),
+      fraud: await withCardSignals(buildFraudSnapshot(resp.data.data), "flutterwave", resp.data.data, resp.data.data.customer?.email),
     });
 
     try {
@@ -161,7 +219,10 @@ exports.paymentFlutterwave = async (req, res, next) => {
     }
     addActivity("donation", resp.data.data.customer.email);
 
-    await creditCampaign(resp.data.data.meta.campaignId, donatedAmount);
+    await creditCampaign(resp.data.data.meta.campaignId, donatedAmount, {
+      refId: `flw:${transaction_id || tx_ref}`,
+      currency: resp.data.data.currency,
+    });
     notifyTargetReachedIfNeeded(resp.data.data.meta.campaignId);
 
     const campaign = await Campaign.findById(req.params.id);
@@ -212,6 +273,14 @@ exports.flutterwaveWebhook = async (req, res) => {
     }
 
     const event = req.body;
+
+    // Bank payout outcome (services/payoutRails.js). Same signed endpoint.
+    if (event.event === "transfer.completed" && event.data?.reference) {
+      const { applyTransferOutcome } = require("./payout");
+      await applyTransferOutcome({ reference: event.data.reference, status: String(event.data.status || "") });
+      return res.status(200).json({ received: true });
+    }
+
     // Only completed/successful charges are actionable; ack the rest.
     if (
       !["charge.completed", "charge.success"].includes(event.event) ||
@@ -239,8 +308,9 @@ exports.flutterwaveWebhook = async (req, res) => {
     if (existingDonation) return res.status(200).json({ received: true });
 
     // Re-verify the transaction with Flutterwave API to confirm the hash is genuine.
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(transactionId || ""))) return res.status(400).json({ status: 400, error: "Invalid transaction id" });
     const verifyResp = await axios.get(
-      `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
+      `https://api.flutterwave.com/v3/transactions/${encodeURIComponent(transactionId)}/verify`,
       { headers: { Authorization: "Bearer " + secret } }
     );
     if (
@@ -250,14 +320,14 @@ exports.flutterwaveWebhook = async (req, res) => {
       return res.status(400).json({ status: 400, error: "Transaction verification failed" });
     }
 
+    // meta.amount is the total charged (see initializePayment); the campaign
+    // receives total - tip - fee.
     const totalCharged = Number(tx.amount || 0);
-    const donatedAmount = Number(metadata.amount || 0);
-    const tip = Number(metadata.tip || 0);
-    if (
-      !Number.isFinite(donatedAmount) ||
-      donatedAmount <= 0 ||
-      Math.abs(totalCharged - (donatedAmount + tip)) > 1
-    ) {
+    const metaTotal = Number(metadata.amount || 0);
+    const split = splitTotal({ total: metaTotal, tip: Number(metadata.tip || 0), fee: Number(metadata.fee || 0) });
+    const donatedAmount = split.donation;
+    const { tip, fee } = split;
+    if (!split.ok || !Number.isFinite(totalCharged) || Math.abs(totalCharged - metaTotal) > 1) {
       return res.status(400).json({ status: 400, error: "Invalid donation amount" });
     }
 
@@ -280,13 +350,14 @@ exports.flutterwaveWebhook = async (req, res) => {
         transactionRef: txRef,
         flwRef,
         tip,
+        processingFee: fee,
         paymentMethod: "flutterwave",
         paymentOption: metadata.paymentOption || tx.payment_method || "card",
         zipCode: metadata.zipCode || "",
         createdAt: tx.created_at || Date.now(),
         anonymous: metadata.anonymous === true || metadata.anonymous === "true",
         referralCode: String(metadata.referralCode || ""),
-        fraud: buildFraudSnapshot(tx),
+        fraud: await withCardSignals(buildFraudSnapshot(tx), "flutterwave", tx, metadata.email || tx.customer?.email),
       });
     } catch (createError) {
       // Concurrent duplicate delivery — unique constraint, ack quietly.
@@ -296,7 +367,10 @@ exports.flutterwaveWebhook = async (req, res) => {
       throw createError;
     }
 
-    await creditCampaign(campaign._id, donatedAmount);
+    await creditCampaign(campaign._id, donatedAmount, {
+      refId: `flw:${transactionId || flwRef || txRef}`,
+      currency: tx.currency,
+    });
     notifyTargetReachedIfNeeded(campaign._id);
 
     addActivity("donation", tx.customer?.email || metadata.customer || "");

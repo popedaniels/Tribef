@@ -138,7 +138,7 @@
   .badgeBest {
     background: var(--color-primary);
     color: #FFFFFF;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     padding: 3px 8px;
     border-radius: var(--radius-pill);
@@ -161,7 +161,7 @@
   .crossIcon {
     width: 18px;
     height: 18px;
-    color: #94A3B8;
+    color: #5f6672;
     margin-right: 10px;
     flex-shrink: 0;
   }
@@ -178,7 +178,7 @@
   gap: 20px;
 
   .ctaText {
-    h4 {
+    h3, h4 {
       font-size: 18px;
       font-weight: 700;
       margin-bottom: 4px;
@@ -190,5 +190,66 @@
       color: var(--color-text-muted);
       margin: 0;
     }
+  }
+}
+
+
+/* Phones: one card per row instead of a three-column table squeezed into
+   ~350px (words wrapped one per line and the comparison column sat behind a
+   sideways scroll most people never find). */
+@media (max-width: 640px) {
+  .tableResponsive {
+    overflow: visible;
+  }
+  .table {
+    min-width: 0 !important;
+    width: 100%;
+    border: 0;
+
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+    tr {
+      padding: 16px 16px 8px;
+      border-bottom: 1px solid var(--color-border, #e2e8f0);
+    }
+    td {
+      padding: 0 0 10px !important;
+      border: 0 !important;
+      background: none !important;
+      text-align: left !important;
+    }
+    td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--color-text-muted, #64748b);
+      margin-bottom: 4px;
+    }
+    td[data-label="Fund&Trace"]::before {
+      color: var(--color-primary);
+    }
+  }
+  .featureName {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    padding-bottom: 8px !important;
+  }
+  .cellContent {
+    justify-content: flex-start !important;
+    text-align: left;
   }
 }

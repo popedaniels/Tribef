@@ -35,7 +35,7 @@ function accountHash(bankCode, accountNumber) {
 }
 
 const createdAtOf = (doc) => {
-  if (doc?.createdAt) return new Date(doc.createdAt);
+  if (doc?.createdAt || doc?.joined) return new Date(doc.createdAt || doc.joined);
   try {
     return new mongoose.Types.ObjectId(String(doc?._id)).getTimestamp();
   } catch {
@@ -73,7 +73,7 @@ async function gatherFacts(campaign) {
   const { Users } = require("../models/users");
   const organizerId = campaign.organizerId;
   const [user, siblings] = await Promise.all([
-    organizerId ? Users.findById(organizerId).select("verified identityVerification.status email").lean() : null,
+    organizerId ? Users.findById(organizerId).select("verified identityVerification.status email joined").lean() : null,
     organizerId
       ? Campaign.find({ organizerId, _id: { $ne: campaign._id } }).select("launched suspended createdAt").lean().maxTimeMS(5000)
       : [],

@@ -13,6 +13,9 @@ router.post("/signup/charity", userController.signupCharity);
 router.post("/login", userController.login);
 router.post("/logout", userController.logout);
 router.post("/logout-all", requireAuth, userController.logoutAll);
+// Data protection: download everything we hold; delete the account.
+router.get("/me/export", requireAuth, require("../controller/privacy").exportMine);
+router.post("/me/delete", requireAuth, require("../controller/privacy").deleteMine);
 router.get("/checkExists/:id", userController.check);
 router.get("/signup/verifyUser/:email", userController.verifyUser);
 router.post("/signup/verifyEmail/:email", userController.verifyEmail);

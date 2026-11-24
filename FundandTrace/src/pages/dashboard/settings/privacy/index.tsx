@@ -3,6 +3,7 @@ import DashboardLayout from "../../../../layouts/DashboardLayout";
 import styled from "styled-components";
 import Link from "next/link";
 import SettingsComp from "../../../../components/SettingsComp";
+import PrivacyControls from "../../../../components/settings/PrivacyControls";
 
 export default function Privacy() {
   return (
@@ -39,37 +40,7 @@ export default function Privacy() {
               <div className="align-items-center py-3 d-none d-md-flex">
                 <h2 className="mb-0 text-medium-heading">Privacy and safety</h2>
               </div>
-              <article className="d-flex justify-content-between align-items-center py-3">
-                <div>
-                  <p className="mb-2">Two-factor authentication</p>
-                  <p
-                    className="mb-0"
-                    style={{ color: "#5f6672", fontSize: 12, width: "90%" }}
-                  >
-                    Help protect your account from unauthorized access by
-                    requiring a second authentication method in addition to your
-                    password
-                  </p>
-                </div>
-                <img
-                  src="/images/icons/slidefrontgray.svg"
-                  width={8}
-                  height={13}
-                  alt="slideIcons"
-                />
-              </article>
-
-              <article className="d-flex justify-content-between align-items-center py-3">
-                <div>
-                  <p className="mb-2">Additional password</p>
-                </div>
-                <img
-                  src="/images/icons/slidefrontgray.svg"
-                  width={8}
-                  height={13}
-                  alt="slideIcons"
-                />
-              </article>
+              <PrivacyControls />
             </Main>
           </div>
         </Wrapper>

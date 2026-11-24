@@ -33,6 +33,9 @@ function dailyJobs() {
   if (reconcile) {
     jobs.push(["gateway-reconciliation", () => require("./reconciliation").runReconciliation({ days: 2 })]);
   }
+  // Data retention (services/privacy.js): donor IPs, old activity logs,
+  // abandoned capture sessions, never-used unverified accounts.
+  if (process.env.RETENTION_JOBS !== "false") jobs.push(["data-retention", () => require("./privacy").runRetention()]);
   return jobs;
 }
 

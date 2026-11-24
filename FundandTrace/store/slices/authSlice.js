@@ -56,10 +56,13 @@ export const login = (email, password) => async (dispatch) => {
       { email, password },
       { withCredentials: true }
     );
-    res && dispatch(authStateActions.setProfile(res?.data?.data?.userProfile));
-    res && dispatch(authStateActions.loginSuccess(true));
-    res && dispatch(authStateActions.setLoggingIn(false));
-    res && dispatch(toast(true, "Sign In successful", "success"));
+    dispatch(authStateActions.setLoggingIn(false));
+    // 2FA on: the sign-in page asks for the authenticator code next.
+    if (res?.data?.twoFactorRequired) return { twoFactorRequired: true, challengeToken: res.data.challengeToken };
+    dispatch(authStateActions.setProfile(res?.data?.data?.userProfile));
+    dispatch(authStateActions.loginSuccess(true));
+    dispatch(toast(true, "Sign In successful", "success"));
+    return true;
   } catch (error) {
     dispatch(toast(true, error?.response?.data?.error || "Login failed", "error"));
     dispatch(authStateActions.setLoggingIn(false));
@@ -71,6 +74,15 @@ export const login = (email, password) => async (dispatch) => {
     );
     return false;
   }
+};
+
+// Second sign-in step for accounts with two-factor authentication.
+export const completeTwoFactor = (challengeToken, token) => async (dispatch) => {
+  const res = await axios.post(`${getApiUrl()}/api/auth/2fa/challenge`, { challengeToken, token }, { withCredentials: true });
+  dispatch(authStateActions.setProfile(res?.data?.data?.userProfile));
+  dispatch(authStateActions.loginSuccess(true));
+  dispatch(toast(true, "Sign In successful", "success"));
+  return true;
 };
 
 export const logout = () => async (dispatch) => {

@@ -401,7 +401,7 @@ exports.reviewFundingRequest = async (req, res) => {
     const { Donations } = require("../models/donationsModel");
     const { evaluatePayout } = require("../services/payoutReview");
     const [organizer, history, total, flagged] = await Promise.all([
-      Users.findById(campaign.organizerId || fr.organizerId).select("identityVerification suspended createdAt").lean(),
+      Users.findById(campaign.organizerId || fr.organizerId).select("identityVerification suspended joined").lean(),
       FundingRequests.find({ campaignId: fr.campaignId })
         .select("_id status amount createdAt disbursement.dateDisbursed disbursement.receipt purposeOfFunding fundingType")
         .sort({ createdAt: 1 })

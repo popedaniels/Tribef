@@ -11,6 +11,7 @@ import Footer from "../../components/Footer/Footer";
 import TopCampaignSection from "../../components/homepageComponents/topCampaignSection/TopCampaignSection";
 import CommentModal from "../../components/composed/Modal/DefaultModal/CommentModal";
 import ShareModal from "../../components/composed/Modal/DefaultModal/ShareModal";
+import { whatsappShareUrl } from "../../utils/share";
 import { formatMoney } from "../../components/helperFunctions/helperFunctions";
 import { toast } from "../../../store/slices/ToastSlice";
 import { selectAuthStateState } from "../../../store/slices/authSlice";
@@ -82,7 +83,7 @@ export default function DonatedPage({ campaign }: DonatedPageProps) {
   const firstName = name.split(" ")[0];
 
   return (
-    <Layout title={success ? `Thank you · ${title}` : `Donation · ${title}`} description={`Your donation to ${title}`} ogImage={campaign?.basicInformation?.campaignImage}>
+    <Layout title={success ? `Thank you · ${title}` : `Donation · ${title}`} description={`Your donation to ${title}`} ogImage={campaign?._id ? `https://fundandtrace.com/api/og/campaign/${campaign._id}` : undefined}>
       <Navbar />
       <main className={styles.page}>
         <div className={styles.container}>
@@ -163,8 +164,26 @@ export default function DonatedPage({ campaign }: DonatedPageProps) {
                   <h2 id="share-title">Help it reach its goal</h2>
                   <p>Campaigns shared by donors raise far more. One message to friends or family makes a difference.</p>
                   <div className={styles.buttons}>
+                    {campaign && (
+                      <a
+                        className="ft-btn ft-btn--primary"
+                        style={{ background: "#075e54", borderColor: "#075e54" }}
+                        href={whatsappShareUrl({
+                          title,
+                          url: `https://fundandtrace.com/campaign/${campaign._id}?ref=wa`,
+                          raised: Number(campaign.funding?.amountRaised) || 0,
+                          goal: Number(campaign.funding?.amountExpected) || 0,
+                          currency,
+                          donated: amount,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Share on WhatsApp
+                      </a>
+                    )}
                     <button type="button" className="ft-btn ft-btn--secondary" onClick={() => setShowShare(true)}>
-                      Share the campaign
+                      More ways to share
                     </button>
                     {authenticated && (
                       <button type="button" className="ft-btn ft-btn--quiet" onClick={() => setShowComment(true)}>

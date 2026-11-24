@@ -12,6 +12,8 @@ const {
   resolveCheckout,
   checkoutError,
   splitTotal,
+  prepareExtras,
+  saveExtras,
 } = require("./shared");
 const { Subscription } = require("../../models/subscriptionModel");
 const { FROZEN_MESSAGE } = require("../../utility/campaignState");
@@ -39,9 +41,10 @@ exports.createStripeSession = async (req, res) => {
     const charged = checkoutCurrency(campaign, req.body.currency);
     if (!charged) return currencyMismatch(res, campaign);
     const currency = charged.toLowerCase();
-    let co;
+    let co, extras;
     try {
       co = resolveCheckout(req, "stripe", charged);
+      extras = await prepareExtras(req.body.meta, campaign);
     } catch (err) {
       return checkoutError(res, err);
     }
@@ -96,6 +99,7 @@ exports.createStripeSession = async (req, res) => {
       cancel_url: `${process.env.MAINURL || "http://localhost:3000"}/donate/${req.params.id}?status=failed`,
       success_url: `${process.env.BACKENDURL || "http://localhost:5000"}/api/donations/saveStripe/{CHECKOUT_SESSION_ID}`,
     });
+    await saveExtras(`stripe:${session.id}`, campaign._id, extras);
     if (req.body.customer?.email) {
       addActivity("initializeDonation", req.body.customer.email);
     }

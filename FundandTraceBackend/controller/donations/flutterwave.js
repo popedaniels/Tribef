@@ -15,6 +15,8 @@ const {
   resolveCheckout,
   checkoutError,
   splitTotal,
+  prepareExtras,
+  saveExtras,
 } = require("./shared");
 const { getClientIp, assessDonation, geoMismatchScore } = require("../../utility/fraud");
 const { notifyTargetReachedIfNeeded } = require("../../services/targetReached");
@@ -62,13 +64,20 @@ exports.initializePayment = async (req, res, next) => {
     // Same contract as Stripe/Paystack (shared.resolveCheckout): `amount` is
     // the TOTAL charged = donation + tip + card fee; the campaign receives the
     // donation. meta.amount always mirrors the total.
-    let co;
+    let co, extras;
     try {
       co = resolveCheckout({ body: { amount, meta: payment.meta || {} }, headers: req.headers }, "flutterwave", currency);
+      extras = await prepareExtras(payment.meta, campaign);
     } catch (err) {
       return checkoutError(res, err);
     }
     payment.amount = co.total;
+    // Gift Aid address and team stay on our server, not in gateway metadata.
+    if (payment.meta) {
+      delete payment.meta.giftAid;
+      delete payment.meta.teamId;
+    }
+    if (extras && !payment.tx_ref) payment.tx_ref = `fundandtrace-flw-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     payment.meta = { ...(payment.meta || {}), amount: String(co.total), tip: String(co.tip), fee: String(co.fee), method: co.method };
     // Mobile money: open Flutterwave straight on the right wallet.
     const MOMO = { KES: "mpesa", GHS: "mobilemoneyghana", UGX: "mobilemoneyuganda", RWF: "mobilemoneyrwanda", ZMW: "mobilemoneyzambia", XOF: "mobilemoneyfranco", XAF: "mobilemoneyfranco", TZS: "mobilemoneytanzania" };
@@ -100,6 +109,7 @@ exports.initializePayment = async (req, res, next) => {
       payment,
       options
     );
+    await saveExtras(`flw:${payment.tx_ref}`, campaign._id, extras);
     resp && addActivity("initializeDonation", payment.customer.email);
     res.send(resp.data.data.link);
   } catch (error) {

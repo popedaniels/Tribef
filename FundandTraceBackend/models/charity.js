@@ -13,6 +13,10 @@ const CharitySchema = new mongoose.Schema({
   publicInfo: String,
   logo: String,
   sector: { type: [], index: true },
+  // Gift Aid (UK only): set by an admin after checking the HMRC charities
+  // reference. Only then is the Gift Aid box offered on its GBP campaigns.
+  hmrcReference: { type: String, default: "" },
+  giftAidEnabled: { type: Boolean, default: false },
 });
 
 const Charity = mongoose.model("Charity", CharitySchema);

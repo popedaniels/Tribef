@@ -81,7 +81,15 @@ const MOMO_LABEL: Record<string, { id: "mpesa" | "mobilemoney"; label: string }>
 const FALLBACK_IMAGE = "/images/stories/water_story.jpg";
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
-type Field = "amount" | "firstName" | "lastName" | "email" | "country" | "terms";
+type Field = "amount" | "firstName" | "lastName" | "email" | "country" | "terms" | "gaHouse" | "gaPostcode";
+
+type Giving = {
+  giftAid: { available: boolean; charityName?: string; wording?: string };
+  teams: { id: string; name: string; slug: string; raised: number }[];
+  matching: { live: boolean; sponsorName: string; ratio: number; remaining: number } | null;
+};
+// UK postcode, same rule as the server (services/donationExtras.js).
+const UK_POSTCODE = /^(GIR ?0AA|[A-PR-UWYZ][A-HK-Y]?\d[A-Z\d]? ?\d[ABD-HJLNP-UW-Z]{2})$/i;
 
 export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
   const router = useRouter();
@@ -115,6 +123,11 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [refundDays, setRefundDays] = useState<number | null>(null);
+  const [giving, setGiving] = useState<Giving | null>(null);
+  const [giftAid, setGiftAid] = useState(false); // never pre-ticked
+  const [gaHouse, setGaHouse] = useState("");
+  const [gaPostcode, setGaPostcode] = useState("");
+  const [teamId, setTeamId] = useState("");
   const fieldRefs = useRef<Partial<Record<Field, HTMLElement | null>>>({});
 
   const chooseRailFor = useCallback(
@@ -147,6 +160,21 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
       .then((r) => setFeeSchedule(r.data?.data || null))
       .catch(() => setFeeSchedule(null));
   }, []);
+
+  useEffect(() => {
+    if (!campaign?._id) return;
+    axios
+      .get(`${getApiBaseUrl()}/api/giving/campaign/${campaign._id}`, { timeout: 5000 })
+      .then((r) => {
+        const g: Giving | null = r.data?.data || null;
+        setGiving(g);
+        const slug = typeof router.query.team === "string" ? router.query.team : "";
+        const t = slug && g?.teams.find((x) => x.slug === slug);
+        if (t) setTeamId(t.id);
+      })
+      .catch(() => setGiving(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign?._id]);
 
   useEffect(() => {
     axios
@@ -182,8 +210,10 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
     if (!EMAIL_RE.test(email.trim())) e.email = "Enter a valid email so we can send your receipt.";
     if (!country) e.country = "Choose your country.";
     if (!terms) e.terms = "Please accept the terms to continue.";
+    if (giftAid && !gaHouse.trim()) e.gaHouse = "Gift Aid needs your house name or number.";
+    if (giftAid && !UK_POSTCODE.test(gaPostcode.trim())) e.gaPostcode = "Enter your UK home postcode for Gift Aid.";
     return e;
-  }, [amount, firstName, lastName, email, country, terms]);
+  }, [amount, firstName, lastName, email, country, terms, giftAid, gaHouse, gaPostcode]);
   const show = (f: Field) => (submitted ? errors[f] : undefined);
 
   if (!campaign) {
@@ -256,6 +286,10 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
       donorCountry,
       anonymous,
       referralCode,
+      ...(teamId ? { teamId } : {}),
+      ...(giftAid
+        ? { giftAid: { declared: true, firstName: firstName.trim(), lastName: lastName.trim(), houseNameOrNumber: gaHouse.trim(), postcode: gaPostcode.trim() } }
+        : {}),
     },
     customer: { email: email.trim(), name: `${firstName.trim()} ${lastName.trim()}` },
     customizations: {
@@ -307,7 +341,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
   };
 
   return (
-    <Layout title={`Donate · ${title}`} description={`Donate to ${title}`} ogImage={campaign.basicInformation?.campaignImage}>
+    <Layout title={`Donate · ${title}`} description={`Donate to ${title}`} ogImage={`https://fundandtrace.com/api/og/campaign/${campaign._id}`}>
       <Navbar />
       <main className={styles.page}>
         <div className={styles.container}>
@@ -427,7 +461,54 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   <input type="checkbox" checked={anonymous} onChange={() => setAnonymous(!anonymous)} />
                   <span>Don&apos;t show my name publicly</span>
                 </label>
+                {giving && giving.teams.length > 0 && (
+                  <div>
+                    <label htmlFor="team" className={styles.label}>
+                      Supporting a team? <span className="ft-muted">(optional)</span>
+                    </label>
+                    <select id="team" className="form-control" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+                      <option value="">No team</option>
+                      {giving.teams.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </fieldset>
+
+              {giving?.giftAid.available && currency === "GBP" && amount > 0 && (
+                <fieldset className={`${styles.section} ${styles.giftAid}`}>
+                  <legend>
+                    Boost your donation by {formatMoney(Math.round(amount * 25) / 100, "GBP", { exact: true })} with Gift Aid
+                  </legend>
+                  <p className="ft-muted" style={{ fontSize: 14, marginTop: 0 }}>
+                    If you&apos;re a UK taxpayer, {giving.giftAid.charityName} can claim 25p from HMRC for every £1 you give, at no cost to you.
+                  </p>
+                  <label className={styles.check}>
+                    <input type="checkbox" checked={giftAid} onChange={() => setGiftAid(!giftAid)} />
+                    <span>{giving.giftAid.wording}</span>
+                  </label>
+                  {giftAid && (
+                    <>
+                      <p className="ft-muted" style={{ fontSize: 13 }}>
+                        HMRC needs your name (above) and home address. Please tell {giving.giftAid.charityName} if you stop paying tax or change your name or address.
+                      </p>
+                      <div className={styles.row}>
+                        <div>
+                          <label htmlFor="gaHouse" className={styles.label}>House name or number</label>
+                          <input id="gaHouse" ref={ref("gaHouse")} className="form-control" autoComplete="address-line1" value={gaHouse} aria-invalid={Boolean(show("gaHouse"))} onChange={(e) => setGaHouse(e.target.value)} />
+                          {show("gaHouse") && <p className={styles.error}>{show("gaHouse")}</p>}
+                        </div>
+                        <div>
+                          <label htmlFor="gaPostcode" className={styles.label}>Home postcode</label>
+                          <input id="gaPostcode" ref={ref("gaPostcode")} className="form-control" autoComplete="postal-code" value={gaPostcode} aria-invalid={Boolean(show("gaPostcode"))} onChange={(e) => setGaPostcode(e.target.value.toUpperCase())} />
+                          {show("gaPostcode") && <p className={styles.error}>{show("gaPostcode")}</p>}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </fieldset>
+              )}
 
               {/* 3. Payment */}
               <fieldset className={styles.section}>
@@ -482,6 +563,14 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
 
               {/* Summary (also shown in the sidebar on desktop) */}
               <div className={styles.section}>
+                {giving?.matching?.live && amount > 0 && (
+                  <p className={styles.matchNote} role="status">
+                    <strong>{giving.matching.sponsorName}</strong> will match your gift
+                    {giving.matching.ratio !== 1 ? ` ${giving.matching.ratio}×` : ""}: +
+                    {formatMoney(Math.min(amount * giving.matching.ratio, giving.matching.remaining), currency, { exact: true })} pledged
+                    <span className="ft-muted"> ({formatMoney(giving.matching.remaining, currency)} of matching left; added when the sponsor pays)</span>
+                  </p>
+                )}
                 <dl className={styles.breakdown}>
                   <div><dt>Donation to campaign</dt><dd>{formatMoney(amount, currency)}</dd></div>
                   <div><dt>Tip to Fund&amp;Trace</dt><dd>{formatMoney(tip, currency)}</dd></div>

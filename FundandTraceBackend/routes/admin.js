@@ -74,6 +74,13 @@ router.post("/ops/integrity/run", adminOps.runIntegrity);
 router.post("/disputes/:id/resolve", adminDisputes.resolveDispute);
 
 // Admin audit trail.
+// Matched giving and Gift Aid (controller/giving.js).
+const giving = require("../controller/giving");
+router.put("/campaigns/:id/matching", giving.setMatching);
+router.post("/campaigns/:id/matching/payments", giving.recordMatchPayment);
+router.put("/charities/:id/gift-aid", giving.setCharityGiftAid);
+router.get("/gift-aid/export", giving.giftAidExport);
+
 router.get("/audit", async (req, res) => {
   try {
     const { ActivityLog } = require("../models/activityLogModel");

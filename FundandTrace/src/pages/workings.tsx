@@ -154,7 +154,7 @@ export default function Workings() {
                 <h3>2. No Platform Fee</h3>
                 <p>
                   Donors give by card, bank transfer or mobile money. Fund&amp;Trace takes no platform fee; the processor&apos;s card
-                  fee is shown at checkout (<a href="/fees">how fees work</a>), so the campaign receives the full donation.
+                  fee is shown at checkout (<Link href="/fees">how fees work</Link>), so the campaign receives the full donation.
                 </p>
               </div>
 

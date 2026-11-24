@@ -69,6 +69,10 @@ const creditCampaign = async (campaignId, amount, ref = {}) => {
   } else {
     logger.warn({ campaignId }, "creditCampaign called without a ledger refId");
   }
+  // Gift Aid / team attribution and matched-giving pledge (idempotent).
+  if (result?.modifiedCount && ref.refId) {
+    await require("../../services/donationExtras").onCredited({ campaignId, refId: ref.refId, amount });
+  }
   return result;
 };
 
@@ -101,6 +105,10 @@ function resolveCheckout(req, rail, currency) {
   return { total: fees.round2(total), donation, tip: fees.round2(tip), fee, method, donorCountry, coverFee };
 }
 
+// Validate Gift Aid / team extras; returns null or throws {status:400}.
+const prepareExtras = (meta, campaign) => require("../../services/donationExtras").prepare(meta || {}, campaign);
+const saveExtras = (ref, campaignId, extras) => require("../../services/donationExtras").save(ref, campaignId, extras);
+
 const checkoutError = (res, err) =>
   res.status(err.status || 400).json({ status: err.status || 400, code: err.code, error: err.message, expectedFee: err.expectedFee });
 
@@ -115,6 +123,8 @@ const sendDonationMailSafely = async (donor, campaign, amount) => {
 };
 
 module.exports = {
+  prepareExtras,
+  saveExtras,
   stripe,
   Campaign,
   Donations,

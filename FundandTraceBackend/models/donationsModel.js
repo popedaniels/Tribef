@@ -24,6 +24,7 @@ const DonationsSchema = new mongoose.Schema({
   },
   // Team / matching attribution (group fundraising).
   teamId: { type: String, default: "", index: true },
+  matchedAt: { type: Date, default: null },
   matchedAmount: { type: Number, default: 0 },
   transactionId: { type: String, unique: true, sparse: true, index: true },
   transactionRef: { type: String, unique: true, sparse: true, index: true },

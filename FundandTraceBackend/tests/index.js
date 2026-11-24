@@ -22,3 +22,4 @@ after(() => {
     server.close();
   }
 });
+require("./controllers/giving.test");

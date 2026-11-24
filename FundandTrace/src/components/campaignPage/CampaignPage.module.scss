@@ -429,3 +429,14 @@
   .tabCount { background: #1f2937; }
   .hero { background: #1f2937; }
 }
+
+.whatsapp {
+  background: #075e54;
+  color: #fff !important;
+  border: 0;
+  margin-top: 8px;
+  &:hover,
+  &:focus-visible {
+    background: #054a42;
+  }
+}

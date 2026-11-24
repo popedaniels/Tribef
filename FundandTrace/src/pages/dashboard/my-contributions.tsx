@@ -19,6 +19,7 @@ import { toast } from "../../../store/slices/ToastSlice";
 import { useAppDispatch } from "./../../../store/hooks";
 import type { Campaign } from "../../types/campaign";
 import { getApiBaseUrl } from "../../utils/api";
+import { downloadFile } from "../../utils/download";
 import RefundAction, { type RefundPolicy } from "../../components/trust/RefundAction";
 
 interface Contribution {
@@ -317,6 +318,7 @@ export default function MyContributions() {
           <Link href="/dashboard/subscriptions" className="mb-3" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
             Manage monthly giving →
           </Link>
+          <StatementLinks />
           {USD > 0 && (
             <h3 className="text-medium">TOTAL: USD {addCommaToNumber(USD)}</h3>
           )}
@@ -334,6 +336,20 @@ export default function MyContributions() {
               {[...campaigns].reverse().map((campaign, i) => (
                 <React.Fragment key={campaign?._id || i}>
                   <ContributionCard campaign={campaign} />
+                  {campaign?._id && (
+                    <button
+                      type="button"
+                      className="ft-btn ft-btn--link mb-2"
+                      style={{ fontSize: 14 }}
+                      onClick={async () => {
+                        if (!(await downloadFile(`/api/donations/${campaign._id}/receipt`, `receipt-${campaign._id}.pdf`))) {
+                          dispatch(toast(true, "Couldn't download the receipt. Please try again.", "error"));
+                        }
+                      }}
+                    >
+                      Download receipt (PDF)
+                    </button>
+                  )}
                   <RefundAction
                     donationId={campaign?._id}
                     amount={campaign?.amount}
@@ -390,3 +406,33 @@ const Section = styled.section`
     max-width: 500px;
   }
 `;
+
+// Annual statements (FT-016): a PDF of every donation in the year, for
+// records and tax returns. UK donors can use the April–April tax year.
+function StatementLinks() {
+  const dispatch = useAppDispatch();
+  const now = new Date();
+  const years = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
+  // Last complete UK tax year (6 April – 5 April).
+  const ukYear = now.getMonth() > 3 || (now.getMonth() === 3 && now.getDate() >= 6) ? now.getFullYear() - 1 : now.getFullYear() - 2;
+  const get = async (path: string, name: string) => {
+    if (!(await downloadFile(`/api/giving/statement/${path}`, name))) dispatch(toast(true, "Couldn't download the statement. Please try again.", "error"));
+  };
+  return (
+    <nav aria-label="Annual statements" className="mb-3 text-center" style={{ fontSize: 15 }}>
+      <span className="ft-muted">Download a statement: </span>
+      {years.map((y, i) => (
+        <span key={y}>
+          {i > 0 && " · "}
+          <button type="button" className="ft-btn ft-btn--link p-0" onClick={() => get(String(y), `statement-${y}.pdf`)}>
+            {y}
+          </button>
+        </span>
+      ))}
+      <span className="ft-muted"> · </span>
+      <button type="button" className="ft-btn ft-btn--link p-0" onClick={() => get(`${ukYear}?basis=uk`, `statement-${ukYear}-uk.pdf`)}>
+        UK tax year {ukYear}–{String(ukYear + 1).slice(-2)}
+      </button>
+    </nav>
+  );
+}

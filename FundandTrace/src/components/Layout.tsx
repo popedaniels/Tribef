@@ -26,7 +26,8 @@ export default function Layout({
         title={title}
         url={url}
         description={description}
-        ogImage={ogImage}
+        // Crawlers (WhatsApp, X, Facebook) need an absolute URL.
+        ogImage={ogImage && ogImage.startsWith("/") ? `https://fundandtrace.com${ogImage}` : ogImage}
       />
       {/* <!-- Google Tag Manager (noscript) — production builds only.
           Gated on NODE_ENV (identical on server and client) rather than

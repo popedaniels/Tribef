@@ -73,6 +73,30 @@ const campaignSchema = new mongoose.Schema({
     availableBalance: { type: Number, default: 0 },
     refunded: { type: Boolean, default: false },
   },
+  // Fundraising teams (FT-042): supporters fundraise under a team name;
+  // donations carry teamId and the campaign page shows a leaderboard.
+  teams: [
+    {
+      name: { type: String, required: true, maxlength: 60 },
+      slug: { type: String, required: true, maxlength: 60 },
+      captainName: { type: String, default: "", maxlength: 60 },
+      goal: { type: Number, default: 0 },
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
+  // Matched giving (FT-042). A sponsor PLEDGES to match donations up to a cap.
+  // Pledged money is not in escrow: it is shown as "pledged", never added to
+  // amountRaised/availableBalance, until the sponsor pays and an admin records
+  // the payment (ledger credit "match-payment:...").
+  matching: {
+    active: { type: Boolean, default: false },
+    sponsorName: { type: String, default: "", maxlength: 80 },
+    ratio: { type: Number, default: 1, min: 0.1, max: 5 },
+    cap: { type: Number, default: 0 },
+    pledged: { type: Number, default: 0 },
+    received: { type: Number, default: 0 },
+    endsAt: { type: Date, default: null },
+  },
   settings: {
     postFunding: { type: Boolean, default: true },
     publicUpdates: { type: Boolean, default: false },

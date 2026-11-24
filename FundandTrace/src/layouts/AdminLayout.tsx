@@ -44,6 +44,18 @@ const navLinks = [
     link: "/identity",
     title: "Identity checks",
   },
+  {
+    link: "/giving",
+    title: "Giving",
+  },
+  {
+    link: "/vendors",
+    title: "Vendors",
+  },
+  {
+    link: "/metrics",
+    title: "Metrics",
+  },
 ];
 
 interface AdminLayoutProps {

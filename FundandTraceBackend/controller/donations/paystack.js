@@ -15,6 +15,8 @@ const {
   resolveCheckout,
   checkoutError,
   splitTotal,
+  prepareExtras,
+  saveExtras,
 } = require("./shared");
 const { getClientIp, assessDonation } = require("../../utility/fraud");
 const { notifyTargetReachedIfNeeded } = require("../../services/targetReached");
@@ -59,9 +61,10 @@ exports.initializePaystackPayment = async (req, res) => {
     // is credited the donation only.
     const currency = checkoutCurrency(campaign, req.body.currency);
     if (!currency) return currencyMismatch(res, campaign);
-    let co;
+    let co, extras;
     try {
       co = resolveCheckout(req, "paystack", currency);
+      extras = await prepareExtras(req.body.meta, campaign);
     } catch (err) {
       return checkoutError(res, err);
     }
@@ -121,6 +124,7 @@ exports.initializePaystackPayment = async (req, res) => {
       return res.status(502).json({ status: 502, error: "Paystack initialization failed" });
     }
 
+    await saveExtras(`paystack:${resp.data.data.reference || txRef}`, campaign._id, extras);
     if (req.body.customer?.email) {
       addActivity("initializeDonation", req.body.customer.email);
     }

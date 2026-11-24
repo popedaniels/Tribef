@@ -1,3 +1,5 @@
+import Head from "next/head";
+import { campaignLd, jsonLd } from "../../../utils/structuredData";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -188,6 +190,9 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
       ogImage={`${SITE}/api/og/campaign/${id}`}
       url={`${SITE}/campaign/${id}`}
     >
+      <Head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(campaignLd(campaign)) }} />
+      </Head>
       <Navbar />
       <main className={styles.page}>
         <div className={styles.container}>

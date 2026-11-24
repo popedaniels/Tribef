@@ -159,3 +159,25 @@ exports.referralStats = async (req, res) => {
     return res.status(500).json({ status: 500, error: "Server error." });
   }
 };
+
+// GET /api/discovery/sitemap — launched, live campaigns for the website's
+// sitemap.xml: id, last change and title only.
+exports.sitemap = async (req, res) => {
+  try {
+    const rows = await Campaign.find(LAUNCHED_FILTER, { _id: 1, createdAt: 1, "updates.datePosted": 1, category: 1 })
+      .sort({ createdAt: -1 })
+      .limit(45000)
+      .lean()
+      .maxTimeMS(10000);
+    const data = rows.map((c) => {
+      const latestUpdate = (c.updates || []).reduce((m, u) => Math.max(m, new Date(u.datePosted || 0).getTime() || 0), 0);
+      const lastmod = new Date(Math.max(new Date(c.createdAt || 0).getTime() || 0, latestUpdate) || Date.now());
+      return { id: String(c._id), lastmod: lastmod.toISOString().slice(0, 10), category: c.category || "" };
+    });
+    res.set("Cache-Control", "public, max-age=3600");
+    return res.json({ status: 200, data });
+  } catch (err) {
+    logger.error({ err }, "sitemap failed");
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};

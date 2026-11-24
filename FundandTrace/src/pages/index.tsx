@@ -1,3 +1,5 @@
+import Head from "next/head";
+import { jsonLd, organizationLd } from "../utils/structuredData";
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import api from "../utils/api";
@@ -91,6 +93,9 @@ export default function Home() {
       url="https://fundandtrace.com"
       ogImage="/og-image.jpg"
     >
+      <Head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(organizationLd()) }} />
+      </Head>
       {/* 1. Value proposition */}
       <HeroSection />
 

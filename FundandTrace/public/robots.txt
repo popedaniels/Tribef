@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /donate/
+Disallow: /donated/
+Disallow: /capture
+Disallow: /unsubscribe
+Disallow: /api/
+
+Sitemap: https://fundandtrace.com/sitemap.xml

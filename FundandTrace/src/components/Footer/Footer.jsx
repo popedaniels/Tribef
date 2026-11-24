@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import styles from "./Footer.module.scss";
 import { LanguageSwitcher } from "../../i18n";
+import { LowDataToggle } from "../../utils/lowData";
 
 export default function Footer() {
   return (
@@ -77,6 +78,8 @@ export default function Footer() {
             <Link href="/fees">Fee Schedule</Link>
             <span className={styles.dot}>•</span>
             <LanguageSwitcher />
+            <span className={styles.dot}>•</span>
+            <LowDataToggle />
           </div>
         </div>
       </div>

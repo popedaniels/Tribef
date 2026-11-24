@@ -110,8 +110,7 @@ export default function FeesPage() {
             </li>
           </ul>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className="sr-only">Processing fees by payment method</caption>
+            <table className={styles.table} aria-label="Processing fees by payment method">
               <thead>
                 <tr>
                   <th scope="col">Paying with</th>
@@ -175,8 +174,7 @@ export default function FeesPage() {
           <h2>How this compares</h2>
           <p>On other platforms the processing fee usually comes out of the donation, so the campaign receives less than you gave.</p>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className="sr-only">Fees on other fundraising platforms</caption>
+            <table className={styles.table} aria-label="Fees on other fundraising platforms">
               <thead>
                 <tr>
                   <th scope="col">Platform</th>

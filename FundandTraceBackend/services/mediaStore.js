@@ -107,8 +107,15 @@ function memoryStore() {
   };
 }
 
+// Object storage when configured (services/s3Store.js), else GridFS.
 let current = gridStore;
 module.exports = {
+  /** Call once at startup, after the module graph is loaded. */
+  useConfiguredStore() {
+    const s3 = require("./s3Store");
+    if (s3.configured() && process.env.NODE_ENV !== "test") current = s3.routingStore(s3.s3Store(), gridStore);
+    return current === gridStore ? "gridfs" : "s3";
+  },
   get store() {
     return current;
   },

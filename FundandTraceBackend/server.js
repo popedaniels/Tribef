@@ -238,7 +238,7 @@ app.use((err, req, res, next) => {
 if (require.main === module) {
   let scheduler = null;
   const server = app.listen(PORT, () => {
-    logger.info({ port: PORT }, "FundandTrace backend server started");
+    logger.info({ port: PORT, mediaStore: require("./services/mediaStore").useConfiguredStore() }, "FundandTrace backend server started");
 
     // Daily jobs (integrity check, ledger anchor, optional gateway
     // reconciliation). Each runs once per UTC day across all instances.

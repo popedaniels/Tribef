@@ -1,7 +1,6 @@
 import React from "react";
 import Link from "next/link";
 import { useSelector } from "react-redux";
-import { motion } from "framer-motion";
 import { selectAuthStateState } from "../../../../store/slices/authSlice";
 import styles from "./AudienceBenefits.module.scss";
 
@@ -24,12 +23,7 @@ export default function AudienceBenefits() {
 
         <div className={styles.grid}>
           {/* Card 1: For Donors */}
-          <motion.div
-            className={styles.benefitCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+          <div className={`${styles.benefitCard} ft-reveal`}>
             <div>
               <div className={styles.cardTop}>
                 <span className={`${styles.audienceTag} ${styles.donorTag}`}>
@@ -79,15 +73,10 @@ export default function AudienceBenefits() {
               <span>→</span>
 
             </Link>
-          </motion.div>
+          </div>
 
           {/* Card 2: For Fundraisers */}
-          <motion.div
-            className={styles.benefitCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-          >
+          <div className={`${styles.benefitCard} ft-reveal`} style={{ animationDelay: "0.15s" }}>
             <div>
               <div className={styles.cardTop}>
                 <span className={`${styles.audienceTag} ${styles.creatorTag}`}>
@@ -141,7 +130,7 @@ export default function AudienceBenefits() {
               <span>→</span>
 
             </Link>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

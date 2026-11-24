@@ -122,7 +122,9 @@
   .bottomLinks {
     display: flex;
     align-items: center;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    max-width: 100%;
 
     a {
       display: inline-block;

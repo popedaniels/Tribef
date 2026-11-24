@@ -105,7 +105,7 @@ function offlineChecks(env, fe = null, appKeys = null) {
   want("ALERT_WEBHOOK_URL", "Ops", "Integrity and payout alerts go nowhere without it.");
   add(has("SMTP_URL") || has("OAUTH_REFRESH_TOKEN") ? (has("SMTP_URL") ? PASS : WARN) : FAIL, "Ops", "Transactional email uses SMTP (SES/Postmark/Resend)", "Gmail OAuth caps volume and its token can expire, which stops receipts silently.");
   if (has("SMTP_URL")) want("EMAIL_FROM", "Ops", "From address on receipts.");
-  add(has("STORAGE_BUCKET") ? PASS : WARN, "Ops", "Evidence and uploads go to object storage (STORAGE_BUCKET)", "Without it files live on the container's disk and are lost on redeploy.");
+  add(has("STORAGE_BUCKET") ? PASS : WARN, "Ops", "Evidence media goes to object storage (STORAGE_BUCKET)", "Without it, photos and videos are stored in MongoDB (GridFS): safe, but it grows database cost and backup time. Set S3/R2 and run scripts/migrate-media-to-s3.js.");
 
   // Leftovers
   // Only the app's own variables (from .env.example), not unrelated process env.

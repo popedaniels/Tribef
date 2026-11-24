@@ -1,4 +1,5 @@
 import { I18nProvider } from "../i18n";
+import { LowDataProvider } from "../utils/lowData";
 import React, { useEffect } from "react";
 // Self-hosted fonts (bundled, same origin, latin subsets load on demand via
 // unicode-range). Google Fonts used to be a render-blocking third-party
@@ -50,8 +51,10 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <Provider store={store}>
       <I18nProvider>
-        <Content Component={Component} pageProps={pageProps} />
-        <Toast />
+        <LowDataProvider>
+          <Content Component={Component} pageProps={pageProps} />
+          <Toast />
+        </LowDataProvider>
       </I18nProvider>
     </Provider>
   );

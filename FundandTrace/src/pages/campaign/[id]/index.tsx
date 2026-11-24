@@ -17,6 +17,7 @@ import FrozenBanner from "../../../components/trust/FrozenBanner";
 import TransparencyScore from "../../../components/trust/TransparencyScore";
 import GivingPanel from "../../../components/campaignPage/GivingPanel";
 import { whatsappShareUrl } from "../../../utils/share";
+import { useLowData } from "../../../utils/lowData";
 import {
   formatMoney,
   getDaysRemaining,
@@ -68,6 +69,8 @@ type Tab = "story" | "updates" | "comments";
 export default function CampaignPage({ campaign }: CampaignPageProps) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("story");
+  const { lowData } = useLowData();
+  const [videoWanted, setVideoWanted] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -270,12 +273,16 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                 {tab === "story" && (
                   <div className={styles.story}>
                     {video &&
-                      (/youtube\.com|youtu\.be/.test(video) ? (
+                      (lowData && !videoWanted ? (
+                        <button type="button" className="ft-btn ft-btn--secondary" onClick={() => setVideoWanted(true)}>
+                          ▶ Play the campaign video (uses mobile data)
+                        </button>
+                      ) : /youtube\.com|youtu\.be/.test(video) ? (
                         <div className={styles.video}>
-                          <iframe src={video} title={`${title} video`} allowFullScreen />
+                          <iframe src={video} title={`${title} video`} allowFullScreen loading="lazy" />
                         </div>
                       ) : (
-                        <video src={video} controls className={styles.videoEl} />
+                        <video src={video} controls preload={lowData ? "none" : "metadata"} className={styles.videoEl} />
                       ))}
                     {story.length ? story.map((p, i) => <p key={i}>{p}</p>) : <p className="ft-muted">The organiser hasn&apos;t written a story yet.</p>}
                   </div>
@@ -426,6 +433,15 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
         <button type="button" className="ft-btn ft-btn--secondary" aria-label="Share this campaign" onClick={() => setShowShare(true)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
         </button>
+        <a
+          className={`ft-btn ${styles.whatsappIcon}`}
+          href={whatsappShareUrl({ title, url: `${SITE}/campaign/${id}?ref=wa`, raised: view.raised, goal: view.goal, currency: view.currency })}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Share on WhatsApp"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.7-.1l.9-1.1c.2-.3.4-.2.7-.1l2 .9c.3.2.5.2.5.4.1.1.1.7-.1 1.4z" /></svg>
+        </a>
         <DonateButton className={styles.mobileDonate} />
       </div>
 

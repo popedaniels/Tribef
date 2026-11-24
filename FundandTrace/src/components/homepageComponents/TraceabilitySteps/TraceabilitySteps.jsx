@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
 import styles from "./TraceabilitySteps.module.scss";
 
 const steps = [
@@ -50,20 +49,14 @@ export default function TraceabilitySteps() {
 
         <div className={styles.stepsGrid}>
           {steps.map((step, index) => (
-            <motion.div
-              key={index}
-              className={styles.stepCard}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-            >
+            <div key={index} className={`${styles.stepCard} ft-reveal`} style={{ animationDelay: `${index * 0.1}s` }}>
               <div className={styles.stepBadge}>{step.number}</div>
               <div className={styles.iconWrap}>
                 <img src={step.icon} alt="" />
               </div>
               <h3>{step.title}</h3>
               <p>{step.description}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

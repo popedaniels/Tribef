@@ -30,6 +30,7 @@
   },
   "homepage": "https://github.com/wisdomosara/FundandTraceBackend#readme",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1176.0",
     "@sentry/node": "^10.71.0",
     "axios": "^1.19.0",
     "bcrypt": "^6.0.0",

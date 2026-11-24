@@ -37,6 +37,29 @@ jobs:
               - "**/__tests__/**"
               - "FundandTrace/.next/**"
       - uses: github/codeql-action/analyze@v3
+        with:
+          output: codeql-results
+      - name: Summarise findings
+        if: always()
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import glob, json, collections
+          c = collections.Counter(); rows = []
+          for f in glob.glob("codeql-results/*.sarif"):
+              for run in json.load(open(f))["runs"]:
+                  rules = {r["id"]: r for r in run["tool"]["driver"].get("rules", [])}
+                  for res in run.get("results", []):
+                      rid = res["ruleId"]; sev = rules.get(rid, {}).get("properties", {}).get("security-severity", "-")
+                      loc = res["locations"][0]["physicalLocation"]
+                      c[rid] += 1; rows.append(f"| {sev} | {rid} | {loc['artifactLocation']['uri']}:{loc.get('region', {}).get('startLine', '')} |")
+          print(f"### CodeQL: {sum(c.values())} finding(s)\n")
+          if rows: print("| Severity | Rule | Location |\n|---|---|---|\n" + "\n".join(sorted(rows, reverse=True)[:200]))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codeql-sarif
+          path: codeql-results/*.sarif
 
   dependencies:
     runs-on: ubuntu-latest

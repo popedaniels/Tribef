@@ -56,6 +56,10 @@ async function counts(db) {
   const { runIntegrityCheck } = require("../services/integrity");
   const report = await runIntegrityCheck({ alert: false });
   const critical = (report.findings || []).filter((f) => f.severity === "critical");
+  // An empty restore "passes" an integrity check trivially, so require that
+  // the ledgers were actually there to check.
+  const expectedLedger = expectFile ? JSON.parse(fs.readFileSync(expectFile, "utf8")).ledgerentries || 0 : now.ledgerentries || 0;
+  add(!expectedLedger || report.summary?.ledgersChecked > 0, "Ledgers were present and checked", `${report.summary?.ledgersChecked ?? 0} campaign ledgers`);
   add(critical.length === 0, "Ledger and evidence hash chains intact; balances match the ledger", critical.length ? critical.map((f) => `${f.code}${f.campaignId ? ` (${f.campaignId})` : ""}`).join(", ") : `${report.findings?.length || 0} non-critical findings`);
 
   const taken = arg("--backup-taken");

@@ -55,7 +55,11 @@ SRC_DB="$(basename "${SRC_DIR}")"
 
 RESTORE_START=$(date +%s)
 echo "[drill] Restoring ${SRC_DB} → ${DB_NAME}"
-mongorestore --uri="${DRILL_MONGOURL}" --gzip --drop --nsFrom="${SRC_DB}.*" --nsTo="${DB_NAME}.*" --dir="$(dirname "${SRC_DIR}")" --quiet
+# A database in --uri makes mongorestore expect BSON files at the top level of
+# --dir (and silently restore nothing), so connect without one and let
+# --nsFrom/--nsTo do the renaming.
+SERVER_URI="$(node -e 'const s=process.argv[1];const m=/^(mongodb(?:\+srv)?:\/\/[^/?]+)(?:\/[^?]*)?(\?.*)?$/.exec(s);process.stdout.write(m?m[1]+"/"+(m[2]||""):s)' "${DRILL_MONGOURL}")"
+mongorestore --uri="${SERVER_URI}" --gzip --drop --nsInclude="${SRC_DB}.*" --nsFrom="${SRC_DB}.*" --nsTo="${DB_NAME}.*" --dir="$(dirname "${SRC_DIR}")"
 RESTORE_SECS=$(( $(date +%s) - RESTORE_START ))
 
 echo "[drill] Verifying the restored data"

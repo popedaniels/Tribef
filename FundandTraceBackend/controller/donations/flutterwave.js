@@ -131,7 +131,7 @@ exports.paymentFlutterwave = async (req, res, next) => {
         Authorization: "Bearer " + process.env.FLUTTERWAVE,
       },
     };
-    if (!/^\d{1,20}$/.test(String(transaction_id || ""))) {
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(transaction_id || ""))) {
       return res.redirect(`${process.env.MAINURL}/donate/${req.params.id}?status=failed`);
     }
     const resp = await axios.get(
@@ -308,7 +308,7 @@ exports.flutterwaveWebhook = async (req, res) => {
     if (existingDonation) return res.status(200).json({ received: true });
 
     // Re-verify the transaction with Flutterwave API to confirm the hash is genuine.
-    if (!/^\d{1,20}$/.test(String(transactionId || ""))) return res.status(200).json({ received: true });
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(transactionId || ""))) return res.status(400).json({ status: 400, error: "Invalid transaction id" });
     const verifyResp = await axios.get(
       `https://api.flutterwave.com/v3/transactions/${encodeURIComponent(transactionId)}/verify`,
       { headers: { Authorization: "Bearer " + secret } }

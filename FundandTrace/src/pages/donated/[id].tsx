@@ -51,7 +51,8 @@ export default function DonatedPage({ campaign }: DonatedPageProps) {
   const email = q(router.query.email);
   const amount = Number(q(router.query.amount));
   const campaignId = q(router.query.campaignId) || campaign?._id || "";
-  const success = status === "successful";
+  const monthlyStarted = status === "subscription_started";
+  const success = status === "successful" || monthlyStarted;
 
   useEffect(() => {
     axios
@@ -94,7 +95,15 @@ export default function DonatedPage({ campaign }: DonatedPageProps) {
               </span>
               <h1 id="thanks-title">Thank you{firstName ? `, ${firstName}` : ""}!</h1>
               <p className={styles.lead}>
-                Your {amount > 0 ? <strong>{formatMoney(amount, currency)}</strong> : "donation"} to <strong>{title}</strong> is confirmed.
+                {monthlyStarted ? (
+                  <>
+                    Your monthly gift to <strong>{title}</strong> is set up. You can change or cancel it any time under Dashboard → Subscriptions.
+                  </>
+                ) : (
+                  <>
+                    Your {amount > 0 ? <strong>{formatMoney(amount, currency)}</strong> : "donation"} to <strong>{title}</strong> is confirmed.
+                  </>
+                )}
                 {email ? <> A receipt is on its way to <strong>{email}</strong>.</> : " A receipt is on its way to your inbox."}
               </p>
             </section>

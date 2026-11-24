@@ -13,6 +13,15 @@ const SubscriptionSchema = new mongoose.Schema({
   interval: { type: String, default: "month" },
   anonymous: { type: Boolean, default: false },
   referralCode: { type: String, default: "" },
+  // "stripe" | "paystack"
+  gateway: { type: String, default: "stripe", index: true },
+  // Card fee added to each monthly charge (Paystack rails pass it on at cost).
+  processingFee: { type: Number, default: 0 },
+  // Paystack plan per subscription (amount = donation + fee, monthly).
+  paystackPlanCode: { type: String, default: "", index: true },
+  paystackSubscriptionCode: { type: String, default: "", index: true },
+  paystackEmailToken: { type: String, default: "", select: false }, // needed to disable
+  nextPaymentDate: { type: Date, default: null },
   stripeCustomerId: { type: String, default: "", index: true },
   stripeSubscriptionId: { type: String, unique: true, sparse: true, index: true },
   // active | canceling | canceled | past_due | incomplete | incomplete_expired

@@ -105,6 +105,8 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
   // Set when the API wants a bot check (after unusually many payment starts
   // from one connection); the widget's token retries the payment.
   const [challengeKey, setChallengeKey] = useState("");
+  // Monthly gift (Stripe and Paystack card payments only; no tip, no Gift Aid).
+  const [monthlyChosen, setMonthlyChosen] = useState(false);
   const [amountText, setAmountText] = useState("");
   // No tip by default: an optional extra must be actively chosen (UK Consumer
   // Contracts Regulations 2013 reg. 40 — a preselected extra isn't consent).
@@ -196,16 +198,20 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.query.status, dispatch]);
 
+  const monthlyAvailable = (rail === "stripe" || rail === "paystack") && method === "card";
+  const monthly = monthlyChosen && monthlyAvailable;
   const tip = useMemo(() => {
+    if (monthly) return 0;
     if (tipPct === "custom") {
       const t = Number(customTip);
       return Number.isFinite(t) && t > 0 ? Math.round(t * 100) / 100 : 0;
     }
     return Math.round(amount * tipPct) / 100;
-  }, [tipPct, customTip, amount]);
+  }, [tipPct, customTip, amount, monthly]);
   // Card/processing fee: added at cost on African rails, opt-in on UK/EU cards.
   const feeQuote = quote(feeSchedule, { rail, currency, base: Math.round((amount + tip) * 100) / 100, coverFee, method: method === "card" ? "" : method, donorCountry });
-  const fee = amount > 0 ? feeQuote.fee : 0;
+  // Stripe monthly gifts charge the gift amount only (no card fee added).
+  const fee = amount > 0 && !(monthly && rail === "stripe") ? feeQuote.fee : 0;
   const total = Math.round((amount + tip + fee) * 100) / 100;
   const momo = MOMO_LABEL[currency];
 
@@ -217,10 +223,10 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
     if (!EMAIL_RE.test(email.trim())) e.email = t("donate.err.email");
     if (!country) e.country = t("donate.err.country");
     if (!terms) e.terms = t("donate.err.terms");
-    if (giftAid && !gaHouse.trim()) e.gaHouse = "Gift Aid needs your house name or number.";
-    if (giftAid && !UK_POSTCODE.test(gaPostcode.trim())) e.gaPostcode = "Enter your UK home postcode for Gift Aid.";
+    if (giftAid && !monthly && !gaHouse.trim()) e.gaHouse = "Gift Aid needs your house name or number.";
+    if (giftAid && !monthly && !UK_POSTCODE.test(gaPostcode.trim())) e.gaPostcode = "Enter your UK home postcode for Gift Aid.";
     return e;
-  }, [amount, firstName, lastName, email, country, terms, giftAid, gaHouse, gaPostcode, t]);
+  }, [amount, firstName, lastName, email, country, terms, giftAid, gaHouse, gaPostcode, monthly, t]);
   const show = (f: Field) => (submitted ? errors[f] : undefined);
 
   if (!campaign) {
@@ -294,7 +300,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
       anonymous,
       referralCode,
       ...(teamId ? { teamId } : {}),
-      ...(giftAid
+      ...(giftAid && !monthly
         ? { giftAid: { declared: true, firstName: firstName.trim(), lastName: lastName.trim(), houseNameOrNumber: gaHouse.trim(), postcode: gaPostcode.trim() } }
         : {}),
     },
@@ -317,7 +323,24 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
     const payment = buildPayment();
     const extra = turnstileToken ? { turnstileToken } : {};
     try {
-      if (rail === "stripe") {
+      if (monthly && rail === "stripe") {
+        const stripe = await getStripe();
+        if (!stripe) return fail(null, "Card payments can't load right now. Try again in a moment.");
+        const res = await axios.post(`${getApiBaseUrl()}/api/recurring/subscribe/${campaign._id}`, {
+          amount,
+          currency,
+          meta: { tip: 0, anonymous, referralCode },
+          customer: payment.customer,
+          customizations: payment.customizations,
+          ...extra,
+        });
+        const result = await stripe.redirectToCheckout({ sessionId: res?.data?.id });
+        if (result.error) fail(null, result.error.message || "We couldn't open the card payment page.");
+      } else if (monthly && rail === "paystack") {
+        const res = await axios.post(`${getApiBaseUrl()}/api/recurring/paystack/${campaign._id}`, { ...payment, ...extra });
+        if (res?.data?.authorizationUrl) window.location.href = res.data.authorizationUrl;
+        else fail(null, "We couldn't open Paystack. Please try again.");
+      } else if (rail === "stripe") {
         const stripe = await getStripe();
         if (!stripe) return fail(null, "Card payments can't load right now. Try another payment method or try again in a moment.");
         const res = await axios.post(`${getApiBaseUrl()}/api/donations/createStripeSession/${campaignId}`, { ...payment, ...extra });
@@ -433,6 +456,17 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 <p id="amount-help" className={show("amount") ? styles.error : styles.help}>
                   {show("amount") || (approx ? t("donate.approx", { approx, date: rateDate, currency }) : t("donate.takenIn", { currency }))}
                 </p>
+                {monthlyAvailable && (
+                  <label className={styles.label} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontWeight: 500, marginTop: 8 }}>
+                    <input type="checkbox" checked={monthlyChosen} onChange={() => setMonthlyChosen(!monthlyChosen)} style={{ marginTop: 4 }} />
+                    <span>
+                      Make this a monthly gift
+                      <span className="ft-muted" style={{ display: "block", fontWeight: 400, fontSize: 13 }}>
+                        Charged on the same day each month{rail === "paystack" ? ", including the card fee" : ""}. Cancel any time from your dashboard.
+                      </span>
+                    </span>
+                  </label>
+                )}
               </fieldset>
 
               {/* 2. Details */}
@@ -504,7 +538,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 )}
               </fieldset>
 
-              {giving?.giftAid.available && currency === "GBP" && amount > 0 && (
+              {giving?.giftAid.available && currency === "GBP" && amount > 0 && !monthly && (
                 <fieldset className={`${styles.section} ${styles.giftAid}`}>
                   <legend>
                     Boost your donation by {formatMoney(Math.round(amount * 25) / 100, "GBP", { exact: true })} with Gift Aid
@@ -565,7 +599,8 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                 <p className={styles.help}>You&apos;ll finish paying on {rail === "stripe" ? "Stripe's" : rail === "paystack" ? "Paystack's" : "Flutterwave's"} secure page. We never see your card details.</p>
               </fieldset>
 
-              {/* 4. Tip */}
+              {/* 4. Tip (one-off gifts only) */}
+              {!monthly && (
               <fieldset className={styles.section}>
                 <legend>{t("donate.tipTitle")} <span className="ft-muted">{t("donate.optional")}</span></legend>
                 <p className={styles.help} style={{ marginTop: 0 }}>
@@ -588,6 +623,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   </div>
                 )}
               </fieldset>
+              )}
 
               {/* Summary (also shown in the sidebar on desktop) */}
               <div className={styles.section}>
@@ -654,7 +690,7 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   </div>
                 )}
                 <button type="submit" className="ft-btn ft-btn--primary ft-btn--lg ft-btn--block" disabled={loading} aria-busy={loading}>
-                  {loading ? t("donate.opening") : amount > 0 ? t("donate.submit", { total: formatMoney(total, currency, { exact: true }) }) : t("donate.submitBare")}
+                  {loading ? t("donate.opening") : amount > 0 ? `${t("donate.submit", { total: formatMoney(total, currency, { exact: true }) })}${monthly ? " a month" : ""}` : t("donate.submitBare")}
                 </button>
                 <p className={styles.secure}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>

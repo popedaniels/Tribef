@@ -294,6 +294,11 @@ exports.paystackWebhook = async (req, res) => {
       return res.status(200).json({ received: true });
     }
 
+    // Monthly giving: subscription lifecycle and renewal charges.
+    if (await require("../recurringPaystack").handlePaystackSubscriptionEvent(event)) {
+      return res.status(200).json({ received: true });
+    }
+
     if (event.event !== "charge.success") {
       return res.status(200).json({ received: true });
     }
@@ -367,6 +372,7 @@ exports.paystackWebhook = async (req, res) => {
       currency: txData.currency,
     });
     notifyTargetReachedIfNeeded(campaign._id);
+    await require("../recurringPaystack").markFirstCharge(metadata, donatedAmount);
 
     await sendDonationMailSafely(
       { email: metadata.donorEmail, name: metadata.donorName },

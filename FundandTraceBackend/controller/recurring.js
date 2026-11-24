@@ -111,10 +111,10 @@ exports.createSubscriptionSession = async (req, res) => {
 // POST /api/recurring/cancel/:subscriptionId (requireAuth)
 exports.cancelSubscription = async (req, res) => {
   try {
-    if (!stripe) {
+    const subscription = await Subscription.findById(req.params.subscriptionId);
+    if (subscription && subscription.gateway !== "paystack" && !stripe) {
       return res.status(503).json({ status: 503, error: "Stripe is not configured" });
     }
-    const subscription = await Subscription.findById(req.params.subscriptionId);
     if (!subscription) {
       return res.status(404).json({ status: 404, error: "Subscription not found" });
     }
@@ -130,6 +130,20 @@ exports.cancelSubscription = async (req, res) => {
     }
     if (["canceled", "canceling"].includes(subscription.status)) {
       return res.status(409).json({ status: 409, error: "Subscription already canceled" });
+    }
+
+    if (subscription.gateway === "paystack") {
+      // Paystack has no "cancel at period end": disabling stops future charges.
+      try {
+        await require("./recurringPaystack").disablePaystackSubscription(subscription);
+      } catch (err) {
+        return res.status(err.status || 502).json({ status: err.status || 502, error: err.status ? err.message : "Paystack couldn't cancel the subscription. Please try again." });
+      }
+      subscription.status = "canceled";
+      subscription.canceledAt = new Date();
+      await subscription.save();
+      addActivity("cancelRecurringDonation", subscription.subscriberEmail);
+      return res.status(200).json({ success: true, message: "Monthly gift cancelled" });
     }
 
     // Donor-friendly: keep donations flowing until the end of the paid period.
@@ -163,7 +177,7 @@ exports.mySubscriptions = async (req, res) => {
     const subs = await Subscription.find({
       subscriberEmail: requesterEmail,
     })
-      .select("campaignId amount tip currency interval status totalDonated createdAt canceledAt anonymous")
+      .select("campaignId amount tip processingFee currency interval status totalDonated createdAt canceledAt anonymous gateway nextPaymentDate")
       .populate("campaignId", "basicInformation.campaignTitle basicInformation.campaignImage")
       .sort({ createdAt: -1 });
     return res.status(200).json({ data: subs });

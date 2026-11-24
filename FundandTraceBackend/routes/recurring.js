@@ -9,6 +9,7 @@ const { requireAuth } = require("../utility/auth");
 router.param("id", objectIdParam("Campaign ID"));
 
 router.post("/subscribe/:id", ...require("../utility/checkoutGuard").checkoutGuard(), recurring.createSubscriptionSession);
+router.post("/paystack/:id", ...require("../utility/checkoutGuard").checkoutGuard(), require("../controller/recurringPaystack").createPaystackSubscription);
 router.post("/cancel/:subscriptionId", requireAuth, recurring.cancelSubscription);
 router.get("/mine", requireAuth, recurring.mySubscriptions);
 

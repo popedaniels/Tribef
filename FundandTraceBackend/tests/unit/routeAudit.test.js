@@ -21,6 +21,7 @@ const PUBLIC = {
   "POST /api/donations/createStripeSession/:p": "guest checkout",
   "POST /api/donations/initializePaystack/:p": "guest checkout",
   "POST /api/recurring/subscribe/:p": "guest checkout (monthly)",
+  "POST /api/recurring/paystack/:p": "guest checkout (monthly, Paystack)",
   "POST /api/donations/stripe-webhook": "Stripe signature verified in handler",
   "POST /api/donations/paystack-webhook": "Paystack HMAC verified in handler",
   "POST /api/donations/flutterwave-webhook": "Flutterwave verif-hash checked in handler",

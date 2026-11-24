@@ -22,3 +22,4 @@ FundandTrace/.env.*
 FundandTraceBackend/.env
 FundandTraceBackend/.env.*
 !FundandTraceBackend/.env.example
+drill-reports/

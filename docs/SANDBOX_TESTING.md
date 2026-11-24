@@ -87,3 +87,21 @@ simulated providers.
 - [ ] After 01:00 UTC, `GET /api/admin/ops/status` shows today's integrity check and ledger anchor.
 - [ ] The anchor is in the public anchors repo; `node scripts/verify-anchor.js --api https://<staging-api>` passes.
 - [ ] Deliberately edit one ledger entry in the staging database: the next integrity check alerts, the anchor job refuses, and **Verify ledger** on the tracker reports the broken entry. Then restore it.
+
+## Ready-for-keys checklist
+
+The *Provider sandbox contract* workflow skips (green) until keys exist. To
+switch it on:
+
+1. Add repository **secrets** (test mode only, the script refuses live keys):
+   `SANDBOX_STRIPE_SECRET`, `SANDBOX_PAYSTACK_SECRET`,
+   `SANDBOX_FLUTTERWAVE_SECRET`, `SANDBOX_SECURITY_KEY`, `SANDBOX_INIT_VECTOR`.
+2. Optional **variables**: `SANDBOX_NG_BANK_CODE` + `SANDBOX_NG_ACCOUNT` (a test
+   account from Paystack/Flutterwave's docs) to exercise account-name lookup;
+   `STAGING_API_URL` + `SANDBOX_CAMPAIGN_ID` for the checkout run.
+3. Run the workflow manually with **checkout** ticked, pay the printed links
+   with test cards, and watch it confirm: webhook → credit → ledger, the
+   campaign credited exactly the donation (no tip, no card fee), a tampered
+   fee refused (`fee_mismatch`), Paystack charged exactly our total, and the
+   fee we added covers Paystack's actual fee. The last two catch "Pass fees to
+   customers" being switched on, or a processor changing its rates.

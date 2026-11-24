@@ -118,6 +118,22 @@ Notes:
 4. Confirm production URLs use HTTPS (`MAINURL`, `BACKENDURL`,
    `NEXT_PUBLIC_API_URL`) — the validator rejects non-HTTPS public URLs.
 
+5. **Go/no-go preflight** with the production environment loaded, before
+   launch and before every major deploy:
+
+   ```bash
+   cd FundandTraceBackend
+   npm run preflight -- --env-file /secure/prod.env --frontend-env ../FundandTrace/.env.production
+   npm run preflight:online -- --env-file /secure/prod.env   # also hits the DB, processors, webhooks, URLs
+   ```
+
+   It fails on test keys in production, live/test key mixing between frontend
+   and backend, a mandatory Stripe surcharge, missing webhook secrets or
+   evidence signing key, placeholder values, unregistered Stripe webhooks,
+   a missing ledger index and unreachable URLs; it warns on everything that
+   needs a decision (Redis, Sentry, alerts, object storage, KYC gate, second
+   payout approver). Secret values are never printed. Exit code 1 = not ready.
+
 ---
 
 ## 3a. One-off steps for the November 2026 release
@@ -236,6 +252,30 @@ Expect all five checks to PASS (readiness requires MongoDB reachable).
 - [ ] **Logs** — every response carries `X-Request-Id`; make sure your log store indexes `requestId` so support can trace a donor's failed payment from the id in the error.
 
 ---
+
+### 5.1 Backup-restore drill (monthly, and before launch)
+
+A backup you haven't restored is a hope, not a backup.
+
+```bash
+# Restore last night's real backup into a scratch database and verify it:
+DRILL_MONGOURL="mongodb://localhost:27017/fundandtrace_drill" \
+  ./scripts/backup-restore-drill.sh ./backups/mongo-YYYYMMDDTHHMMSSZ.tar.gz
+# …or take a fresh dump from a read-only production user first:
+SOURCE_MONGOURL="mongodb+srv://readonly@…/fundandtrace" DRILL_MONGOURL=… ./scripts/backup-restore-drill.sh
+```
+
+Run it on your own infrastructure with the production `.env` loaded (the
+verifier decrypts nothing but needs the same config). It refuses any target
+database whose name doesn't end in `_drill`, restores, then checks: every
+collection and count, the ledger unique index, every ledger hash chain, the
+sealed-evidence chain, balances against the ledger, and backup age (RPO,
+default ≤ 26 h). It writes `drill-reports/drill-<time>.md` with the restore
+time (RTO). File the report; a FAIL is a P1.
+
+The *Backup drill* GitHub workflow runs the same scripts monthly against a
+seeded throwaway database and also proves a tampered ledger entry is caught.
+It deliberately never touches production data.
 
 ## 6. Incident playbooks
 

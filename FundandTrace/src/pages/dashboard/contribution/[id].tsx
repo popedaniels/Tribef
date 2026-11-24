@@ -1,3 +1,4 @@
+import { youtubeEmbedUrl } from "../../../utils/video";
 import React, { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../../../layouts/DashboardLayout";
 import styled from "styled-components";
@@ -252,13 +253,11 @@ export default function Contribution() {
                   <div className={styles.story}>
                     {campaign?.content?.campaignVideo && (
                       <div style={{ position: "relative", marginBottom: 30 }}>
-                        {campaign?.content?.campaignVideo?.includes(
-                          "youtube.com"
-                        ) ? (
+                        {youtubeEmbedUrl(campaign?.content?.campaignVideo) ? (
                           <Iframe style={{ marginBottom: 40 }}>
                             <iframe
                               className="iframe"
-                              src={campaign?.content?.campaignVideo}
+                              src={youtubeEmbedUrl(campaign?.content?.campaignVideo) || undefined}
                             ></iframe>
                           </Iframe>
                         ) : (

@@ -1,3 +1,4 @@
+import { youtubeEmbedUrl } from "../../../utils/video";
 import React, { useEffect, useState } from "react";
 import CampaignDashboardLayout from "../../../layouts/CampaignDashboardLayout";
 import styled from "styled-components";
@@ -535,13 +536,11 @@ export default function Dashboard({ campaign, campaignId }: DashboardProps) {
                     <div>
                       {campaign?.content?.campaignVideo && (
                         <div style={{ position: "relative", marginBottom: 30 }}>
-                          {campaign?.content?.campaignVideo?.includes(
-                            "youtube.com"
-                          ) ? (
+                          {youtubeEmbedUrl(campaign?.content?.campaignVideo) ? (
                             <Iframe style={{ marginBottom: 40 }}>
                               <iframe
                                 className="iframe"
-                                src={campaign?.content?.campaignVideo}
+                                src={youtubeEmbedUrl(campaign?.content?.campaignVideo) || undefined}
                               ></iframe>
                             </Iframe>
                           ) : (

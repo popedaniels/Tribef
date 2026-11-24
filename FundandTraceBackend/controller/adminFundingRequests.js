@@ -222,7 +222,7 @@ exports.approveFundingRequest = async (req, res, next) => {
 
     try {
       await axios.post(
-        `${process.env.BACKENDURL}/api/donations/stripeWebhook/${req.params.id}`,
+        `${process.env.BACKENDURL}/api/donations/stripeWebhook/${encodeURIComponent(String(fundingRequest._id))}`,
         { ...data },
         {
           headers: {

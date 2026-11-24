@@ -1,3 +1,4 @@
+import { youtubeEmbedUrl } from "../../utils/video";
 import React, { useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -426,13 +427,11 @@ export default function Prelauch() {
                   <div style={{ position: "relative", marginBottom: 30 }}>
                     {startCampaign?.content?.campaignVideo && (
                       <div>
-                        {startCampaign?.content?.campaignVideo?.includes(
-                          "youtube.com"
-                        ) ? (
+                        {youtubeEmbedUrl(startCampaign?.content?.campaignVideo) ? (
                           <Iframe style={{ marginBottom: 40 }}>
                             <iframe
                               className="iframe"
-                              src={startCampaign?.content?.campaignVideo}
+                              src={youtubeEmbedUrl(startCampaign?.content?.campaignVideo) || undefined}
                             ></iframe>
                           </Iframe>
                         ) : (

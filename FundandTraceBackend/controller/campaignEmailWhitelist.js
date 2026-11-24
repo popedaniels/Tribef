@@ -1,10 +1,11 @@
+const isEmail = require("../utility/isEmail");
 const { CampaignEmailWhitelist } = require("../models/campaignEmailWhitelist");
 const logger = require("../utility/logger");
 
 exports.addEmailToWhitelist = async (req, res, next) => {
   try {
     const { email, campaignId } = req.body;
-    if (!campaignId || !/^\S+@\S+\.\S+$/.test(String(email || ""))) {
+    if (!campaignId || !isEmail(String(email || ""))) {
       return res.status(400).json({ status: 400, error: "Valid email and campaign are required" });
     }
     const EmailLists = await CampaignEmailWhitelist.findOne({

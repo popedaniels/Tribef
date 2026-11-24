@@ -131,8 +131,11 @@ exports.paymentFlutterwave = async (req, res, next) => {
         Authorization: "Bearer " + process.env.FLUTTERWAVE,
       },
     };
+    if (!/^\d{1,20}$/.test(String(transaction_id || ""))) {
+      return res.redirect(`${process.env.MAINURL}/donate/${req.params.id}?status=failed`);
+    }
     const resp = await axios.get(
-      `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+      `https://api.flutterwave.com/v3/transactions/${encodeURIComponent(transaction_id)}/verify`,
       options
     );
     if (
@@ -305,8 +308,9 @@ exports.flutterwaveWebhook = async (req, res) => {
     if (existingDonation) return res.status(200).json({ received: true });
 
     // Re-verify the transaction with Flutterwave API to confirm the hash is genuine.
+    if (!/^\d{1,20}$/.test(String(transactionId || ""))) return res.status(200).json({ received: true });
     const verifyResp = await axios.get(
-      `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
+      `https://api.flutterwave.com/v3/transactions/${encodeURIComponent(transactionId)}/verify`,
       { headers: { Authorization: "Bearer " + secret } }
     );
     if (

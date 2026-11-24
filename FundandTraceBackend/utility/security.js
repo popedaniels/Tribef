@@ -131,12 +131,7 @@ exports.sanitizeInput = (req, res, next) => {
   // Webhook bodies are verified against the provider's signature and must
   // reach the handler exactly as sent.
   if (isWebhook(req)) return next();
-  if (
-    ["POST", "PUT", "PATCH"].includes(req.method) &&
-    req.body &&
-    !Buffer.isBuffer(req.body)
-  ) {
-    const sanitize = (value) => {
+  const sanitize = (value) => {
       if (!value || typeof value !== "object") return;
 
       Object.keys(value).forEach((key) => {
@@ -148,7 +143,9 @@ exports.sanitizeInput = (req, res, next) => {
       });
     };
 
-    sanitize(req.body);
-  }
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && req.body && !Buffer.isBuffer(req.body)) sanitize(req.body);
+  // Defence in depth: the "simple" query parser yields no objects, but strip
+  // operator-looking keys from the query as well.
+  if (req.query && typeof req.query === "object") sanitize(req.query);
   next();
 };

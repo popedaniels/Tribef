@@ -24,10 +24,10 @@ export default function Forgotpassword() {
       const res = await axios.post(
         getApiBaseUrl() +
           "/api/resetPassword/sendResetMail/" +
-          email
+          encodeURIComponent(email)
       );
       res && setLoading(false);
-      res && router.push(`/ForgotPassword/ForgotPasswordMail?email=${email}`);
+      res && router.push(`/ForgotPassword/ForgotPasswordMail?email=${encodeURIComponent(email)}`);
     } catch (error) {
       setLoading(false);
       dispatch(toast(true, "Server Error", "error"));

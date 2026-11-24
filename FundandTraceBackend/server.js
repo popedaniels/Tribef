@@ -105,6 +105,9 @@ app.use(
   ["/api/identity/webhook", "/api/donations/stripe-webhook", "/api/stripeConnect/webhook"],
   express.raw({ type: "application/json", limit: "1mb" })
 );
+// Query strings parse to plain strings (or arrays of strings), never nested
+// objects: "?email[$ne]=x" must not reach a Mongo filter as an operator.
+app.set("query parser", "simple");
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 // Keep the exact bytes of HMAC-signed webhooks (Paystack, Flutterwave).
 app.use(

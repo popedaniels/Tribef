@@ -18,6 +18,7 @@ import TransparencyScore from "../../../components/trust/TransparencyScore";
 import GivingPanel from "../../../components/campaignPage/GivingPanel";
 import { whatsappShareUrl } from "../../../utils/share";
 import { useLowData } from "../../../utils/lowData";
+import { youtubeEmbedUrl } from "../../../utils/video";
 import {
   formatMoney,
   getDaysRemaining,
@@ -277,9 +278,9 @@ export default function CampaignPage({ campaign }: CampaignPageProps) {
                         <button type="button" className="ft-btn ft-btn--secondary" onClick={() => setVideoWanted(true)}>
                           ▶ Play the campaign video (uses mobile data)
                         </button>
-                      ) : /youtube\.com|youtu\.be/.test(video) ? (
+                      ) : youtubeEmbedUrl(video) ? (
                         <div className={styles.video}>
-                          <iframe src={video} title={`${title} video`} allowFullScreen loading="lazy" />
+                          <iframe src={youtubeEmbedUrl(video) || undefined} title={`${title} video`} allowFullScreen loading="lazy" />
                         </div>
                       ) : (
                         <video src={video} controls preload={lowData ? "none" : "metadata"} className={styles.videoEl} />

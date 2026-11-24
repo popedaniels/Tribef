@@ -111,6 +111,11 @@ exports.content = async (req, res, next) => {
     if (!camp) {
       return res.status(404).json({ status: 404, error: "Campaign not found" });
     }
+    if (content.campaignVideo !== undefined) {
+      const video = require("../utility/videoUrl").normaliseCampaignVideo(content.campaignVideo);
+      if (video === null) return res.status(400).json({ status: 400, error: "Campaign video must be a YouTube link or a video you uploaded" });
+      content.campaignVideo = video;
+    }
     camp.content = content;
 
     const campaign = await camp.save();

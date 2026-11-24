@@ -1,3 +1,4 @@
+const isEmail = require("../utility/isEmail");
 // Recurring (monthly) giving via Stripe Checkout subscription mode.
 // Recording and crediting happen exclusively in the signed Stripe webhook
 // (see donations/stripe.js), mirroring the one-time donation flow.
@@ -50,7 +51,7 @@ exports.createSubscriptionSession = async (req, res) => {
       return res.status(400).json({ status: 400, error: "Unsupported currency" });
     }
     const email = req.body.customer?.email;
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    if (!email || !isEmail(email)) {
       return res.status(400).json({ status: 400, error: "Valid donor email required for monthly giving" });
     }
 

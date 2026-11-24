@@ -1,3 +1,4 @@
+const isEmail = require("../utility/isEmail");
 // Verified vendor network (FT-038).
 const mongoose = require("mongoose");
 const { Vendor, VENDOR_CATEGORIES } = require("../models/vendorModel");
@@ -140,7 +141,7 @@ exports.apply = async (req, res) => {
     if (doc.legalName.length < 2 || !VENDOR_CATEGORIES.includes(doc.category) || !/^[A-Z]{2}$/.test(doc.country) || doc.registrationNumber.length < 2) {
       return fail(res, 400, "Legal name, category, country and registration number are required");
     }
-    if (doc.contactEmail && !/^\S+@\S+\.\S+$/.test(doc.contactEmail)) return fail(res, 400, "Invalid contact email");
+    if (doc.contactEmail && !isEmail(doc.contactEmail)) return fail(res, 400, "Invalid contact email");
     const acct = str(b.bank?.accountNumber, 34).replace(/\s+/g, "");
     if (acct) {
       if (!/^[0-9A-Za-z]{6,34}$/.test(acct)) return fail(res, 400, "Invalid account number");

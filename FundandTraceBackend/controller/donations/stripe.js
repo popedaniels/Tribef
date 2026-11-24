@@ -1,3 +1,4 @@
+const isEmail = require("../../utility/isEmail");
 // Stripe Checkout donation flow: session creation, donor redirect, webhook.
 const {
   Campaign,
@@ -52,7 +53,7 @@ exports.createStripeSession = async (req, res) => {
     if (!["gbp", "usd", "ngn"].includes(currency)) {
       return res.status(400).json({ status: 400, error: "Unsupported currency" });
     }
-    if (req.body.customer?.email && !/^\S+@\S+\.\S+$/.test(req.body.customer.email)) {
+    if (req.body.customer?.email && !isEmail(req.body.customer.email)) {
       return res.status(400).json({ status: 400, error: "Invalid donor email" });
     }
 

@@ -1,3 +1,4 @@
+import { isHost } from "../../utils/video";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -30,7 +31,7 @@ export default function ActiveCampaignCard({ campaign }) {
             width={400}
             height={200}
             style={{ objectFit: "cover", width: "100%", height: "200px" }}
-            unoptimized={!!campaign?.basicInformation?.campaignImage && !campaign?.basicInformation?.campaignImage.startsWith("/") && !campaign?.basicInformation?.campaignImage.includes("res.cloudinary.com")}
+            unoptimized={!!campaign?.basicInformation?.campaignImage && !campaign?.basicInformation?.campaignImage.startsWith("/") && !isHost(campaign?.basicInformation?.campaignImage, "res.cloudinary.com")}
           />
           <div className="position-absolute" style={{ top: 12, right: 12 }}>
             <span className="badge-live-status">

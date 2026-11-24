@@ -1,3 +1,4 @@
+const isEmail = require("../../utility/isEmail");
 // Paystack donation flow: initialization, redirect callback, webhook.
 const { default: axios } = require("axios");
 const { FROZEN_MESSAGE } = require("../../utility/campaignState");
@@ -72,7 +73,7 @@ exports.initializePaystackPayment = async (req, res) => {
     if (!PAYSTACK_CURRENCIES.includes(currency)) {
       return res.status(400).json({ status: 400, error: `Paystack does not support ${currency}. Supported: ${PAYSTACK_CURRENCIES.join(", ")}` });
     }
-    if (req.body.customer?.email && !/^\S+@\S+\.\S+$/.test(req.body.customer.email)) {
+    if (req.body.customer?.email && !isEmail(req.body.customer.email)) {
       return res.status(400).json({ status: 400, error: "Invalid donor email" });
     }
 

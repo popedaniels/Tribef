@@ -36,6 +36,8 @@ const loadLowData = caches
   .catch(() => undefined)
   .then(() => (lowDataLoaded = true));
 self.addEventListener("message", (event) => {
+  // Only our own pages may change settings.
+  if (event.origin && event.origin !== self.location.origin) return;
   if (event.data?.type !== "lowdata") return;
   lowData = Boolean(event.data.value);
   event.waitUntil?.(caches.open(SETTINGS_CACHE).then((c) => c.put("/__ft/lowdata", new Response(lowData ? "1" : "0"))));

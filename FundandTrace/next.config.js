@@ -10,7 +10,7 @@ const cspDirectives = [
   // https://js.stripe.com/v3), Flutterwave inline checkout and Paystack inline.
   // Without these, the donate/campaign pages throw "Failed to load Stripe.js".
   // `next dev` (React Refresh) evaluates code with eval(); production never does.
-  "script-src 'self' 'unsafe-inline'" + (process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'") + " https://js.stripe.com https://checkout.flutterwave.com https://js.paystack.co https://www.googletagmanager.com https://www.google-analytics.com",
+  "script-src 'self' 'unsafe-inline'" + (process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'") + " https://js.stripe.com https://checkout.flutterwave.com https://js.paystack.co https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com",
   "style-src 'self' 'unsafe-inline'",
   // Campaign images come from Cloudinary; avatars may point at any https origin.
   "img-src 'self' data: blob: https: " + (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"),
@@ -18,7 +18,7 @@ const cspDirectives = [
   "media-src 'self' blob: " + (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"),
   "font-src 'self' data:",
   // Stripe Elements + KYC (m.stripe.network), payment iframes.
-  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://verify.stripe.com https://checkout.paystack.com https://checkout.flutterwave.com https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://verify.stripe.com https://checkout.paystack.com https://checkout.flutterwave.com https://challenges.cloudflare.com https://www.google.com https://www.youtube.com https://www.youtube-nocookie.com",
   "connect-src 'self' " +
     (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") +
     " https://api.stripe.com https://m.stripe.network https://api.paystack.co https://api.flutterwave.com https://api.cloudinary.com https://res.cloudinary.com https://www.google-analytics.com https://www.googletagmanager.com",

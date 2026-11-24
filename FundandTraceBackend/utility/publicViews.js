@@ -30,6 +30,8 @@ const CAMPAIGN_PUBLIC_PROJECTION = {
   "funding.accountNumber": 0,
   "funding.sortCode": 0,
   "funding.bankName": 0,
+  "funding.accountHash": 0,
+  riskAssessment: 0,
   "stripeConnect.accountId": 0,
   "disputeGovernance.disputeReports": 0,
   "comments.email": 0,
@@ -44,9 +46,10 @@ const toPublicCampaign = (doc) => {
   if (!doc) return doc;
   const campaign = doc.toObject ? doc.toObject() : { ...(doc._doc || doc) };
   if (campaign.funding) {
-    const { accountName, accountNumber, sortCode, bankName, ...funding } = campaign.funding;
+    const { accountName, accountNumber, sortCode, bankName, accountHash, ...funding } = campaign.funding;
     campaign.funding = funding;
   }
+  delete campaign.riskAssessment;
   if (campaign.stripeConnect) {
     const { accountId, ...connect } = campaign.stripeConnect;
     campaign.stripeConnect = connect;

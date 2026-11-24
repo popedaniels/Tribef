@@ -5,7 +5,7 @@ process.env.FLUTTERWAVE = "flw_test_unit";
 process.env.MAINURL = "https://app.test";
 const mockState = { verify: null, credited: [] };
 jest.mock("axios", () => ({ __esModule: true, default: { get: jest.fn(async () => ({ data: { data: mockState.verify } })), post: jest.fn() } }));
-jest.mock("../../utility/fraud", () => ({ getClientIp: () => "", assessDonation: async () => ({ score: 0, reasons: [], ip: "" }), geoMismatchScore: () => 0, FLAG_THRESHOLD: 50 }));
+jest.mock("../../utility/fraud", () => ({ getClientIp: () => "", assessDonation: async () => ({ score: 0, reasons: [], ip: "" }), geoMismatchScore: () => 0, withCardSignals: async (s) => s, FLAG_THRESHOLD: 50 }));
 jest.mock("../../services/targetReached", () => ({ notifyTargetReachedIfNeeded: jest.fn() }));
 jest.mock("../../services/ledger", () => ({ appendEntry: jest.fn() }));
 jest.mock("../../services/activityLog", () => ({ addActivity: jest.fn() }));

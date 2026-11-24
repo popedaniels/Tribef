@@ -274,6 +274,8 @@ exports.launch = async (req, res, next) => {
     if (launch && !wasLaunched) camp.createdAt = Date.now();
     const campaign = await camp.save();
     addActivity("launchedCampaign", camp.organizerId || camp.organizer);
+    // Score the organiser in the background; admins see it in review.
+    if (launch && !wasLaunched) require("../services/organiserRisk").assessLaunch(camp._id);
     return res.status(201).json({
       success: true,
       message: "Saved successfully",

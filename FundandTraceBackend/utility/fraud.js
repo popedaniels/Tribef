@@ -34,10 +34,15 @@ function initAttemptScore(count) {
 }
 
 // Best-effort client IP behind nginx/proxies (server.js sets trust proxy).
+// req.ip honours `trust proxy` (one hop), so it is the address our proxy saw.
+// The leftmost X-Forwarded-For entry is whatever the client typed, so using
+// it let anyone dodge the IP velocity checks; it's only a fallback for
+// requests that never passed through Express's IP resolution (unit tests).
 function getClientIp(req) {
-  const fwd = req.headers["x-forwarded-for"];
-  if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
-  return req.ip || "";
+  if (req.ip) return req.ip;
+  const fwd = req.headers?.["x-forwarded-for"];
+  if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",").pop().trim();
+  return "";
 }
 
 async function assessDonation({ email, campaignId, ip }) {
@@ -118,7 +123,73 @@ function geoMismatchScore(donorCountry, gatewayCountry) {
   return { score: 25, reason: `geo_mismatch:${donor}vs${gateway}` };
 }
 
+// ── Card signals (recorded when the gateway confirms a payment) ──────────
+// We never see card numbers. The gateways give a reusable card signature
+// (Paystack) or BIN + last 4 + expiry (Flutterwave); we keep only a keyed
+// hash of it, enough to notice one card paying from many identities or
+// many times in a burst (card testing, stolen cards).
+const CARD_EMAILS_MAX = Number(process.env.FRAUD_CARD_EMAILS_MAX || 3);
+const CARD_EMAILS_WINDOW_MS = Number(process.env.FRAUD_CARD_EMAILS_WINDOW_MS || 24 * 3600e3);
+const CARD_BURST_MAX = Number(process.env.FRAUD_CARD_BURST_MAX || 5);
+const CARD_BURST_WINDOW_MS = Number(process.env.FRAUD_CARD_BURST_WINDOW_MS || 3600e3);
+
+function cardFingerprint(gateway, tx) {
+  let raw = "";
+  if (gateway === "paystack") {
+    const a = tx?.authorization || {};
+    raw = a.signature || (a.bin && a.last4 ? `${a.bin}${a.last4}${a.exp_month || ""}${a.exp_year || ""}` : "");
+  } else if (gateway === "flutterwave") {
+    const c = tx?.card || {};
+    raw = c.first_6digits && c.last_4digits ? `${c.first_6digits}${c.last_4digits}${c.expiry || ""}` : "";
+  }
+  if (!raw) return "";
+  const key = process.env.FRAUD_HASH_SECRET || process.env.TOKEN_SECRET || "fundandtrace";
+  return require("crypto").createHmac("sha256", key).update(`${gateway}|${raw}`).digest("hex").slice(0, 32);
+}
+
+/** Pure: score card reuse. */
+function cardScore({ distinctEmails = 0, recent = 0 } = {}) {
+  let score = 0;
+  const reasons = [];
+  if (distinctEmails >= CARD_EMAILS_MAX) {
+    score += 40;
+    reasons.push(`card_shared:${distinctEmails}emails`);
+  }
+  if (recent >= CARD_BURST_MAX) {
+    score += 30;
+    reasons.push(`card_burst:${recent}in${CARD_BURST_WINDOW_MS / 60000}m`);
+  }
+  return { score, reasons };
+}
+
+/** Add card signals to a fraud snapshot. Never throws. */
+async function withCardSignals(snapshot, gateway, tx, donorEmail) {
+  const out = { ...snapshot, reasons: [...(snapshot.reasons || [])] };
+  const card = cardFingerprint(gateway, tx);
+  if (!card) return out;
+  out.card = card;
+  try {
+    const now = Date.now();
+    const [emails, recent] = await Promise.all([
+      Donations.distinct("donorEmail", { "fraud.card": card, createdAt: { $gte: new Date(now - CARD_EMAILS_WINDOW_MS) } }).maxTimeMS(3000),
+      Donations.countDocuments({ "fraud.card": card, createdAt: { $gte: new Date(now - CARD_BURST_WINDOW_MS) } }).maxTimeMS(3000),
+    ]);
+    const others = new Set(emails.map((e) => String(e || "").toLowerCase()));
+    if (donorEmail) others.add(String(donorEmail).toLowerCase());
+    const sig = cardScore({ distinctEmails: others.size, recent: recent + 1 });
+    out.score = Number(out.score || 0) + sig.score;
+    out.reasons.push(...sig.reasons);
+  } catch (err) {
+    logger.warn({ err: err?.message }, "Card velocity check failed; skipping signal");
+  }
+  out.flagged = Number(out.score || 0) >= FLAG_THRESHOLD;
+  return out;
+}
+
 module.exports = {
+  cardFingerprint,
+  cardScore,
+  withCardSignals,
   getClientIp,
   assessDonation,
   geoMismatchScore,

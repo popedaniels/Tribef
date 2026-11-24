@@ -394,7 +394,7 @@ exports.reviewFundingRequest = async (req, res) => {
     const fr = await FundingRequests.findById(req.params.id).lean().maxTimeMS(3000);
     if (!fr) return res.status(404).json({ status: 404, error: "Funding request not found" });
     const campaign = await Campaign.findById(fr.campaignId)
-      .select("basicInformation.campaignTitle organizer organizerId funding disputeGovernance stripeConnect")
+      .select("basicInformation.campaignTitle organizer organizerId funding disputeGovernance stripeConnect riskAssessment")
       .lean()
       .maxTimeMS(3000);
     if (!campaign) return res.status(404).json({ status: 404, error: "Campaign not found" });

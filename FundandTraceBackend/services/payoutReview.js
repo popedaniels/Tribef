@@ -93,9 +93,16 @@ function evaluatePayout({ fr, campaign, organizer, history = [], donations = { t
     else add("fraud", "pass", "Donations look genuine", `None of ${donations.total} donations flagged.`);
   }
 
-  // 9. Brand-new organiser accounts deserve a second look.
-  if (organizer?.createdAt && now - new Date(organizer.createdAt) < 7 * DAY && !thirdParty)
+  // 9. Brand-new organiser accounts deserve a second look. (Users have no
+  //    createdAt field; the ObjectId carries the creation time.)
+  const joined = require("./organiserRisk").createdAtOf(organizer);
+  if (joined && now - joined < 7 * DAY && !thirdParty)
     add("new-account", "warn", "Organiser account age", "The organiser's account is less than a week old.");
+
+  // 10. Risk score taken at launch.
+  const risk = campaign?.riskAssessment;
+  if (risk?.level === "high") add("risk", "warn", "Organiser risk at launch", `High (${risk.score}/100): ${(risk.reasons || []).join("; ")}.`);
+  else if (risk?.level === "medium") add("risk", "warn", "Organiser risk at launch", `Medium (${risk.score}/100): ${(risk.reasons || []).join("; ")}.`);
 
   const verdict = checks.some((c) => c.status === "fail") ? "blocked" : checks.some((c) => c.status === "warn") ? "review" : "ready";
   return { verdict, checks };

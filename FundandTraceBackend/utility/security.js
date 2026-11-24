@@ -41,15 +41,23 @@ exports.rateLimiter = (options = {}) => {
     legacyHeaders: false,
     passOnStoreError: true,
     // RATE_LIMIT_DISABLED is for load tests only and is ignored in production.
-    skip: (req) => isWebhook(req) || (process.env.RATE_LIMIT_DISABLED === "true" && process.env.NODE_ENV !== "production"),
-    handler: (req, res) => {
-      res.status(429).json({
-        success: false,
-        status: 429,
-        error: "Too many requests. Please try again later.",
-      });
-    },
+    skip: (req) =>
+      isWebhook(req) ||
+      (process.env.RATE_LIMIT_DISABLED === "true" && process.env.NODE_ENV !== "production") ||
+      Boolean(options.skip && options.skip(req)),
+    handler:
+      options.handler ||
+      ((req, res) => {
+        res.status(429).json({
+          success: false,
+          status: 429,
+          error: options.message || "Too many requests. Please try again later.",
+        });
+      }),
   };
+  // Custom keys (e.g. per donor email). IP keys keep the library default,
+  // which handles IPv6 subnets correctly.
+  if (options.keyGenerator) config.keyGenerator = options.keyGenerator;
 
   if (redis) {
     config.store = new RedisStore({

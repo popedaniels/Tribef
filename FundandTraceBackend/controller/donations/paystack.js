@@ -19,7 +19,25 @@ const {
   prepareExtras,
   saveExtras,
 } = require("./shared");
-const { getClientIp, assessDonation } = require("../../utility/fraud");
+const { getClientIp, assessDonation, withCardSignals, FLAG_THRESHOLD } = require("../../utility/fraud");
+
+// Fraud snapshot for a confirmed Paystack payment: the score taken at
+// initialisation plus card signals from the gateway.
+function paystackFraud(metadata, txData) {
+  const score = Number(metadata.fraudScore || 0);
+  return withCardSignals(
+    {
+      score,
+      reasons: String(metadata.fraudReasons || "").split("|").filter(Boolean),
+      flagged: score >= FLAG_THRESHOLD,
+      ip: metadata.fraudIp || "",
+      assessedAt: new Date(),
+    },
+    "paystack",
+    txData,
+    metadata.donorEmail
+  );
+}
 const { notifyTargetReachedIfNeeded } = require("../../services/targetReached");
 
 const PAYSTACK_BASE = "https://api.paystack.co";
@@ -215,13 +233,7 @@ exports.paymentPaystack = async (req, res) => {
       createdAt: txData.paid_at || Date.now(),
       anonymous: metadata.anonymous === "true",
       referralCode: String(metadata.referralCode || ""),
-      fraud: {
-        score: Number(metadata.fraudScore || 0),
-        reasons: String(metadata.fraudReasons || "").split("|").filter(Boolean),
-        flagged: Number(metadata.fraudScore || 0) >= 50,
-        ip: metadata.fraudIp || "",
-        assessedAt: new Date(),
-      },
+      fraud: await paystackFraud(metadata, txData),
     });
 
     await donation.save();
@@ -340,13 +352,7 @@ exports.paystackWebhook = async (req, res) => {
         createdAt: txData.paid_at || Date.now(),
         anonymous: metadata.anonymous === "true",
         referralCode: String(metadata.referralCode || ""),
-        fraud: {
-          score: Number(metadata.fraudScore || 0),
-          reasons: String(metadata.fraudReasons || "").split("|").filter(Boolean),
-          flagged: Number(metadata.fraudScore || 0) >= 50,
-          ip: metadata.fraudIp || "",
-          assessedAt: new Date(),
-        },
+        fraud: await paystackFraud(metadata, txData),
       });
     } catch (createError) {
       // Concurrent duplicate delivery — already recorded, ack quietly.

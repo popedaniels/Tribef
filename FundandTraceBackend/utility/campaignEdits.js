@@ -79,6 +79,12 @@ function buildOrganizerUpdate(input, existing) {
       (k) => k in input.funding && plain(input.funding[k]).replace(/\s+/g, "") !== plain(existing.funding?.[k]).replace(/\s+/g, "")
     );
     if (hadAccount && changed) set["funding.bankChangedAt"] = new Date();
+    if (changed || ("accountNumber" in input.funding && !existing.funding?.accountHash)) {
+      const { accountHash } = require("../services/organiserRisk");
+      const code = "bankCode" in input.funding ? input.funding.bankCode : existing.funding?.bankCode;
+      const acct = "accountNumber" in input.funding ? input.funding.accountNumber : existing.funding?.accountNumber;
+      set["funding.accountHash"] = accountHash(code, acct);
+    }
   }
   return { set, errors, bankChanged: Boolean(set["funding.bankChangedAt"]) };
 }

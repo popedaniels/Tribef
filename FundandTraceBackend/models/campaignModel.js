@@ -73,6 +73,9 @@ const campaignSchema = new mongoose.Schema({
     // Set whenever an organiser changes their payout bank account; bank
     // payouts wait BANK_CHANGE_COOLDOWN_HOURS after it (account-takeover defence).
     bankChangedAt: { type: Date, default: null },
+    // Keyed hash of bank code + account number (services/organiserRisk.js):
+    // finds one payout account shared by several organisers.
+    accountHash: { type: String, default: "", index: true },
     availableBalance: { type: Number, default: 0 },
     refunded: { type: Boolean, default: false },
   },
@@ -136,6 +139,13 @@ const campaignSchema = new mongoose.Schema({
     payoutsEnabled: { type: Boolean, default: false },
     detailsSubmitted: { type: Boolean, default: false },
     updatedAt: { type: Date, default: null },
+  },
+  // Organiser risk at launch (services/organiserRisk.js); admin-only.
+  riskAssessment: {
+    score: { type: Number, default: null },
+    level: { type: String, default: "" },
+    reasons: [{ type: String }],
+    at: { type: Date, default: null },
   },
   disputeGovernance: {
     isLocked: { type: Boolean, default: false, index: true },

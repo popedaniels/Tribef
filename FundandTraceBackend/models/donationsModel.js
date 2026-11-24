@@ -45,6 +45,9 @@ const DonationsSchema = new mongoose.Schema({
     reasons: [{ type: String }],
     flagged: { type: Boolean, default: false, index: true },
     ip: { type: String, default: "" },
+    // Keyed hash of the gateway's card signature (never card data): spots one
+    // card used by many identities or in a burst (utility/fraud.js).
+    card: { type: String, default: "", index: { sparse: true } },
     assessedAt: { type: Date, default: null },
   },
   // Link to the funding request this donation contributed to (if disbursed)

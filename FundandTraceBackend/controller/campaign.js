@@ -152,6 +152,9 @@ exports.getSingleCampaign = async (req, res, next) => {
         funding.sortCode = revealSensitive(funding.sortCode);
       }
       campaignView.funding = funding;
+      // Admin-only signals, even for the owner.
+      delete campaignView.riskAssessment;
+      delete campaignView.funding.accountHash;
     } else {
       campaignView = toPublicCampaign(camp);
     }

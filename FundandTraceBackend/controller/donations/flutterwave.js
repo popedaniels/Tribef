@@ -20,7 +20,7 @@ const {
 } = require("./shared");
 const { getClientIp, assessDonation, geoMismatchScore } = require("../../utility/fraud");
 const { notifyTargetReachedIfNeeded } = require("../../services/targetReached");
-const { FLAG_THRESHOLD } = require("../../utility/fraud");
+const { FLAG_THRESHOLD, withCardSignals } = require("../../utility/fraud");
 
 // Rebuild the fraud assessment recorded with the donation, combining the
 // initialization snapshot with any gateway-side signals (card country).
@@ -200,7 +200,7 @@ exports.paymentFlutterwave = async (req, res, next) => {
       createdAt: resp.data.data.customer.created_at || Date.now(),
       anonymous: resp.data.data.meta.anonymous,
       referralCode: String(resp.data.data.meta.referralCode || ""),
-      fraud: buildFraudSnapshot(resp.data.data),
+      fraud: await withCardSignals(buildFraudSnapshot(resp.data.data), "flutterwave", resp.data.data, resp.data.data.customer?.email),
     });
 
     try {
@@ -357,7 +357,7 @@ exports.flutterwaveWebhook = async (req, res) => {
         createdAt: tx.created_at || Date.now(),
         anonymous: metadata.anonymous === true || metadata.anonymous === "true",
         referralCode: String(metadata.referralCode || ""),
-        fraud: buildFraudSnapshot(tx),
+        fraud: await withCardSignals(buildFraudSnapshot(tx), "flutterwave", tx, metadata.email || tx.customer?.email),
       });
     } catch (createError) {
       // Concurrent duplicate delivery — unique constraint, ack quietly.

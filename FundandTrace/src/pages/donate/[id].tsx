@@ -29,6 +29,7 @@ import {
 } from "../../components/helperFunctions/helperFunctions";
 import type { Campaign } from "../../types/campaign";
 import styles from "../../components/campaignPage/DonatePage.module.scss";
+import Turnstile from "../../components/composed/Turnstile/Turnstile";
 
 interface DonatePageProps {
   campaign: Campaign | null;
@@ -101,6 +102,9 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
   const availableRails = RAILS.filter((r) => r.currencies.includes(currency));
 
   const [amount, setAmount] = useState<number>(0);
+  // Set when the API wants a bot check (after unusually many payment starts
+  // from one connection); the widget's token retries the payment.
+  const [challengeKey, setChallengeKey] = useState("");
   const [amountText, setAmountText] = useState("");
   // No tip by default: an optional extra must be actively chosen (UK Consumer
   // Contracts Regulations 2013 reg. 40 — a preselected extra isn't consent).
@@ -308,6 +312,37 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
     dispatch(toast(true, e?.response?.data?.error || fallback, "error"));
   };
 
+  const startPayment = async (turnstileToken?: string) => {
+    setLoading(true);
+    const payment = buildPayment();
+    const extra = turnstileToken ? { turnstileToken } : {};
+    try {
+      if (rail === "stripe") {
+        const stripe = await getStripe();
+        if (!stripe) return fail(null, "Card payments can't load right now. Try another payment method or try again in a moment.");
+        const res = await axios.post(`${getApiBaseUrl()}/api/donations/createStripeSession/${campaignId}`, { ...payment, ...extra });
+        const result = await stripe.redirectToCheckout({ sessionId: res?.data?.id });
+        if (result.error) fail(null, result.error.message || "We couldn't open the card payment page.");
+      } else if (rail === "paystack") {
+        const res = await axios.post(`${getApiBaseUrl()}/api/donations/initializePaystack/${campaign._id}`, { ...payment, ...extra });
+        if (res?.data?.authorizationUrl) window.location.href = res.data.authorizationUrl;
+        else fail(null, "We couldn't open Paystack. Please try again.");
+      } else {
+        const res = await axios.post(`${getApiBaseUrl()}/api/donations/initialize`, { payment, ...extra });
+        if (res?.data) window.location.href = res.data;
+        else fail(null, "We couldn't open Flutterwave. Please try again.");
+      }
+    } catch (err) {
+      const e = err as { response?: { status?: number; data?: { code?: string; siteKey?: string } } };
+      if (e?.response?.status === 428 && e.response.data?.code === "challenge_required" && e.response.data.siteKey) {
+        setLoading(false);
+        setChallengeKey(e.response.data.siteKey);
+        return;
+      }
+      fail(err, t("donate.startFailed"));
+    }
+  };
+
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setSubmitted(true);
@@ -316,27 +351,17 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
       fieldRefs.current[firstInvalid]?.focus();
       return;
     }
-    setLoading(true);
-    const payment = buildPayment();
-    try {
-      if (rail === "stripe") {
-        const stripe = await getStripe();
-        if (!stripe) return fail(null, "Card payments can't load right now. Try another payment method or try again in a moment.");
-        const res = await axios.post(`${getApiBaseUrl()}/api/donations/createStripeSession/${campaignId}`, payment);
-        const result = await stripe.redirectToCheckout({ sessionId: res?.data?.id });
-        if (result.error) fail(null, result.error.message || "We couldn't open the card payment page.");
-      } else if (rail === "paystack") {
-        const res = await axios.post(`${getApiBaseUrl()}/api/donations/initializePaystack/${campaign._id}`, payment);
-        if (res?.data?.authorizationUrl) window.location.href = res.data.authorizationUrl;
-        else fail(null, "We couldn't open Paystack. Please try again.");
-      } else {
-        const res = await axios.post(`${getApiBaseUrl()}/api/donations/initialize`, { payment });
-        if (res?.data) window.location.href = res.data;
-        else fail(null, "We couldn't open Flutterwave. Please try again.");
-      }
-    } catch (err) {
-      fail(err, t("donate.startFailed"));
-    }
+    await startPayment();
+  };
+
+  const onChallengeError = () => {
+    setChallengeKey("");
+    dispatch(toast(true, "The security check couldn't load. Please wait a few minutes and try again.", "error"));
+  };
+
+  const onChallengeSolved = (token: string) => {
+    setChallengeKey("");
+    startPayment(token);
   };
 
   const ref = (f: Field) => (el: HTMLElement | null) => {
@@ -620,6 +645,14 @@ export default function DonatePage({ campaign, campaignId }: DonatePageProps) {
                   </p>
                 )}
 
+                {challengeKey && (
+                  <div role="group" aria-label="Security check">
+                    <p className={styles.secure} style={{ marginBottom: 0 }}>
+                      Quick security check, then we&apos;ll continue to payment.
+                    </p>
+                    <Turnstile siteKey={challengeKey} onToken={onChallengeSolved} onError={onChallengeError} />
+                  </div>
+                )}
                 <button type="submit" className="ft-btn ft-btn--primary ft-btn--lg ft-btn--block" disabled={loading} aria-busy={loading}>
                   {loading ? t("donate.opening") : amount > 0 ? t("donate.submit", { total: formatMoney(total, currency, { exact: true }) }) : t("donate.submitBare")}
                 </button>

@@ -41,6 +41,22 @@ const UsersSchema = new mongoose.Schema({
     nameOnId: { type: String, default: "" },
     reviewedBy: { type: String, default: "" },
     rejectionReason: { type: String, default: "" },
+    // Government database check (Smile ID Enhanced KYC). Never the ID number
+    // itself: last 4 digits, a keyed hash and the match result only.
+    databaseCheck: {
+      provider: { type: String, default: "" },
+      country: { type: String, default: "" },
+      idType: { type: String, default: "" },
+      idLast4: { type: String, default: "" },
+      idHash: { type: String, default: "", index: true },
+      outcome: { type: String, default: "" }, // verified | not_found | bad_format | unavailable | error
+      nameMatch: { type: String, default: "" }, // exact | partial | none
+      dobMatch: { type: Boolean, default: null },
+      duplicateOf: { type: [String], default: [] }, // other accounts with the same ID
+      jobId: { type: String, default: "" },
+      checkedAt: { type: Date, default: null },
+      attempts: { type: Number, default: 0 },
+    },
   },
   adminActivities: [
     {

@@ -311,3 +311,21 @@ describe("vendor-backed funding requests", () => {
     expect(mockRails.sent).toHaveLength(0);
   });
 });
+
+describe("two-person rule backstop in the payout handler", () => {
+  beforeEach(() => (process.env.PAYOUT_SECOND_APPROVAL_JSON = JSON.stringify({ GBP: 100 })));
+  afterEach(() => delete process.env.PAYOUT_SECOND_APPROVAL_JSON);
+
+  it("refuses a large payout approved by only one admin", async () => {
+    state.claimed = makeRequestDoc({ adminId: "a1" });
+    const res = await call({});
+    expect(res.statusCode).toBe(403);
+    expect(res.body.code).toBe("second_approval_missing");
+    expect(calls.find(([n]) => n === "stripe.transfer")).toBeUndefined();
+  });
+  it("pays when two different admins approved", async () => {
+    state.claimed = makeRequestDoc({ adminId: "a2", firstApproval: { adminId: "a1" } });
+    const res = await call({});
+    expect(res.statusCode).toBe(200);
+  });
+});

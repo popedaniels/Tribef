@@ -13,6 +13,12 @@ router.post("/create-session", requireAuth, identityController.createVerificatio
 router.get("/status/:userId", requireAuth, identityController.getVerificationStatus);
 router.post("/webhook", identityController.identityWebhook);
 router.post(
+  "/database-check",
+  requireAuth,
+  require("../utility/security").rateLimiter({ windowMs: 60 * 60 * 1000, max: 5, name: "id-database-check" }),
+  identityController.databaseCheck
+);
+router.post(
   "/admin-verify/:userId",
   requireAdmin,
   require("../utility/adminAudit").auditAdminMutations,

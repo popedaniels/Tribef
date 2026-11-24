@@ -26,6 +26,8 @@ const good = {
   SMTP_URL: "smtps://u:p@email-smtp.eu-west-2.amazonaws.com:465",
   EMAIL_FROM: "receipts@fundandtrace.com",
   STORAGE_BUCKET: "ft-evidence",
+  SMILE_ID_PARTNER_ID: "1234",
+  SMILE_ID_ENV: "production",
 };
 const fails = (env, fe) => offlineChecks(env, fe).filter((c) => c.status === "fail").map((c) => c.check);
 

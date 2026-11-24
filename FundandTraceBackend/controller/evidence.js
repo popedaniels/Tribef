@@ -444,6 +444,10 @@ exports.identityQueue = async (req, res) => {
         submittedAt: s.submittedAt,
         review: s.review,
         user: { id: String(s.userId), name: `${u.firstName || ""} ${u.lastName || ""}`.trim(), email: u.email, country: u.country, city: u.city },
+        // Government database lookup (Smile ID), if the organiser ran one. No ID number, only the result.
+        databaseCheck: u.identityVerification?.databaseCheck?.checkedAt
+          ? (({ idHash, jobId, ...rest }) => ({ ...rest, duplicates: (rest.duplicateOf || []).length }))(u.identityVerification.databaseCheck)
+          : null,
         items: s.records.map((r) => {
           const rec = recById.get(r.recordId);
           if (!rec) return { slot: r.slot, recordId: r.recordId, missing: true };

@@ -1,3 +1,4 @@
+import DatabaseCheck from "../../components/trust/DatabaseCheck";
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -32,6 +33,7 @@ export default function VerifyIdentity() {
   const next = safeNextPath(router.query.return, "/dashboard");
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [stripeAvailable, setStripeAvailable] = useState(false);
+  const [dbTypes, setDbTypes] = useState<Record<string, { id: string; label: string }[]> | null>(null);
   const [country, setCountry] = useState("");
   const [docType, setDocType] = useState("passport");
   const [session, setSession] = useState<(CaptureSession & { captureToken: string }) | null>(null);
@@ -47,6 +49,7 @@ export default function VerifyIdentity() {
       ]);
       setIdentity(status.data);
       setStripeAvailable(Boolean(options.data?.stripe));
+      setDbTypes(options.data?.databaseCheck || null);
     } catch {
       setIdentity({ status: "unverified" });
     }
@@ -187,6 +190,8 @@ export default function VerifyIdentity() {
             )}
           </div>
         )}
+
+        {identity && identity.status !== "verified" && !session && dbTypes && <DatabaseCheck types={dbTypes} />}
 
         {session && session.status === "open" && (
           <CaptureFlow session={session} token={session.captureToken} allowHandoff onSubmitted={() => load().then(() => setSession(null))} />

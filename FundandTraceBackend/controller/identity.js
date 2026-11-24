@@ -5,6 +5,7 @@ const { Users } = require("../models/users");
 const { Campaign } = require("../models/campaignModel");
 const webhookSecret = process.env.STRIPE_IDENTITY_WEBHOOK_SECRET;
 const logger = require("../utility/logger");
+const { getAuthUserId } = require("../utility/auth");
 
 /**
  * Creates a Stripe Identity Verification Session for the organizer.
@@ -254,5 +255,69 @@ exports.adminVerifyUser = async (req, res) => {
 exports.options = (req, res) =>
   res.status(200).json({
     status: 200,
-    data: { stripe: Boolean(stripe), inApp: true },
+    data: { stripe: Boolean(stripe), inApp: true, databaseCheck: require("../services/smileId").configured() ? require("../services/smileId").supportedTypes() : null },
   });
+
+// ── Government database check (Smile ID Enhanced KYC) ───────────────────
+// POST /api/identity/database-check { country, idType, idNumber, dob? }
+// A signal for the reviewer alongside the live ID check; it never verifies
+// anyone on its own. Max 3 lookups per account (each costs money and an
+// attacker could otherwise use us to test stolen NINs).
+exports.databaseCheck = async (req, res) => {
+  const smile = require("../services/smileId");
+
+  try {
+
+    const userId = getAuthUserId(req.auth);
+    const user = await Users.findById(userId).select("firstName lastName identityVerification.databaseCheck");
+    if (!user) return res.status(401).json({ status: 401, error: "Unauthorized" });
+    const prev = user.identityVerification?.databaseCheck || {};
+    if (prev.outcome === "verified") return res.status(409).json({ status: 409, code: "already_checked", error: "Your ID has already been checked." });
+    if ((prev.attempts || 0) >= 3) return res.status(429).json({ status: 429, code: "too_many_attempts", error: "Too many attempts. Please contact support to finish verification." });
+
+    const { country, idType, idNumber, dob } = req.body || {};
+    const cc = String(country || "").toUpperCase();
+    const number = smile.normaliseId(cc, idType, idNumber);
+    let r;
+    try {
+      r = await smile.verifyIdNumber({ country: cc, idType, idNumber, dob, firstName: user.firstName, lastName: user.lastName, userId });
+    } catch (err) {
+      if (err.status === 400 || err.status === 503) return res.status(err.status).json({ status: err.status, code: err.code, error: err.message });
+      logger.warn({ err: err.response?.data || err.message }, "Smile ID lookup failed");
+      r = { outcome: "unavailable", nameMatch: "none", dobMatch: null, jobId: "", resultCode: "", resultText: "" };
+    }
+
+    const hash = smile.idHash(cc, idType, number);
+    const dupes = await Users.find({ _id: { $ne: user._id }, "identityVerification.databaseCheck.idHash": hash }).select("_id").limit(5).lean();
+    user.identityVerification = user.identityVerification || {};
+    user.identityVerification.databaseCheck = {
+      provider: "smile_id",
+      country: cc,
+      idType,
+      idLast4: number.slice(-4),
+      idHash: hash,
+      outcome: r.outcome,
+      nameMatch: r.nameMatch,
+      dobMatch: r.dobMatch,
+      duplicateOf: dupes.map((d) => String(d._id)),
+      jobId: r.jobId,
+      checkedAt: new Date(),
+      // Provider outages don't use up an attempt.
+      attempts: (prev.attempts || 0) + (r.outcome === "unavailable" ? 0 : 1),
+    };
+    await user.save();
+    if (dupes.length) logger.warn({ userId: String(user._id), others: dupes.length }, "Same government ID on another account");
+
+    const msg = {
+      verified: r.nameMatch === "exact" ? "Your ID number was found and the name matches." : "Your ID number was found, but the name on it doesn't fully match your account. A reviewer will check.",
+      not_found: "We couldn't find that ID number. Check it and try again.",
+      bad_format: "That ID number isn't in the right format.",
+      unavailable: "The ID database isn't responding right now. Please try again later; this didn't use up an attempt.",
+      error: "The check couldn't be completed. Please try again later.",
+    }[r.outcome];
+    return res.json({ status: 200, data: { outcome: r.outcome, nameMatch: r.nameMatch, message: msg, attemptsLeft: Math.max(0, 3 - user.identityVerification.databaseCheck.attempts) } });
+  } catch (err) {
+    logger.error({ err }, "databaseCheck failed");
+    return res.status(500).json({ status: 500, error: "Server error." });
+  }
+};

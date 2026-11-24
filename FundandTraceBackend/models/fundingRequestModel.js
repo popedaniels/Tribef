@@ -88,6 +88,12 @@ const fundingRequestSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now },
   approvedAt: { type: Date },
+  // Two-person rule for large payouts (services/payoutApproval.js).
+  firstApproval: {
+    adminId: { type: String, default: "" },
+    adminName: { type: String, default: "" },
+    at: { type: Date, default: null },
+  },
   declinedAt: { type: Date },
   status: { type: String, default: "Pending", index: true },
   declineReason: String,

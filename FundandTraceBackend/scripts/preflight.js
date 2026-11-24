@@ -88,8 +88,17 @@ function offlineChecks(env, fe = null, appKeys = null) {
   want("ANCHOR_GITHUB_REPO", "Trust", "Daily ledger anchors are only stored locally without it.");
   if (has("ANCHOR_GITHUB_REPO")) need("ANCHOR_GITHUB_TOKEN", "Trust", "Token with contents:write on the anchor repo.");
   add(["submitted", "verified"].includes(env.REQUIRE_KYC_TO_LAUNCH) ? PASS : WARN, "Trust", "Organisers must pass an ID check to launch (REQUIRE_KYC_TO_LAUNCH)", "Set to 'submitted' (or 'verified') once /admin/identity is staffed.");
+  if (has("SMILE_ID_PARTNER_ID")) add(env.SMILE_ID_ENV === "production" ? PASS : FAIL, "Trust", "Smile ID points at production (SMILE_ID_ENV=production)", "Sandbox lookups return test data, not real ID records.");
+  else add(WARN, "Trust", "Government ID database checks (Smile ID) are configured", "Optional: set SMILE_ID_PARTNER_ID / SMILE_ID_API_KEY to check NIN, BVN, Ghana Card and Kenya ID numbers.");
   want("ID_MEDIA_RETENTION_DAYS", "Trust", "Agree the ID-media retention period with counsel.");
-  add(Number(env.PAYOUT_SECOND_APPROVAL_OVER || 0) > 0 ? PASS : WARN, "Trust", "Large payouts need a second admin (PAYOUT_SECOND_APPROVAL_OVER)", "Set a threshold so one compromised admin can't release large sums.");
+  let dualJsonOk = true;
+  try {
+    if (env.PAYOUT_SECOND_APPROVAL_JSON) JSON.parse(env.PAYOUT_SECOND_APPROVAL_JSON);
+  } catch {
+    dualJsonOk = false;
+  }
+  if (!dualJsonOk) add(FAIL, "Trust", "PAYOUT_SECOND_APPROVAL_JSON is valid JSON", "e.g. {\"NGN\":1000000,\"GBP\":1000}");
+  add(dualJsonOk && (Number(env.PAYOUT_SECOND_APPROVAL_OVER || 0) > 0 || /\d/.test(env.PAYOUT_SECOND_APPROVAL_JSON || "")) ? PASS : WARN, "Trust", "Large payouts need a second admin (PAYOUT_SECOND_APPROVAL_JSON / _OVER)", "Set per-currency thresholds so one compromised admin can't release large sums.");
 
   // Operations
   want("SENTRY_DSN", "Ops", "Errors are only in logs without it.");

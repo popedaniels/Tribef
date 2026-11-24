@@ -96,6 +96,16 @@ exports.stripePayoutWebhook = async (req, res, next) => {
     const thirdParty = isThirdParty(fundingRequest.fundingType);
     const connect = campaign.stripeConnect || {};
     const payoutCurrency = String(currency || campaign.funding.currency || "GBP").toUpperCase();
+    // Defence in depth for the two-person rule: refuse a large payout unless
+    // two different admins approved it, however this endpoint was reached.
+    const approvalPolicy = require("../../services/payoutApproval");
+    if (approvalPolicy.needsSecondApproval(amount, payoutCurrency)) {
+      const first = String(fundingRequest.firstApproval?.adminId || "");
+      if (!first || first === String(fundingRequest.adminId || "")) {
+        await release();
+        return res.status(403).json({ status: 403, code: "second_approval_missing", error: "This payout needs approval from two different admins." });
+      }
+    }
 
     // Destination. For a request that pays a vendor from the verified network
     // the money can only go to that vendor's verified account: an account in

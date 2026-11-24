@@ -18,6 +18,9 @@ export default function ApproveCampaignModal({
   const [step, setStep] = useState("0");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const first = fundingRequest?.firstApproval?.adminId ? fundingRequest.firstApproval : null;
 
   const handleApprove = async () => {
     setLoading(true);
@@ -28,10 +31,14 @@ export default function ApproveCampaignModal({
         { campaignId: fundingRequest?.campaign?._id },
         config()
       );
-      res && setStep("1");
-      res && setLoading(false);
-    } catch (error) {
       setLoading(false);
+      setError("");
+      // 202 = first of two approvals recorded; no money has moved yet.
+      setMessage(res.status === 202 ? res.data?.data || "First approval recorded. A second admin must approve." : "Funding Request has been approved");
+      setStep("1");
+    } catch (err) {
+      setLoading(false);
+      setError(err?.response?.data?.error || "Approval failed. Nothing was paid. Please try again.");
     }
   };
 
@@ -55,6 +62,17 @@ export default function ApproveCampaignModal({
               {`“${fundingRequest?.campaign?.basicInformation?.campaignTitle}"`}{" "}
               campaign?
             </p>
+            {first && (
+              <p className="text-small mb-4" style={{ background: "#fff7ed", padding: "8px 12px", borderRadius: 8 }}>
+                First approval by <b>{first.adminName || "another admin"}</b>
+                {first.at ? ` on ${new Date(first.at).toLocaleString("en-GB")}` : ""}. Your approval releases the payout.
+              </p>
+            )}
+            {error && (
+              <p className="text-small mb-4" role="alert" style={{ color: "#b91c1c" }}>
+                {error}
+              </p>
+            )}
             <div className="d-flex ml-auto">
               <button className="btn cancelBtn" onClick={onModalClose}>
                 Cancel
@@ -75,8 +93,8 @@ export default function ApproveCampaignModal({
           </>
         ) : (
           <div className="d-flex flex-column justify-content-center align-items-center">
-            <h2 className="text-center text-medium-heading my-5">
-              Funding Request has been approved
+            <h2 className="text-center text-medium-heading my-5" role="status">
+              {message || "Funding Request has been approved"}
             </h2>
             <button
               className="text-white btn"

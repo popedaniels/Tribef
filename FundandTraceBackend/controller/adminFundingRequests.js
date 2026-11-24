@@ -1,3 +1,4 @@
+const approvalPolicy = require("../services/payoutApproval");
 const { Campaign } = require("../models/campaignModel");
 const { Donations } = require("../models/donationsModel");
 const { Credentials, Users } = require("../models/users");
@@ -147,18 +148,46 @@ exports.approveFundingRequest = async (req, res, next) => {
       }
     }
 
+    // Two-person rule: a large payout needs a second, different admin.
+    const adminId = String(req.admin?._id || profile._id || profile.id || "");
+    const adminName = `${req.admin?.firstName || profile.firstName || ""} ${req.admin?.lastName || profile.lastName || ""}`.trim() || "Admin";
+    const payoutCurrency = existing.currency || campaign.funding?.currency;
+    const dual = approvalPolicy.needsSecondApproval(existing.amount, payoutCurrency);
+    if (dual) {
+      const state = approvalPolicy.firstApprovalState(existing, adminId);
+      if (state === "same_admin") {
+        return res.status(409).json({ status: 409, code: "second_approver_required", error: "You've already approved this. A different admin has to give the second approval." });
+      }
+      if (state !== "other_admin") {
+        // Record the first approval only (atomic: two admins clicking at once
+        // can't both become "first").
+        const first = await FundingRequests.findOneAndUpdate(
+          { _id: req.params.id, status: "Pending", ...(state === "expired" ? {} : { $or: [{ "firstApproval.adminId": "" }, { "firstApproval.adminId": { $exists: false } }] }) },
+          { $set: { firstApproval: { adminId, adminName, at: new Date() } } },
+          { new: true }
+        );
+        if (!first) return res.status(409).json({ status: 409, error: "Someone else just reviewed this request. Reload and try again." });
+        logger.info({ fundingRequestId: req.params.id, adminId, amount: existing.amount, currency: payoutCurrency }, "First payout approval recorded");
+        return res.status(202).json({
+          status: 202,
+          code: "awaiting_second_approval",
+          data: `First approval recorded. Over ${approvalPolicy.thresholdFor(payoutCurrency).toLocaleString("en-GB")} ${payoutCurrency}, a second admin must approve within ${approvalPolicy.TTL_HOURS()} hours before any money moves.`,
+        });
+      }
+    }
+
     // Atomically claim Pending -> Approved. A double-click or two admins
     // approving at once can no longer both pass the status check and both
     // trigger a disbursement.
     const fundingRequest = await FundingRequests.findOneAndUpdate(
-      { _id: req.params.id, status: "Pending" },
+      { _id: req.params.id, status: "Pending", ...(dual ? { "firstApproval.adminId": { $nin: ["", adminId] } } : {}) },
       {
         $set: {
           status: "Approved",
           approvedAt: Date.now(),
           declineReason: "",
-          adminId: profile._id || profile.id,
-          adminName: `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || "Admin",
+          adminId,
+          adminName,
         },
       },
       { new: true }

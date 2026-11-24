@@ -16,6 +16,7 @@ type Submission = {
   submittedAt: string;
   status: string;
   user: { id: string; name: string; email: string; country?: string; city?: string };
+  databaseCheck?: { country: string; idType: string; idLast4: string; outcome: string; nameMatch: string; dobMatch: boolean | null; duplicates: number; checkedAt: string } | null;
   items: Item[];
   review?: { decision?: string; reason?: string; adminName?: string; decidedAt?: string; nameOnId?: string };
 };
@@ -92,6 +93,24 @@ function Review({ s, onDone }: { s: Submission; onDone: (msg: string) => void })
         </div>
         <span className={`ft-chip ${allIntact ? "ft-chip--ok" : "ft-chip--bad"}`}>{allIntact ? "Seals intact" : "Seal problem — don't approve"}</span>
       </header>
+      {s.databaseCheck ? (
+        <p
+          style={{
+            margin: "10px 0 0",
+            padding: "8px 12px",
+            borderRadius: 8,
+            fontSize: 14,
+            background: s.databaseCheck.outcome === "verified" && s.databaseCheck.nameMatch === "exact" && !s.databaseCheck.duplicates ? "#ecfdf5" : "#fff7ed",
+          }}
+        >
+          <strong>Government database ({s.databaseCheck.idType.replace("_", " ")}, {s.databaseCheck.country}, ending {s.databaseCheck.idLast4}):</strong>{" "}
+          {s.databaseCheck.outcome === "verified" ? `found; name ${s.databaseCheck.nameMatch === "exact" ? "matches" : s.databaseCheck.nameMatch === "partial" ? "partly matches" : "does NOT match"}` : s.databaseCheck.outcome.replace("_", " ")}
+          {s.databaseCheck.dobMatch === false ? "; date of birth doesn't match" : ""}
+          {s.databaseCheck.duplicates ? ` · ⚠ the same ID is on ${s.databaseCheck.duplicates} other account${s.databaseCheck.duplicates === 1 ? "" : "s"}` : ""}
+        </p>
+      ) : (
+        <p className="ft-muted" style={{ margin: "10px 0 0", fontSize: 14 }}>No government database check run.</p>
+      )}
 
       <p style={{ margin: "14px 0 6px" }}>
         Code to hear: <strong style={{ fontFamily: "monospace", fontSize: 20, letterSpacing: "0.15em" }}>{s.code}</strong>
